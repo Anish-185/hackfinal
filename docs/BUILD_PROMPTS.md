@@ -264,6 +264,13 @@ Acceptance checks:
 - Report for the demo session matches the breakdown JSON
 ```
 
+Implemented in backend/scoring/ (correctness.py, score_session.py), backend/app/routes/scores.py
+(GET /sessions/{id}/score, POST /sessions/{id}/regrade), contracts/score_breakdown.schema.json
+and frontend/app/report/[id]/. The submit job stores the breakdown. `make e2e` (e2e/) drives
+the whole demo in headless Chromium and checks the report against the breakdown JSON; later
+prompts re-run it instead of re-testing the browser flow by hand, and update e2e/demo.mjs when
+they change the flow or the expected scores.
+
 ## Phase 2: Generation + gate
 
 ### P2.1 Taxonomy and profiler

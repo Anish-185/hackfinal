@@ -66,6 +66,12 @@ pytest, FastAPI, SQLAlchemy and Pydantic are also installed in the Python image 
 | [Python](https://www.python.org/) (`python:3.11-slim`) | PSF-2.0 | API and worker image base |
 | [Node.js](https://nodejs.org/) (`node:24-slim`) | MIT | Frontend image base |
 
+### End-to-end test (`e2e/`)
+
+| Software | License | Use |
+| :--- | :--- | :--- |
+| [Playwright](https://github.com/microsoft/playwright) 1.64.1 (npm package and `mcr.microsoft.com/playwright:v1.64.1-noble` image with Chromium) | Apache-2.0 | `make e2e`: headless-browser run of the demo flow |
+
 ### Models and services (via Featherless)
 
 | Model / service | License | Use |

@@ -2,11 +2,12 @@ from fastapi import FastAPI
 
 from app.cache import check_redis
 from app.db import check_db
-from app.routes import jobs, sessions
+from app.routes import jobs, scores, sessions
 
 app = FastAPI(title="HFT26 Team 41 API")
 app.include_router(sessions.router)
 app.include_router(jobs.router)
+app.include_router(scores.router)
 
 
 @app.get("/health")

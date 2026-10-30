@@ -9,9 +9,9 @@ WORKDIR /app
 
 # Install dependencies first so code edits don't bust the layer cache.
 COPY pyproject.toml ./
-RUN mkdir app builder contracts_gen llm runner \
+RUN mkdir app builder contracts_gen llm runner scoring \
     && touch app/__init__.py builder/__init__.py contracts_gen/__init__.py llm/__init__.py \
-       runner/__init__.py \
+       runner/__init__.py scoring/__init__.py \
     && pip install -e ".[dev]"
 
 COPY . .

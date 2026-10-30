@@ -222,7 +222,9 @@ def test_submit_uses_the_latest_snapshot(db, runner, session_id) -> None:
         "final": True,
     }
     [score] = rows(db, Score)
-    assert score.breakdown["tasks"][TASK]["hidden"] == {"passed": 1, "total": 1}
+    [task] = score.breakdown["tasks"]
+    assert task["hidden"] == {"passed": 1, "total": 1}
+    assert score.breakdown["final_score"] == 100.0
     assert db.get(AssessmentSession, uuid.UUID(session_id)).status == "submitted"
 
 
@@ -230,7 +232,8 @@ def test_submit_without_snapshot_grades_the_starter(db, runner, session_id) -> N
     grading.process_submit(db, session_id)
 
     assert all(call["files"]["app/calc.py"] == BUGGY for call in runner.calls)
-    assert rows(db, Score)[0].breakdown["tasks"][TASK]["visible"]["passed"] == 0
+    [task] = rows(db, Score)[0].breakdown["tasks"]
+    assert task["visible"]["passed"] == 0
 
 
 def test_submit_is_idempotent(db, runner, session_id) -> None:

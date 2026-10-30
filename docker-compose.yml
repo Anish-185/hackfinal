@@ -85,5 +85,18 @@ services:
     depends_on:
       - api
 
+  # Headless Chromium for `make e2e` (e2e/run.sh); not started by `make up`. Shares the
+  # frontend's network namespace, so the browser opens http://localhost:3000 as a
+  # developer would (next dev serves its dev assets to localhost only).
+  e2e:
+    build: ./e2e
+    profiles: ["e2e"]
+    network_mode: "service:frontend"
+    environment:
+      BASE_URL: http://localhost:3000
+    volumes:
+      # Failure screenshots.
+      - ./e2e/artifacts:/e2e/artifacts
+
 volumes:
   postgres-data:

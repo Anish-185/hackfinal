@@ -93,8 +93,9 @@ Also used by the P0 code (see .env.example for values and comments):
 
 ## Layout
 contracts/   JSON Schemas (source of truth) + fixtures + generated types
-frontend/    Next.js app: app/recruiter, app/session/[id], app/report/[id],
-             app/interview/[id]. lib/api.ts (browser client, calls /api,
+frontend/    Next.js app: app/recruiter, app/session/[id], app/report/[id]
+             (score, band, per-task table, Re-grade), app/interview/[id].
+             lib/api.ts (browser client, calls /api,
              rewritten to API_URL in next.config.ts), lib/telemetry.ts,
              lib/workspace.ts (mirror of backend/app/workspace.py: keep in sync),
              lib/monaco.ts (bundled Monaco, no CDN; add a language there)
@@ -110,10 +111,13 @@ backend/     app/            FastAPI app and plumbing:
                              AST test split, validation), seeds.py, seed_demo.py
              app/dsa.py      DSA grading: harness gets inputs only, outputs
                              compared on the backend (runner/harness/)
+             scoring/        correctness.py (pure formulas, passed_ids, bands),
+                             score_session.py (ScoreBreakdown from stored submit
+                             runs + events; used by submit and POST .../regrade)
              migrations/     Alembic (alembic.ini next to it)
              llm/ runner/ contracts_gen/ scripts/ tests/
-             planned packages: profiler/ builder/ gate/ assistant/
-             scoring/ trail/ interviewer/
+             planned packages: profiler/ gate/ assistant/ trail/
+             interviewer/
              A new top-level package must be added to `packages` in
              backend/pyproject.toml and to the mkdir line in backend/Dockerfile.
 seeds/       hand-written seed repos, each with tests + concepts.yaml
@@ -122,6 +126,8 @@ dsa/         DSA bank: one folder per problem (problem.md, stub.py,
              read-only at /dsa); expected answers never reach a sandbox
 runtimes/    Dockerfiles per runtime
 sim/         simulated candidate scripts
+e2e/         `make e2e`: headless Chromium (Playwright image) drives the demo flow;
+             demo.mjs holds the steps and expected scores, run.sh the wiring
 docs/        blueprint, prompts, progress, interviewer spec
 
 ## Tiers
@@ -130,13 +136,24 @@ docs/        blueprint, prompts, progress, interviewer spec
 - master: multi-file bug + performance constraint + medium/hard DSA, assistant enabled
 
 ## Commands
-make up | make down | make migrate | make seed-demo | make test | make test-docker |
-make lint | make contracts | make runtimes | make llm-smoke | make llm-usage
+make up | make down | make migrate | make seed-demo | make e2e | make test |
+make test-docker | make lint | make contracts | make runtimes | make llm-smoke |
+make llm-usage
 (Keep this list in sync with the Makefile.)
 
 - `make seed-demo`: builds and validates the P1.3 demo tasks in the sandbox
   (~1 min), stores an assessment for the portfolio fixture, starts its session
   (the 60-minute timer starts now) and prints the session URL.
+
+- `make e2e`: needs the stack up (`make up`; restart the worker after backend
+  changes, it doesn't reload). Runs `make seed-demo`, then headless Chromium:
+  starter Run (a visible test fails) → fix both tasks by pasting into the bundled
+  Monaco → Run → Submit → report, asserting final 100 / Strong, every visible and
+  hidden test passed, run counts, time on task, report = breakdown JSON, Re-grade
+  identical. Any request leaving the stack (e.g. a CDN) fails it. ~2 min; a
+  failure saves e2e/artifacts/failure.png. Re-run it instead of re-testing the
+  browser flow by hand; when a phase changes the flow or the expected scores,
+  update e2e/demo.mjs in the same change.
 
 - `make migrate`: `alembic upgrade head` on the dev database. A schema change
   means: edit app/models.py → `docker compose run --rm api alembic revision
@@ -190,7 +207,8 @@ scoring · C Frontend + interviewer UI. Person-to-role mapping: TBD.
 
 ## Working rules for Claude
 - Before finishing any task, run the relevant tests and show the output.
-  Never claim something works without running it.
+  Never claim something works without running it. Any change that touches the
+  candidate IDE, the report, grading or scoring also runs `make e2e`.
 - Keep changes scoped to the current prompt. Don't refactor unrelated code.
 - Add dependencies only when needed, pin versions, and attribute them.
 - Prefer simple, readable code over clever abstractions.

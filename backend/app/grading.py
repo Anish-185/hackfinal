@@ -36,6 +36,8 @@ from contracts_gen.event import (
 from contracts_gen.run_result import RunResult, Summary
 from contracts_gen.task_spec import TaskSpec, TestFile
 from runner import run_tests
+from scoring.correctness import passed_ids
+from scoring.score_session import score_session
 
 logger = logging.getLogger(__name__)
 
@@ -72,13 +74,6 @@ def checked_run(
             }
         )
     return result
-
-
-def passed_ids(result: RunResult, expected_ids: list[str]) -> set[str]:
-    """Expected tests that passed. A run that isn't "ok" passes nothing."""
-    if result.status != "ok":
-        return set()
-    return {t.id for t in result.tests if t.outcome == "passed"} & set(expected_ids)
 
 
 def run_visible(spec: TaskSpec, candidate_files: dict[str, str]) -> RunResult:
@@ -207,7 +202,7 @@ def process_run(
 
 
 def process_submit(db: Session, session_id: str) -> None:
-    """Submit job body: grade every task's latest snapshot once, then store a stub score.
+    """Submit job body: grade every task's latest snapshot once, then store the score.
 
     Idempotent: the session row is locked, and a session that already has a score is
     skipped, so a retried or duplicated job does nothing.
@@ -226,7 +221,6 @@ def process_submit(db: Session, session_id: str) -> None:
     tasks = db.scalars(
         select(Task).where(Task.assessment_id == session.assessment_id).order_by(Task.order)
     ).all()
-    breakdown: dict[str, Any] = {"stub": True, "tasks": {}}
     for task in tasks:
         spec = TaskSpec.model_validate(task.spec)
         snapshot = db.scalars(
@@ -260,10 +254,8 @@ def process_submit(db: Session, session_id: str) -> None:
             payload=SubmitPayload(visible=visible, hidden=hidden, perf_ms=None, final=True),
         )
         db.add(_event_row(session.id, event))
-        breakdown["tasks"][task.task_id] = {
-            "visible": visible.model_dump(),
-            "hidden": hidden.model_dump(),
-        }
+    db.flush()
+    breakdown = score_session(db, session.id).model_dump(mode="json")
     db.add(Score(session_id=session.id, computed_at=datetime.now(UTC), breakdown=breakdown))
     db.commit()
 

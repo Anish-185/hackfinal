@@ -1,5 +1,5 @@
 // Browser-side API client. Calls go through the /api rewrite in next.config.ts.
-import type { CandidateTaskView, Event, RunResult } from "./types";
+import type { CandidateTaskView, Event, RunResult, ScoreBreakdown } from "./types";
 
 export const API_BASE = "/api";
 
@@ -26,6 +26,12 @@ export type JobView = {
   status: "queued" | "running" | "done" | "failed";
   result: RunResult | null;
   error: string | null;
+};
+
+export type ScoreOut = {
+  status: "in_progress" | "grading" | "graded"; // in_progress: not submitted yet
+  computed_at: string | null;
+  breakdown: ScoreBreakdown | null;
 };
 
 export class ApiError extends Error {
@@ -62,4 +68,6 @@ export const api = {
   submit: (id: string) => request<{ job_id: string }>("POST", `/sessions/${id}/submit`),
   getJob: (jobId: string) => request<JobView>("GET", `/jobs/${jobId}`),
   postEvents: (id: string, events: Event[]) => request<{ accepted: number }>("POST", `/sessions/${id}/events`, events),
+  getScore: (id: string) => request<ScoreOut>("GET", `/sessions/${id}/score`),
+  regrade: (id: string) => request<ScoreBreakdown>("POST", `/sessions/${id}/regrade`),
 };

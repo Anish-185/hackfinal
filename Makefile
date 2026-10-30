@@ -1,4 +1,4 @@
-.PHONY: up down migrate seed-demo test test-docker lint contracts runtimes llm-smoke llm-usage
+.PHONY: up down migrate seed-demo e2e test test-docker lint contracts runtimes llm-smoke llm-usage
 
 up:
 	docker compose up -d --build
@@ -14,6 +14,12 @@ migrate:
 # session and print the URL. Runs in the worker (it needs the Docker socket).
 seed-demo:
 	docker compose run --rm worker sh -c "alembic upgrade head && python -m builder.seed_demo"
+
+# Headless-browser run of the demo against the running stack (`make up` first): a fresh
+# seed-demo session, fix both tasks in the bundled Monaco, Run, Submit, open the report
+# and assert the scores. Any request leaving the stack fails it. ~2 min.
+e2e:
+	./e2e/run.sh
 
 # Starts postgres/redis if needed; the health test hits the real services. API tests
 # build their own <db>_test database from the migrations, never touching dev data.

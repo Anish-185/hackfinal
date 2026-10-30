@@ -11,6 +11,7 @@ from contracts_gen.candidate_task_view import CandidateTaskView
 from contracts_gen.event import Event
 from contracts_gen.portfolio import Portfolio
 from contracts_gen.run_result import RunResult
+from contracts_gen.score_breakdown import ScoreBreakdown
 from contracts_gen.task_spec import TaskSpec
 
 # backend/tests/ -> repo root. In the api container this resolves to /contracts.
@@ -23,6 +24,7 @@ MODELS: dict[str, type[BaseModel]] = {
     "candidate_task_view": CandidateTaskView,
     "event": Event,
     "run_result": RunResult,
+    "score_breakdown": ScoreBreakdown,
 }
 
 # The reason each invalid fixture must be rejected, as a fragment of the jsonschema error.
@@ -33,6 +35,7 @@ INVALID_REASONS = {
     "candidate_task_view": "'hidden_tests' was unexpected",
     "event": "is not valid under any of the given schemas",
     "run_result": "'crashed' is not one of",
+    "score_breakdown": "'excellent' is not one of",
 }
 
 # TaskSpec fields that must never reach the browser (CLAUDE.md rule 2).
