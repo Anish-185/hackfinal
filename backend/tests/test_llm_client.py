@@ -137,6 +137,7 @@ def test_structured_call_parses_and_records_usage(api, make_client) -> None:
     assert body["chat_template_kwargs"] == {"thinking": False}
     assert body["response_format"] == {"type": "json_object"}  # JSON mode
     assert "tools" not in body  # no native tool calling
+    assert body["max_tokens"] == 800  # token policy: every call sets max_tokens
 
     usage = client._usage.usage("generator")
     assert (usage.calls, usage.input_tokens, usage.output_tokens) == (1, 1000, 200)

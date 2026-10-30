@@ -10,6 +10,7 @@ from pydantic import BaseModel, ValidationError
 from contracts_gen.candidate_task_view import CandidateTaskView
 from contracts_gen.event import Event
 from contracts_gen.portfolio import Portfolio
+from contracts_gen.profile import Profile
 from contracts_gen.run_result import RunResult
 from contracts_gen.score_breakdown import ScoreBreakdown
 from contracts_gen.task_spec import TaskSpec
@@ -20,6 +21,7 @@ FIXTURES_DIR = CONTRACTS_DIR / "fixtures"
 
 MODELS: dict[str, type[BaseModel]] = {
     "portfolio": Portfolio,
+    "profile": Profile,
     "task_spec": TaskSpec,
     "candidate_task_view": CandidateTaskView,
     "event": Event,
@@ -31,6 +33,7 @@ MODELS: dict[str, type[BaseModel]] = {
 # Pinning the reason stops a fixture from passing because of an unrelated mistake.
 INVALID_REASONS = {
     "portfolio": "'assessment' is a required property",
+    "profile": "'mobile' is not one of",
     "task_spec": "'expert' is not one of",
     "candidate_task_view": "'hidden_tests' was unexpected",
     "event": "is not valid under any of the given schemas",

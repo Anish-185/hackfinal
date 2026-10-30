@@ -23,6 +23,8 @@ dependencies = [
     "openai==3.3.0",
     "instructor==1.17.0",
     "docker==7.2.0",
+    # dsa/taxonomy.yaml and seeds/*/concepts.yaml (profiler).
+    "pyyaml==6.0.3",
 ]
 
 [project.optional-dependencies]
@@ -33,11 +35,10 @@ dev = [
     "jsonschema==4.26.0",
     "datamodel-code-generator==0.87.0",
     "fakeredis==2.40.0",
-    "pyyaml==6.0.3",
 ]
 
 [tool.hatch.build.targets.wheel]
-packages = ["app", "builder", "contracts_gen", "llm", "runner", "scoring"]
+packages = ["app", "builder", "contracts_gen", "llm", "profiler", "runner", "scoring"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

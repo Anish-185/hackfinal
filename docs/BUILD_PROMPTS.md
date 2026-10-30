@@ -307,6 +307,14 @@ Acceptance checks:
 - `make test` passes; show the Profile for each fixture
 ```
 
+Implemented in backend/profiler/ (keywords.py, taxonomy.py, profile.py, `python -m profiler
+FILE...` prints profiles), dsa/taxonomy.yaml (22 topics; thresholds and tier rules are
+configurable there), contracts/profile.schema.json, POST /profiles (backend/app/routes/
+profiles.py; migration 0003 adds assessments.profile). Portfolio fixtures for every case are
+in contracts/fixtures/portfolio.valid.*.json. Allowed topics per tier use the tier's
+difficulty (novice easy ≥1, adept medium ≥5, master hard ≥15). `sources` records whether
+each inferred field came from the rules, the LLM fallback or a default.
+
 ### P2.2 Mutation engine (Novice)
 
 ```text

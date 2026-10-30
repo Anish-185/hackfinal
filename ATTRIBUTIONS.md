@@ -27,7 +27,7 @@ Add every new one here in the same change that introduces it (CLAUDE.md).
 | [jsonschema](https://github.com/python-jsonschema/jsonschema) | MIT | Validating contract fixtures in tests (dev) |
 | [datamodel-code-generator](https://github.com/koxudaxi/datamodel-code-generator) | MIT | Generating Pydantic models from contracts/ (dev) |
 | [fakeredis](https://github.com/cunla/fakeredis-py) | BSD-3-Clause | In-memory Redis for LLM client tests (dev) |
-| [PyYAML](https://github.com/yaml/pyyaml) | MIT | Reading seed concepts.yaml files (dev) |
+| [PyYAML](https://github.com/yaml/pyyaml) | MIT | Reading dsa/taxonomy.yaml and seed concepts.yaml files (profiler, tests) |
 
 ### Frontend (TypeScript, `frontend/package.json`)
 

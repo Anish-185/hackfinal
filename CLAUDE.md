@@ -111,19 +111,26 @@ backend/     app/            FastAPI app and plumbing:
                              AST test split, validation), seeds.py, seed_demo.py
              app/dsa.py      DSA grading: harness gets inputs only, outputs
                              compared on the backend (runner/harness/)
+             profiler/       portfolio -> Profile (P2.1): keywords.py (keyword maps),
+                             taxonomy.py (dsa/taxonomy.yaml, seed concept
+                             vocabulary), profile.py (rules; one generator call
+                             only if no domain or no concept); POST /profiles
+                             stores it on a new assessment (status "profiled")
              scoring/        correctness.py (pure formulas, passed_ids, bands),
                              score_session.py (ScoreBreakdown from stored submit
                              runs + events; used by submit and POST .../regrade)
              migrations/     Alembic (alembic.ini next to it)
              llm/ runner/ contracts_gen/ scripts/ tests/
-             planned packages: profiler/ gate/ assistant/ trail/
+             planned packages: gate/ assistant/ trail/
              interviewer/
              A new top-level package must be added to `packages` in
              backend/pyproject.toml and to the mkdir line in backend/Dockerfile.
 seeds/       hand-written seed repos, each with tests + concepts.yaml
 dsa/         DSA bank: one folder per problem (problem.md, stub.py,
-             reference.py, cases.json, make_cases.py). Backend only (mounted
-             read-only at /dsa); expected answers never reach a sandbox
+             reference.py, cases.json, make_cases.py) and taxonomy.yaml
+             (canonical topics, synonyms, tiers, solved-count thresholds,
+             tier rules). Backend only (mounted read-only at /dsa); expected
+             answers never reach a sandbox
 runtimes/    Dockerfiles per runtime
 sim/         simulated candidate scripts
 e2e/         `make e2e`: headless Chromium (Playwright image) drives the demo flow;

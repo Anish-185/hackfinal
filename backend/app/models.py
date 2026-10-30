@@ -38,6 +38,9 @@ class Assessment(Base):
     portfolio: Mapped[dict[str, Any]]
     tier: Mapped[str] = mapped_column(String(16))
     status: Mapped[str] = mapped_column(String(16), default="ready")
+    """profiled: POST /profiles stored a Profile, tasks not built yet. ready: tasks built."""
+    profile: Mapped[dict[str, Any] | None]
+    """A Profile (contracts/profile.schema.json) from backend/profiler. Null if not profiled."""
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
 

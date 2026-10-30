@@ -68,9 +68,17 @@ class LLMClient:
         response_model: type[T],
         temperature: float = 0.2,
         max_retries: int = 3,
+        max_tokens: int = 800,
     ) -> tuple[T, CallInfo]:
         config = self._settings.slot(slot)
-        key = cache_key(slot, config.model, messages, response_model.__name__, temperature)
+        key = cache_key(
+            slot,
+            config.model,
+            messages,
+            response_model.__name__,
+            temperature,
+            max_tokens=max_tokens,
+        )
         start = time.perf_counter()
 
         cached = self._cache.get(key)
@@ -92,6 +100,7 @@ class LLMClient:
                 response_model=response_model,
                 temperature=temperature,
                 max_retries=max_retries,
+                max_tokens=max_tokens,
                 **self._extra_body(config),
             )
         except InstructorRetryException as exc:
@@ -220,9 +229,15 @@ def complete_structured(
     response_model: type[T],
     temperature: float = 0.2,
     max_retries: int = 3,
+    max_tokens: int = 800,
 ) -> T:
     result, _ = default_client().structured(
-        slot, messages, response_model, temperature=temperature, max_retries=max_retries
+        slot,
+        messages,
+        response_model,
+        temperature=temperature,
+        max_retries=max_retries,
+        max_tokens=max_tokens,
     )
     return result
 
