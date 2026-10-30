@@ -212,6 +212,24 @@ scoring · C Frontend + interviewer UI. Person-to-role mapping: TBD.
 - Stores transcripts, not audio, by default.
 - Follows the token budget rules in docs/INTERVIEWER.md.
 
+## Speed rules
+- While developing, run only the tests for the files you changed
+  (`pytest path/to/test_file.py` or `-k`). Run the full `make test` once, at
+  the end.
+- Run `make test-docker` only if runner, sandbox, grading, or builder code
+  changed, and only once, at the end.
+- Run `make e2e` only if the IDE, report, grading, or scoring changed, and
+  only once, at the end.
+- Never re-run checks after a docs-only change.
+- If test suites are parallel-safe, add pytest-xdist (`-n auto`) to
+  `make test` and `make test-docker`; skip any suite that isn't.
+- Don't explore the repo beyond what the task needs; the layout is in this
+  file.
+- For small choices, decide, log the decision in docs/PROGRESS.md, and keep
+  going. Only stop to ask when a choice conflicts with a rule here.
+- Keep the final report under 15 lines: what changed, check results,
+  decisions to review, gaps. No tables unless asked.
+
 ## Working rules for Claude
 - Before finishing any task, run the relevant tests and show the output.
   Never claim something works without running it. Any change that touches the

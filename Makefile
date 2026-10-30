@@ -36,10 +36,11 @@ lint:
 	docker compose run --rm --no-deps api ruff format --check . /seeds
 	docker compose run --rm --no-deps frontend npm run lint
 
-# Regenerate types from contracts/*.schema.json. Commit the output.
+# Regenerate types from contracts/*.schema.json. Commit the output. Runs as the host user
+# so the generated files aren't root-owned.
 contracts:
-	docker compose run --rm --no-deps api python scripts/generate_contracts.py
-	docker compose run --rm --no-deps frontend npm run --silent contracts
+	docker compose run --rm --no-deps --user "$$(id -u):$$(id -g)" api python scripts/generate_contracts.py
+	docker compose run --rm --no-deps --user "$$(id -u):$$(id -g)" frontend npm run --silent contracts
 
 # Sandbox images used by backend/runner.
 runtimes:

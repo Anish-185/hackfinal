@@ -84,6 +84,7 @@ Roles: A Execution · B Generation + AI and scoring · C Frontend + interviewer 
 | 2026-10-31 | Profiler LLM fallback fills only the fields the rules left empty; its answers are enum-restricted (an invalid answer counts as a failure); on failure (budget, error) defaults backend/python311/no concepts with a note. The prompt holds descriptive fields only (no name or contact details), ≤1500 chars | Rules stay authoritative and reproducible; token policy and privacy |
 | 2026-10-31 | POST /profiles creates the assessment (status "profiled", tier = suggested tier) and stores the Profile on it (assessments.profile) | "Stored on the assessment" before any task exists; P2.9 lets the recruiter change the tier and builds the tasks |
 | 2026-10-31 | LLMClient.structured() takes max_tokens (default 800, part of the cache key) | Token policy: every call sets max_tokens; P2.1 needs 150 |
+| 2026-10-31 | Speed rules added to CLAUDE.md; the pytest-xdist rule is recorded as a rule but not applied yet (parallel safety of the API and docker suites unchecked; the API tests share one `<db>_test` database) | Chore scope is the rules text; apply xdist when a suite is shown parallel-safe |
 
 ## Session log
 
@@ -100,3 +101,4 @@ Roles: A Execution · B Generation + AI and scoring · C Frontend + interviewer 
 | 2026-10-31 | Anish (Claude Code) | P1.5 scoring and report + `make e2e` (asked for the e2e; P1.5 done first so the e2e can assert real scores). No LLM calls | P2.1 Taxonomy and profiler; re-run `make e2e` after IDE/report/grading/scoring changes |
 | 2026-10-31 | Anish (Claude Code) | LLM config check: make llm-smoke (interviewer slot gated → Qwen/Qwen2.5-7B-Instruct), make llm-usage ($0.000129 total), working model IDs recorded; make e2e now restarts worker and beat | P2.1 Taxonomy and profiler |
 | 2026-10-31 | Anish (Claude Code) | P2.1 taxonomy and profiler; one real generator call for the vague fixture ($0.00006) | P2.2 Mutation engine (Novice) |
+| 2026-10-31 | Anish (Claude Code) | Chore: `make contracts` runs as the host user (generated files no longer root-owned; checked, output unchanged); Speed rules section in CLAUDE.md | P2.6 DSA bank (waiting for the full block 11 prompt) |
