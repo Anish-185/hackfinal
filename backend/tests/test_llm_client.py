@@ -83,15 +83,19 @@ def make_settings(**overrides) -> LLMSettings:
         "featherless_model_generator": "mock/generator-model",
         "featherless_model_assistant": "mock/assistant-model",
         "featherless_model_probe": "mock/probe-model",
+        "featherless_model_interviewer": "mock/interviewer-model",
         "featherless_price_in_generator": 0.14,
         "featherless_price_out_generator": 0.28,
         "featherless_price_in_assistant": 0.14,
         "featherless_price_out_assistant": 0.28,
         "featherless_price_in_probe": 0.125,
         "featherless_price_out_probe": 0.45,
+        "featherless_price_in_interviewer": 0.05,
+        "featherless_price_out_interviewer": 0.08,
         "featherless_chat_template_kwargs_generator": {"thinking": False},
         "featherless_chat_template_kwargs_assistant": {"thinking": False},
         "featherless_chat_template_kwargs_probe": {},
+        "featherless_chat_template_kwargs_interviewer": {},
         "llm_timeout_s": 5.0,
         "llm_max_retries": 2,
         "llm_cache_enabled": True,
@@ -145,6 +149,17 @@ def test_slot_without_template_kwargs_sends_none(api, make_client) -> None:
 
     assert api.requests[0]["model"] == "mock/probe-model"
     assert "chat_template_kwargs" not in api.requests[0]
+
+
+def test_interviewer_slot_uses_its_own_model_and_prices(api, make_client) -> None:
+    api.queue(ok(prompt_tokens=1000, completion_tokens=200))
+    client = make_client()
+
+    _, info = client.structured("interviewer", MESSAGES, StackInfo)
+
+    assert api.requests[0]["model"] == "mock/interviewer-model"
+    assert info.cost_usd == pytest.approx((1000 * 0.05 + 200 * 0.08) / 1_000_000)
+    assert client._usage.usage("interviewer").calls == 1
 
 
 def _connect_error(request: httpx2.Request) -> httpx2.Response:

@@ -6,7 +6,7 @@ from typing import Any, Literal, get_args
 from pydantic import BaseModel, SecretStr
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
-Slot = Literal["generator", "assistant", "probe"]
+Slot = Literal["generator", "assistant", "probe", "interviewer"]
 SLOTS: tuple[Slot, ...] = get_args(Slot)
 
 FEATHERLESS_BASE_URL = "https://api.featherless.ai/v1"
@@ -32,15 +32,19 @@ class LLMSettings(BaseSettings):
     featherless_model_generator: str = ""
     featherless_model_assistant: str = ""
     featherless_model_probe: str = ""
+    featherless_model_interviewer: str = ""
     featherless_price_in_generator: float | None = None
     featherless_price_out_generator: float | None = None
     featherless_price_in_assistant: float | None = None
     featherless_price_out_assistant: float | None = None
     featherless_price_in_probe: float | None = None
     featherless_price_out_probe: float | None = None
+    featherless_price_in_interviewer: float | None = None
+    featherless_price_out_interviewer: float | None = None
     featherless_chat_template_kwargs_generator: dict[str, Any] = {}
     featherless_chat_template_kwargs_assistant: dict[str, Any] = {}
     featherless_chat_template_kwargs_probe: dict[str, Any] = {}
+    featherless_chat_template_kwargs_interviewer: dict[str, Any] = {}
 
     llm_timeout_s: float = 60.0
     llm_max_retries: int = 3

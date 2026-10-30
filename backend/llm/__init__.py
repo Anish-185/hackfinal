@@ -1,6 +1,7 @@
 """The only way this project calls Featherless (CLAUDE.md rule 6).
 
-Code refers to model slots ("generator", "assistant", "probe"), never to model IDs.
+Code refers to model slots ("generator", "assistant", "probe", "interviewer"), never to
+model IDs.
 """
 
 from llm.budget import BudgetExceededError
