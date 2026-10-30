@@ -373,6 +373,13 @@ Acceptance checks:
 - `make test` passes; show `make remove-feature` output
 ```
 
+Implemented in backend/builder/remove_feature.py (`python -m builder.remove_feature SEED
+[CONCEPT]`). Targets are a concept's functions and non-dunder methods; data classes and
+type aliases stay as the interface. In py-fastapi-expenses, auth and reporting span 2-3
+files; auth is rejected by the runner check (every endpoint depends on it), reporting
+becomes the Adept draft. Docstrings were added to repo.find_user_by_token and
+routes.get_monthly_report.
+
 ### Specs for the rest of Phase 2
 
 - **P2.4 Master builder:** a bug plus a performance regression (e.g. dict

@@ -35,6 +35,7 @@ def get_session(request: Request) -> Iterator[Session]:
 
 
 def find_user_by_token(session: Session, token: str) -> User | None:
+    """The user whose bearer token is `token`, or None."""
     return session.scalar(select(User).where(User.token == token))
 
 

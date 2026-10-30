@@ -110,7 +110,9 @@ backend/     app/            FastAPI app and plumbing:
              builder/        task builders: manual.py (P1.3 demo tasks; its bug comes
                              from mutate.py, hand AST bug as fallback), mutate.py
                              (P2.2 mutation engine, LibCST operators, sandbox
-                             pre-filter, draft Novice spec), tasks.py (shared:
+                             pre-filter, draft Novice spec), remove_feature.py
+                             (P2.3: stub a concept across 2-3 files, runner
+                             checks, draft Adept spec), tasks.py (shared:
                              concepts.yaml, starter files, visible/hidden split,
                              validation), seeds.py, seed_demo.py
              app/dsa.py      DSA grading: harness gets inputs only, outputs
@@ -149,7 +151,7 @@ docs/        blueprint, prompts, progress, interviewer spec
 ## Commands
 make up | make down | make migrate | make seed-demo | make e2e | make test |
 make test-docker | make lint | make contracts | make runtimes | make mutate |
-make llm-smoke | make llm-usage
+make remove-feature | make llm-smoke | make llm-usage
 (Keep this list in sync with the Makefile.)
 
 - `make seed-demo`: builds and validates the P1.3 demo tasks in the sandbox
@@ -179,6 +181,9 @@ make llm-smoke | make llm-usage
 - `make mutate SEED=... CONCEPT=... [RNG_SEED=0]`: list a seed concept's bug
   candidates, pre-filter them in the sandbox (≤12 runs) and print a validated
   draft Novice task from the best one. Runs in the worker; no LLM calls.
+- `make remove-feature SEED=... [CONCEPT=...]`: without CONCEPT, list which
+  concepts span 2–3 files; with it, stub that concept, check it in the sandbox
+  and print a validated draft Adept task. Runs in the worker; no LLM calls.
 - `make llm-smoke`: one real request per slot; spends credits on a cache miss.
 - `make llm-usage`: tokens and estimated spend per slot.
 

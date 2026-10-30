@@ -28,7 +28,7 @@ Add every new one here in the same change that introduces it (CLAUDE.md).
 | [datamodel-code-generator](https://github.com/koxudaxi/datamodel-code-generator) | MIT | Generating Pydantic models from contracts/ (dev) |
 | [fakeredis](https://github.com/cunla/fakeredis-py) | BSD-3-Clause | In-memory Redis for LLM client tests (dev) |
 | [PyYAML](https://github.com/yaml/pyyaml) | MIT | Reading dsa/taxonomy.yaml and seed concepts.yaml files (profiler, tests) |
-| [LibCST](https://github.com/Instagram/LibCST) | MIT | Formatting-preserving code edits in the task builders: bug mutation (`builder/mutate.py`) |
+| [LibCST](https://github.com/Instagram/LibCST) | MIT | Formatting-preserving code edits in the task builders: bug mutation (`builder/mutate.py`), feature removal (`builder/remove_feature.py`) |
 
 ### Frontend (TypeScript, `frontend/package.json`)
 

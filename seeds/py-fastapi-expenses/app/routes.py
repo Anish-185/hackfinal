@@ -74,4 +74,5 @@ def get_monthly_report(
     year: Annotated[int, Query(ge=2000, le=2100)],
     month: Annotated[int, Query(ge=1, le=12)],
 ) -> MonthlyReport:
+    """Cents spent per category by the current user in one calendar month."""
     return services.monthly_report(session, cache, user.id, year, month)
