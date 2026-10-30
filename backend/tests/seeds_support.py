@@ -5,9 +5,9 @@ from pathlib import Path
 
 import yaml
 
-# backend/tests/ -> repo root. In the containers this resolves to /seeds.
-SEEDS_DIR = Path(__file__).resolve().parents[2] / "seeds"
-SKIPPED_DIRS = {"__pycache__", ".pytest_cache", ".hypothesis"}
+from builder.seeds import SEEDS_DIR, seed_files
+
+__all__ = ["SEEDS_DIR", "load_concepts", "seed_dirs", "seed_files", "symbol_exists"]
 
 
 def seed_dirs() -> list[Path]:
@@ -16,15 +16,6 @@ def seed_dirs() -> list[Path]:
 
 def load_concepts(seed_dir: Path) -> dict:
     return yaml.safe_load((seed_dir / "concepts.yaml").read_text(encoding="utf-8"))
-
-
-def seed_files(seed_dir: Path) -> dict[str, str]:
-    """Every file in the seed, keyed by its path relative to the seed root."""
-    return {
-        path.relative_to(seed_dir).as_posix(): path.read_text(encoding="utf-8")
-        for path in sorted(seed_dir.rglob("*"))
-        if path.is_file() and not SKIPPED_DIRS & set(path.relative_to(seed_dir).parts)
-    }
 
 
 def symbol_exists(seed_dir: Path, ref: str) -> bool:

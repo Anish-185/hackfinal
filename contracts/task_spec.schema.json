@@ -169,10 +169,24 @@
     },
     "DsaCases": {
       "type": "object",
-      "required": ["visible", "hidden"],
+      "required": ["visible", "hidden", "comparator"],
       "properties": {
         "visible": { "type": "array", "items": { "$ref": "#/$defs/DsaCase" } },
-        "hidden": { "type": "array", "items": { "$ref": "#/$defs/DsaCase" } }
+        "hidden": { "type": "array", "items": { "$ref": "#/$defs/DsaCase" } },
+        "comparator": {
+          "oneOf": [{ "$ref": "#/$defs/Comparator" }, { "type": "null" }],
+          "description": "How the backend compares an output with the expected value. Null means exact JSON equality."
+        }
+      },
+      "additionalProperties": false
+    },
+    "Comparator": {
+      "type": "object",
+      "description": "unordered_list: the output and expected lists hold the same items in any order. float_tolerance: numbers may differ by at most tolerance (absolute), everything else exact.",
+      "required": ["kind", "tolerance"],
+      "properties": {
+        "kind": { "type": "string", "enum": ["exact", "unordered_list", "float_tolerance"] },
+        "tolerance": { "type": ["number", "null"], "minimum": 0 }
       },
       "additionalProperties": false
     },

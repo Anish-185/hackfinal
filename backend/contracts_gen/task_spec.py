@@ -47,12 +47,16 @@ class DsaCase(BaseModel):
     expected: Any
 
 
-class DsaCases(BaseModel):
+class Comparator(BaseModel):
+    """
+    unordered_list: the output and expected lists hold the same items in any order. float_tolerance: numbers may differ by at most tolerance (absolute), everything else exact.
+    """
+
     model_config = ConfigDict(
         extra="forbid",
     )
-    visible: list[DsaCase]
-    hidden: list[DsaCase]
+    kind: Literal["exact", "unordered_list", "float_tolerance"]
+    tolerance: float | None = Field(..., ge=0.0)
 
 
 class Perf(BaseModel):
@@ -101,6 +105,18 @@ class Certificate(BaseModel):
     scope_files: list[RelPath]
     """
     Files the reference solution changes.
+    """
+
+
+class DsaCases(BaseModel):
+    model_config = ConfigDict(
+        extra="forbid",
+    )
+    visible: list[DsaCase]
+    hidden: list[DsaCase]
+    comparator: Comparator | None
+    """
+    How the backend compares an output with the expected value. Null means exact JSON equality.
     """
 
 

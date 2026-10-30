@@ -1,5 +1,5 @@
-"""Grading against real sandboxes, on a task built from seeds/py-fastapi-expenses with an
-off-by-one pagination bug. Run with `make test-docker`.
+"""Grading against real sandboxes, on the P1.3 demo task (builder.manual): the
+py-fastapi-expenses seed with an off-by-one pagination bug. Run with `make test-docker`.
 """
 
 from datetime import UTC, datetime, timedelta
@@ -15,8 +15,6 @@ from app.workspace import build_workspace, runnable_test_paths
 from contracts_gen.task_spec import TaskSpec
 from runner import run_tests
 from tests.api_support import portfolio
-from tests.grading_support import tiny_spec
-from tests.seeds_support import SEEDS_DIR, seed_files
 
 pytestmark = pytest.mark.docker
 
@@ -31,30 +29,9 @@ FORCE_PASS = (
 )
 
 
-@pytest.fixture(scope="module")
-def seed_spec() -> dict[str, Any]:
-    files = seed_files(SEEDS_DIR / "py-fastapi-expenses")
-    starter = {
-        p: c
-        for p, c in files.items()
-        if p.startswith("app/") or p in ("pytest.ini", "tests/conftest.py")
-    }
-    assert FIX in starter["app/utils.py"]
-    starter["app/utils.py"] = starter["app/utils.py"].replace(FIX, BUG)
-
-    def tests(*names: str) -> list[dict[str, str]]:
-        return [{"path": f"tests/{n}", "content": files[f"tests/{n}"]} for n in names]
-
-    spec = tiny_spec() | {
-        "task_id": "expenses-pagination",
-        "seed_id": "py-fastapi-expenses",
-        "starter_files": starter,
-        "visible_tests": tests("test_pagination.py"),
-        "hidden_tests": tests("test_filtering.py", "test_sorting.py"),
-        "target_symbols": ["app/utils.py::paginate"],
-        "entry_symbols": ["app/routes.py::list_expenses"],
-    }
-    return grading.derive_test_ids(spec)
+@pytest.fixture
+def seed_spec(pagination_task) -> dict[str, Any]:
+    return pagination_task.spec
 
 
 @pytest.fixture
@@ -71,15 +48,6 @@ def session_id(db, seed_spec) -> str:
 
 def fixed_utils(spec: dict[str, Any]) -> dict[str, str]:
     return {"app/utils.py": spec["starter_files"]["app/utils.py"].replace(BUG, FIX)}
-
-
-def test_derived_ids_match_the_test_files(seed_spec) -> None:
-    assert seed_spec["visible_test_ids"]
-    assert all(i.startswith("tests/test_pagination.py::") for i in seed_spec["visible_test_ids"])
-    assert {i.split("::")[0] for i in seed_spec["hidden_test_ids"]} == {
-        "tests/test_filtering.py",
-        "tests/test_sorting.py",
-    }
 
 
 def test_real_run_stores_both_runs_and_one_event(db, seed_spec, session_id) -> None:

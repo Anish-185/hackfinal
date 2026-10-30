@@ -103,6 +103,10 @@ backend/     app/            FastAPI app and plumbing:
                              tasks), grading.py (run/submit/auto-submit),
                              workspace.py (editable allowlist), integrity.py
                              (suspicious-code scan), candidate_view.py, config.py
+             builder/        task builders: manual.py (P1.3 demo tasks: AST bug,
+                             AST test split, validation), seeds.py, seed_demo.py
+             app/dsa.py      DSA grading: harness gets inputs only, outputs
+                             compared on the backend (runner/harness/)
              migrations/     Alembic (alembic.ini next to it)
              llm/ runner/ contracts_gen/ scripts/ tests/
              planned packages: profiler/ builder/ gate/ assistant/
@@ -110,7 +114,9 @@ backend/     app/            FastAPI app and plumbing:
              A new top-level package must be added to `packages` in
              backend/pyproject.toml and to the mkdir line in backend/Dockerfile.
 seeds/       hand-written seed repos, each with tests + concepts.yaml
-dsa/         taxonomy, DSA bank, JSON test cases, runners per language
+dsa/         DSA bank: one folder per problem (problem.md, stub.py,
+             reference.py, cases.json, make_cases.py). Backend only (mounted
+             read-only at /dsa); expected answers never reach a sandbox
 runtimes/    Dockerfiles per runtime
 sim/         simulated candidate scripts
 docs/        blueprint, prompts, progress, interviewer spec
@@ -121,9 +127,13 @@ docs/        blueprint, prompts, progress, interviewer spec
 - master: multi-file bug + performance constraint + medium/hard DSA, assistant enabled
 
 ## Commands
-make up | make down | make migrate | make test | make test-docker | make lint |
-make contracts | make runtimes | make llm-smoke | make llm-usage
-(Keep this list in sync with the Makefile. `make seed-demo` arrives with P1.3.)
+make up | make down | make migrate | make seed-demo | make test | make test-docker |
+make lint | make contracts | make runtimes | make llm-smoke | make llm-usage
+(Keep this list in sync with the Makefile.)
+
+- `make seed-demo`: builds and validates the P1.3 demo tasks in the sandbox
+  (~1 min), stores an assessment for the portfolio fixture, starts its session
+  (the 60-minute timer starts now) and prints the session URL.
 
 - `make migrate`: `alembic upgrade head` on the dev database. A schema change
   means: edit app/models.py → `docker compose run --rm api alembic revision

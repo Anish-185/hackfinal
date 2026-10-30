@@ -78,6 +78,7 @@ pytest, FastAPI, SQLAlchemy and Pydantic are also installed in the Python image 
 | Source | License | Use |
 | :--- | :--- | :--- |
 | [JSON Resume schema](https://github.com/jsonresume/resume-schema) | MIT | `contracts/portfolio.schema.json` follows its `basics`, `skills`, `projects` and `meta` structure and its ISO 8601 date pattern |
+| [LeetCode 3, "Longest Substring Without Repeating Characters"](https://leetcode.com/problems/longest-substring-without-repeating-characters/) | Problem idea only | `dsa/longest_unique_substring`: the classic sliding-window problem. Statement, stub, reference solution and all cases written by us; no LeetCode text or tests used |
 
 ## Planned
 

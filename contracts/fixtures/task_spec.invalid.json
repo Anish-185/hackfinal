@@ -79,7 +79,8 @@
         },
         "expected": 3
       }
-    ]
+    ],
+    "comparator": null
   },
   "perf": null,
   "time_budget_min": 20,

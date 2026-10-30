@@ -104,6 +104,10 @@ export interface TestFile {
 export interface DsaCases {
   visible: DsaCase[];
   hidden: DsaCase[];
+  /**
+   * How the backend compares an output with the expected value. Null means exact JSON equality.
+   */
+  comparator: Comparator | null;
 }
 /**
  * One DSA test case. input: arguments passed to the entry function; expected: its expected return value. Both may be any JSON value.
@@ -112,6 +116,13 @@ export interface DsaCase {
   id: string;
   input: unknown;
   expected: unknown;
+}
+/**
+ * unordered_list: the output and expected lists hold the same items in any order. float_tolerance: numbers may differ by at most tolerance (absolute), everything else exact.
+ */
+export interface Comparator {
+  kind: "exact" | "unordered_list" | "float_tolerance";
+  tolerance: number | null;
 }
 export interface Perf {
   budget_ms: number;

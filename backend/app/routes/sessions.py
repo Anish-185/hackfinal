@@ -1,20 +1,19 @@
 """Candidate session API. Every write after the deadline (or after submit) returns 409."""
 
 import uuid
-from datetime import UTC, datetime, timedelta
+from datetime import UTC, datetime
 from typing import Annotated, Literal
 
 from fastapi import APIRouter, Body, Depends, HTTPException, Response, status
 from pydantic import BaseModel, Field, field_validator
 from sqlalchemy import select
-from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app import jobs
+from app.assessments import get_or_start_session
 from app.candidate_view import to_candidate_view
 from app.db import get_db
 from app.models import (
-    SESSION_LENGTH_MIN,
     Assessment,
     AssessmentSession,
     Event,
@@ -152,26 +151,9 @@ def start_session(body: StartSessionIn, response: Response, db: DbSession) -> Se
     if db.get(Assessment, body.assessment_id) is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "assessment not found")
 
-    by_assessment = select(AssessmentSession).where(
-        AssessmentSession.assessment_id == body.assessment_id
-    )
-    session = db.scalar(by_assessment)
-    if session is None:
-        now = _now()
-        session = AssessmentSession(
-            assessment_id=body.assessment_id,
-            started_at=now,
-            deadline_at=now + timedelta(minutes=SESSION_LENGTH_MIN),
-            status="active",
-        )
-        db.add(session)
-        try:
-            db.commit()
-            response.status_code = status.HTTP_201_CREATED
-        except IntegrityError:
-            # A concurrent request started it first (unique assessment_id).
-            db.rollback()
-            session = db.scalars(by_assessment).one()
+    session, created = get_or_start_session(db, body.assessment_id)
+    if created:
+        response.status_code = status.HTTP_201_CREATED
     return _session_out(db, session)
 
 

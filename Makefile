@@ -1,4 +1,4 @@
-.PHONY: up down migrate test test-docker lint contracts runtimes llm-smoke llm-usage
+.PHONY: up down migrate seed-demo test test-docker lint contracts runtimes llm-smoke llm-usage
 
 up:
 	docker compose up -d --build
@@ -9,6 +9,11 @@ down:
 # Apply database migrations (backend/migrations) to the dev database.
 migrate:
 	docker compose run --rm api alembic upgrade head
+
+# Build and validate the P1.3 demo tasks in the sandbox, store an assessment, start its
+# session and print the URL. Runs in the worker (it needs the Docker socket).
+seed-demo:
+	docker compose run --rm worker sh -c "alembic upgrade head && python -m builder.seed_demo"
 
 # Starts postgres/redis if needed; the health test hits the real services. API tests
 # build their own <db>_test database from the migrations, never touching dev data.

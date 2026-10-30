@@ -207,6 +207,11 @@ Acceptance checks:
 - The DSA "no expected values in the container" test passes
 ```
 
+Implemented in backend/builder/ (manual.py, seed_demo.py), backend/app/dsa.py,
+backend/runner/harness/python_cases.py and dsa/longest_unique_substring/. Contract:
+TaskSpec.dsa_cases.comparator. The sandbox runner gained run_program (any command that
+writes a JSON report), which run_tests and the DSA harness share.
+
 ### P1.4 Candidate IDE
 
 ```text

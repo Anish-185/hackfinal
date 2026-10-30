@@ -15,7 +15,7 @@ from typing import Any
 from sqlalchemy import select, update
 from sqlalchemy.orm import Session
 
-from app import jobs
+from app import dsa, jobs
 from app.integrity import scan
 from app.models import AssessmentSession, Event, FileSnapshot, Run, Score, Task
 from app.workspace import (
@@ -39,7 +39,7 @@ from runner import run_tests
 
 logger = logging.getLogger(__name__)
 
-TEST_SET_MISMATCH = "test_set_mismatch"
+TEST_SET_MISMATCH = dsa.TEST_SET_MISMATCH
 
 
 @dataclass(frozen=True)
@@ -82,11 +82,15 @@ def passed_ids(result: RunResult, expected_ids: list[str]) -> set[str]:
 
 
 def run_visible(spec: TaskSpec, candidate_files: dict[str, str]) -> RunResult:
+    if spec.kind == "dsa":
+        return dsa.run_cases(spec, candidate_files, spec.dsa_cases.visible, spec.visible_test_ids)
     files = build_workspace(spec, candidate_files, spec.visible_tests)
     return checked_run(spec.runtime, files, spec.visible_tests, spec.visible_test_ids)
 
 
 def run_hidden(spec: TaskSpec, candidate_files: dict[str, str]) -> RunResult:
+    if spec.kind == "dsa":
+        return dsa.run_cases(spec, candidate_files, spec.dsa_cases.hidden, spec.hidden_test_ids)
     files = build_workspace(spec, candidate_files, spec.hidden_tests)
     return checked_run(spec.runtime, files, spec.hidden_tests, spec.hidden_test_ids)
 
@@ -114,12 +118,19 @@ def grade_task(spec: TaskSpec, candidate_files: dict[str, str]) -> TaskGrade:
 
 
 def derive_test_ids(spec: dict[str, Any]) -> dict[str, Any]:
-    """Return `spec` with visible_test_ids and hidden_test_ids collected from a starter run.
+    """Return `spec` with visible_test_ids and hidden_test_ids filled in.
 
-    Used when a task is built. Failing tests still count as collected; a run that can't
-    collect (status not "ok") is an error in the task, not something to record.
+    Used when a task is built. Domain tasks: collected from a starter run (failing tests
+    still count as collected; a run that can't collect is an error in the task). DSA
+    tasks: the case ids.
     """
     draft = TaskSpec.model_validate(spec | {"visible_test_ids": [], "hidden_test_ids": []})
+    if draft.kind == "dsa":
+        cases = draft.dsa_cases
+        return spec | {
+            "visible_test_ids": [case.id for case in cases.visible],
+            "hidden_test_ids": [case.id for case in cases.hidden],
+        }
     ids = {}
     for name, tests in (("visible", draft.visible_tests), ("hidden", draft.hidden_tests)):
         paths = runnable_test_paths(draft.runtime, tests)

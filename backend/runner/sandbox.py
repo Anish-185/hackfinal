@@ -21,8 +21,10 @@ import logging
 import tarfile
 import time
 import uuid
+from collections.abc import Callable
+from dataclasses import dataclass
 from functools import lru_cache
-from typing import Any
+from typing import Any, Literal
 
 import docker
 from docker.errors import APIError, DockerException, ImageNotFound, NotFound
@@ -63,18 +65,35 @@ class RunnerError(RuntimeError):
     """The sandbox itself failed (Docker unavailable, image missing). Not the candidate's fault."""
 
 
-def run_tests(
+@dataclass(frozen=True)
+class ProgramRun:
+    """Raw outcome of one sandboxed command. `report` is the JSON it wrote to report_path."""
+
+    status: Literal["ok", "timeout", "oom", "error"]
+    """ok: exited on its own. error: the launcher died without an exit code."""
+    exit_code: int | None
+    report: dict[str, Any] | None
+    duration_ms: int
+    stdout_tail: str
+    stderr_tail: str
+
+
+def run_program(
     runtime: str,
     files: dict[str, str],
-    test_paths: list[str],
+    command: Callable[[str], list[str]],
     timeout_s: int = 30,
     readonly: frozenset[str] = frozenset(),
-) -> RunResult:
-    """Run `test_paths` against `files`. `readonly` paths and their directories are root-owned."""
+) -> ProgramRun:
+    """Run `command(report_path)` in a fresh sandbox holding `files`.
+
+    The report path is random per run and outside /workspace. `readonly` paths and their
+    directories are root-owned.
+    """
     spec = RUNTIMES.get(runtime)
     if spec is None:
         raise ValueError(f"Unknown runtime {runtime!r}; expected one of {sorted(RUNTIMES)}")
-    _validate_paths(files, test_paths)
+    _validate_paths(files)
 
     client = _docker_client()
     # The workspace root is above every readonly file, so it is root-owned too when there are any.
@@ -88,13 +107,12 @@ def run_tests(
     run_key = uuid.uuid4().hex
     report_path = f"{OUT_DIR}/{run_key}.json"
     exit_code_path = f"{OUT_DIR}/{run_key}.exit"
-    test_command = spec.test_command(test_paths, set(files), report_path)
     container: Container | None = None
     try:
         try:
             container = client.containers.create(
                 image=spec.image,
-                command=["sh", "-c", _launcher(exit_code_path), "launcher", *test_command],
+                command=["sh", "-c", _launcher(exit_code_path), "launcher", *command(report_path)],
                 user=f"{RUNNER_UID}:{RUNNER_UID}",
                 working_dir=WORKSPACE,
                 environment={
@@ -141,24 +159,59 @@ def run_tests(
     finally:
         _cleanup(container, volumes)
 
-    tests = spec.parse_report(report) if report is not None else []
     if timed_out:
         status = "timeout"
     elif oom_killed:
         status = "oom"
-    elif exit_code is None or report is None or not spec.ran_cleanly(exit_code, report):
+    elif exit_code is None:
         status = "error"
     else:
         status = "ok"
+    return ProgramRun(
+        status=status,
+        exit_code=exit_code,
+        report=report,
+        duration_ms=duration_ms,
+        stdout_tail=_tail(stdout),
+        stderr_tail=_tail(stderr),
+    )
+
+
+def run_tests(
+    runtime: str,
+    files: dict[str, str],
+    test_paths: list[str],
+    timeout_s: int = 30,
+    readonly: frozenset[str] = frozenset(),
+) -> RunResult:
+    """Run `test_paths` against `files`. `readonly` paths and their directories are root-owned."""
+    spec = RUNTIMES.get(runtime)
+    if spec is None:
+        raise ValueError(f"Unknown runtime {runtime!r}; expected one of {sorted(RUNTIMES)}")
+    _validate_test_paths(test_paths)
+    _validate_paths(dict.fromkeys(test_paths, ""))
+
+    run = run_program(
+        runtime,
+        files,
+        lambda report_path: spec.test_command(test_paths, set(files), report_path),
+        timeout_s=timeout_s,
+        readonly=readonly,
+    )
+    report = run.report
+    tests = spec.parse_report(report) if report is not None else []
+    status = run.status
+    if status == "ok" and (report is None or not spec.ran_cleanly(run.exit_code, report)):
+        status = "error"
 
     result = RunResult(
         status=status,
         reason=None,
-        duration_ms=duration_ms,
+        duration_ms=run.duration_ms,
         tests=tests,
         summary=_summarize(tests),
-        stdout_tail=_tail(stdout),
-        stderr_tail=_tail(stderr),
+        stdout_tail=run.stdout_tail,
+        stderr_tail=run.stderr_tail,
     )
     logger.info(
         json.dumps(
@@ -166,8 +219,8 @@ def run_tests(
                 "event": "run",
                 "runtime": runtime,
                 "status": status,
-                "exit_code": exit_code,
-                "duration_ms": duration_ms,
+                "exit_code": run.exit_code,
+                "duration_ms": run.duration_ms,
                 **result.summary.model_dump(),
             }
         )
@@ -183,16 +236,19 @@ def _docker_client() -> docker.DockerClient:
         raise RunnerError(f"Docker is not reachable: {exc}") from exc
 
 
-def _validate_paths(files: dict[str, str], test_paths: list[str]) -> None:
-    if not test_paths:
-        raise ValueError("test_paths must not be empty")
-    for path in [*files, *test_paths]:
+def _validate_paths(files: dict[str, str]) -> None:
+    for path in files:
         try:
             RelPath.model_validate(path)
         except ValidationError as exc:
             raise ValueError(f"Invalid path {path!r}: must be a relative POSIX path") from exc
         if path.split("/")[0] == RESERVED_DIR:
             raise ValueError(f"Invalid path {path!r}: {RESERVED_DIR}/ is reserved for the runner")
+
+
+def _validate_test_paths(test_paths: list[str]) -> None:
+    if not test_paths:
+        raise ValueError("test_paths must not be empty")
     for path in test_paths:
         if path.startswith("-"):
             raise ValueError(f"Invalid test path {path!r}: would be read as a command-line option")

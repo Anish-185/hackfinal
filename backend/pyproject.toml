@@ -37,7 +37,7 @@ dev = [
 ]
 
 [tool.hatch.build.targets.wheel]
-packages = ["app", "contracts_gen", "llm", "runner"]
+packages = ["app", "builder", "contracts_gen", "llm", "runner"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

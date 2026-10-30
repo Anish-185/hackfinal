@@ -3,7 +3,7 @@
 import pytest
 
 from runner.runtimes import RUNTIMES
-from runner.sandbox import TAIL_BYTES, _tail, _validate_paths
+from runner.sandbox import TAIL_BYTES, _tail, _validate_paths, _validate_test_paths
 
 
 def test_pytest_report_is_mapped_to_test_results() -> None:
@@ -117,12 +117,12 @@ def test_jest_suite_that_fails_to_load_is_not_clean() -> None:
 )
 def test_unsafe_file_paths_are_rejected(path: str) -> None:
     with pytest.raises(ValueError):
-        _validate_paths({path: ""}, ["test_x.py"])
+        _validate_paths({path: ""})
 
 
 def test_test_path_cannot_be_a_cli_option() -> None:
     with pytest.raises(ValueError, match="command-line option"):
-        _validate_paths({}, ["-pevil"])
+        _validate_test_paths(["-pevil"])
 
 
 def test_tail_keeps_only_the_last_bytes() -> None:

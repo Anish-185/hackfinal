@@ -12,6 +12,8 @@ x-backend: &backend
     # Schemas + fixtures, at ../contracts relative to /app (same as on the host).
     - ./contracts:/contracts:ro
     - ./seeds:/seeds:ro
+    # DSA bank, incl. reference solutions and expected answers: backend only.
+    - ./dsa:/dsa:ro
   depends_on:
     postgres:
       condition: service_healthy
@@ -54,6 +56,7 @@ services:
       - ./backend:/app
       - ./contracts:/contracts:ro
       - ./seeds:/seeds:ro
+      - ./dsa:/dsa:ro
       # Lets the worker start runner containers on the host Docker daemon.
       # DEVELOPMENT ONLY: this is root-equivalent access to the host.
       - /var/run/docker.sock:/var/run/docker.sock

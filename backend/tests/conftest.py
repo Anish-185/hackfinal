@@ -89,3 +89,11 @@ def sent(monkeypatch) -> Iterator[list[dict]]:
     yield calls
     for call in calls:
         redis_client.delete(f"job:{call['task_id']}", f"run_lock:{call['args'][0]}")
+
+
+@pytest.fixture(scope="session")
+def pagination_task():
+    """The P1.3 demo domain task, built and validated in real sandboxes (Docker tests only)."""
+    from builder.manual import build_pagination_task
+
+    return build_pagination_task()
