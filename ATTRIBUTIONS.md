@@ -28,6 +28,7 @@ Add every new one here in the same change that introduces it (CLAUDE.md).
 | [datamodel-code-generator](https://github.com/koxudaxi/datamodel-code-generator) | MIT | Generating Pydantic models from contracts/ (dev) |
 | [fakeredis](https://github.com/cunla/fakeredis-py) | BSD-3-Clause | In-memory Redis for LLM client tests (dev) |
 | [PyYAML](https://github.com/yaml/pyyaml) | MIT | Reading dsa/taxonomy.yaml and seed concepts.yaml files (profiler, tests) |
+| [LibCST](https://github.com/Instagram/LibCST) | MIT | Formatting-preserving code edits in the task builders: bug mutation (`builder/mutate.py`) |
 
 ### Frontend (TypeScript, `frontend/package.json`)
 
@@ -93,6 +94,7 @@ pytest, FastAPI, SQLAlchemy and Pydantic are also installed in the Python image 
 | :--- | :--- | :--- |
 | [JSON Resume schema](https://github.com/jsonresume/resume-schema) | MIT | `contracts/portfolio.schema.json` follows its `basics`, `skills`, `projects` and `meta` structure and its ISO 8601 date pattern |
 | [LeetCode 3, "Longest Substring Without Repeating Characters"](https://leetcode.com/problems/longest-substring-without-repeating-characters/) | Problem idea only | `dsa/longest_unique_substring`: the classic sliding-window problem. Statement, stub, reference solution and all cases written by us; no LeetCode text or tests used |
+| [SWE-smith](https://github.com/SWE-bench/SWE-smith) | MIT (method only) | `backend/builder/mutate.py`: the idea of injecting bugs into a working repo procedurally and keeping only those that break some of its tests. Operators and the filter are our own code; no SWE-smith code or data used. Issue-text generation (P2.5) not used yet |
 
 ## Planned
 
@@ -101,8 +103,6 @@ From docs/BLUEPRINT.md section 7. Move a row up to "Used as dependencies" or
 
 | Resource | License | Planned use |
 | :--- | :--- | :--- |
-| [SWE-smith](https://github.com/SWE-bench/SWE-smith) (method) | MIT | Bug mutation and issue text (P2.2) |
-| [LibCST](https://github.com/Instagram/LibCST) | MIT | Formatting-preserving code edits (P2.2, P2.3) |
 | [EvalPlus](https://github.com/evalplus/evalplus) (method) | Apache-2.0 | Test strengthening, differential testing (P2.7) |
 | [mutmut](https://github.com/boxed/mutmut) | BSD-3-Clause | Mutation score, Python (P2.7) |
 | [StrykerJS](https://github.com/stryker-mutator/stryker-js) | Apache-2.0 | Mutation score, JavaScript (P2.7) |

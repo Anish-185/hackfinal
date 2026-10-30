@@ -16,8 +16,8 @@ from typing import Any, Literal
 from pydantic import BaseModel, ConfigDict, Field
 
 from app import grading
-from builder.manual import BuiltTask, _certificate
 from builder.seeds import DSA_DIR
+from builder.tasks import BuiltTask, draft_certificate
 from contracts_gen.profile import Profile
 from contracts_gen.task_spec import DsaNames, NameMapping, TaskSpec
 from profiler.taxonomy import TIERS
@@ -300,7 +300,7 @@ def task_spec(
         "perf": None,
         "time_budget_min": TIME_BUDGET_MIN,
         "random_seeds": [],
-        "certificate": _certificate([SOLUTION_FILE[runtime]]),
+        "certificate": draft_certificate([SOLUTION_FILE[runtime]]),
         "ai_solve_rate": 0.0,
         "difficulty_index": 0.0,
     }
@@ -367,7 +367,7 @@ def build_dsa_task(
     }
     if not starter_fails_visible:
         raise ValueError(f"task {task.task_id} failed validation: {validation}")
-    certificate = _certificate([SOLUTION_FILE[runtime]], True, starter_fails_hidden)
+    certificate = draft_certificate([SOLUTION_FILE[runtime]], True, starter_fails_hidden)
     spec = spec | {"certificate": certificate}
     return BuiltTask(
         spec=TaskSpec.model_validate(spec).model_dump(mode="json"), validation=validation
