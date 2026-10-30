@@ -1,22 +1,42 @@
-# Secrets
+# Secrets (.env.example is committed)
 .env
+.env.*
+!.env.example
 
 # Python
 __pycache__/
 *.py[cod]
 *.egg-info/
 .venv/
+venv/
 .pytest_cache/
 .ruff_cache/
+.mypy_cache/
 
 # Node / Next.js
 node_modules/
 .next/
 out/
 *.tsbuildinfo
+next-env.d.ts
+npm-debug.log*
+
+# Coverage
+.coverage
+.coverage.*
+htmlcov/
+coverage/
+coverage.xml
+
+# Docker volumes (bind-mounted data)
+pgdata/
+redisdata/
+volumes/
 
 # Editors / OS
 .vscode/
 .idea/
+*.swp
+*~
 .DS_Store
 Thumbs.db
