@@ -48,7 +48,7 @@ class RunResult(BaseModel):
     )
     status: Literal["ok", "timeout", "error", "oom"]
     """
-    ok: the test command ran to completion (tests may still have failed). error: the runner itself failed.
+    ok: the test command ran to completion (tests may still have failed). timeout: killed at the time limit. oom: killed for exceeding the memory limit. error: tests could not be collected or run, or the test command crashed.
     """
     duration_ms: int = Field(..., ge=0)
     tests: list[TestResult]

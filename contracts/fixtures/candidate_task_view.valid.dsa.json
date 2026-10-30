@@ -3,7 +3,7 @@
   "version": 1,
   "tier": "adept",
   "kind": "dsa",
-  "runtime": "python-3.11",
+  "runtime": "python311",
   "dsa_tags": [
     "sliding_window",
     "hashing"

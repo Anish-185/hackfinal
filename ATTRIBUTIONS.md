@@ -22,6 +22,21 @@ Open-source libraries, datasets, and borrowed methods used in this project.
 | [OpenAI Python SDK](https://github.com/openai/openai-python) | Apache-2.0 | Client for Featherless's OpenAI-compatible API |
 | [Instructor](https://github.com/567-labs/instructor) | MIT | Structured (JSON mode) LLM output with validation retries |
 | [fakeredis](https://github.com/cunla/fakeredis-py) | BSD-3-Clause | In-memory Redis for LLM client tests |
+| [Docker SDK for Python](https://github.com/docker/docker-py) | Apache-2.0 | Starting sandbox containers in backend/runner |
+
+## Runner images (runtimes/)
+
+| Software | License | Use |
+| :--- | :--- | :--- |
+| [Python](https://www.python.org/) (`python:3.11.18-slim`) | PSF-2.0 | Python runtime image base |
+| [Node.js](https://nodejs.org/) (`node:20.20.2-slim`) | MIT | Node runtime image base |
+| [pytest-json-report](https://github.com/numirias/pytest-json-report) | MIT | Machine-readable pytest results |
+| [pytest-timeout](https://github.com/pytest-dev/pytest-timeout) | MIT | Per-test timeouts available to task authors |
+| [Hypothesis](https://github.com/HypothesisWorks/hypothesis) | MPL-2.0 | Property-based tests |
+| [HTTPX](https://github.com/encode/httpx) | BSD-3-Clause | HTTP client for FastAPI test clients in tasks |
+| [Jest](https://github.com/jestjs/jest) | MIT | JavaScript test runner |
+
+pytest, FastAPI, SQLAlchemy and Pydantic are also installed in the Python image (listed above).
 
 ## Models (via Featherless)
 

@@ -21,6 +21,7 @@ dependencies = [
     # instructor 1.17 caps jiter<0.15; openai>=3.3.1 needs jiter>=0.16.
     "openai==3.3.0",
     "instructor==1.17.0",
+    "docker==7.2.0",
 ]
 
 [project.optional-dependencies]
@@ -34,11 +35,13 @@ dev = [
 ]
 
 [tool.hatch.build.targets.wheel]
-packages = ["app", "contracts_gen", "llm"]
+packages = ["app", "contracts_gen", "llm", "runner"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
-addopts = "-ra"
+# Docker tests need the Docker socket (worker only): run them with `make test-docker`.
+addopts = "-ra -m 'not docker'"
+markers = ["docker: starts real sandbox containers (needs the Docker socket and `make runtimes`)"]
 
 [tool.ruff]
 line-length = 100

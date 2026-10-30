@@ -5,7 +5,7 @@
   "kind": "dsa",
   "mode": "seed",
   "seed_id": "longest_unique_substring",
-  "runtime": "python-3.11",
+  "runtime": "python311",
   "dsa_tags": [
     "sliding_window",
     "hashing"

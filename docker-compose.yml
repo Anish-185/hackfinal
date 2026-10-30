@@ -51,6 +51,7 @@ services:
     command: celery -A app.worker worker --loglevel=info
     volumes:
       - ./backend:/app
+      - ./contracts:/contracts:ro
       # Lets the worker start runner containers on the host Docker daemon.
       # DEVELOPMENT ONLY: this is root-equivalent access to the host.
       - /var/run/docker.sock:/var/run/docker.sock

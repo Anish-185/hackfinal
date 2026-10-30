@@ -3,7 +3,7 @@
   "version": 2,
   "tier": "master",
   "kind": "domain",
-  "runtime": "python-3.11",
+  "runtime": "python311",
   "dsa_tags": [],
   "statement_md": "# Low-stock report is wrong and slow\n\nSupport reports that `GET /products/low-stock` misses products that are completely out of stock, and that the `threshold` query parameter seems to be off by one.\n\nOn production-sized data (50k products, 200k stock rows) the endpoint also takes several seconds.\n\nFix both problems. The endpoint must respond within **200 ms** on the large dataset.\n",
   "repo_tour_md": "- `app/main.py`: FastAPI app setup.\n- `app/routes/products.py`: the `/products/low-stock` endpoint.\n- `app/services/stock.py`: stock calculations used by the routes.\n- `app/data.py`: in-memory sample data loaders.\n- `app/models.py`: Pydantic models.\n- `tests/`: run with `pytest`.\n",

@@ -27,7 +27,7 @@ export interface TaskSpec {
    */
   seed_id: string | null;
   /**
-   * Runner image name under runtimes/, e.g. python-3.11.
+   * Runtime id: a directory under runtimes/ (python311, node20). The runner image is assess-<id>.
    */
   runtime: string;
   /**

@@ -129,7 +129,7 @@ class TaskSpec(BaseModel):
     """
     runtime: str = Field(..., min_length=1)
     """
-    Runner image name under runtimes/, e.g. python-3.11.
+    Runtime id: a directory under runtimes/ (python311, node20). The runner image is assess-<id>.
     """
     dsa_tags: list[str]
     """
