@@ -96,7 +96,8 @@ contracts/   JSON Schemas (source of truth) + fixtures + generated types
 frontend/    Next.js app: app/recruiter, app/session/[id], app/report/[id],
              app/interview/[id]. lib/api.ts (browser client, calls /api,
              rewritten to API_URL in next.config.ts), lib/telemetry.ts,
-             lib/workspace.ts (mirror of backend/app/workspace.py: keep in sync)
+             lib/workspace.ts (mirror of backend/app/workspace.py: keep in sync),
+             lib/monaco.ts (bundled Monaco, no CDN; add a language there)
 backend/     app/            FastAPI app and plumbing:
                              main.py, routes/ (one module per resource),
                              models.py (SQLAlchemy tables), db.py, jobs.py

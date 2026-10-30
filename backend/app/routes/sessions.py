@@ -20,7 +20,7 @@ from app.models import (
     FileSnapshot,
     Task,
 )
-from app.workspace import not_editable_reason
+from app.workspace import not_editable_reason, split_editable
 from contracts_gen.candidate_task_view import CandidateTaskView
 from contracts_gen.event import Event as EventIn
 from contracts_gen.task_spec import TaskSpec
@@ -77,6 +77,13 @@ class FilesIn(BaseModel):
 class SnapshotOut(BaseModel):
     snapshot_id: int
     ts: datetime
+
+
+class SavedFilesOut(BaseModel):
+    snapshot_id: int | None
+    """Null when nothing has been saved yet: the IDE then uses the starter files."""
+    ts: datetime | None
+    files: FileMap | None  # type: ignore[valid-type]
 
 
 class EventsOut(BaseModel):
@@ -166,6 +173,23 @@ def get_session(session_id: uuid.UUID, db: DbSession) -> SessionOut:
 def get_task(session_id: uuid.UUID, task_id: str, db: DbSession) -> CandidateTaskView:
     task = _get_task(db, _get_session(db, session_id), task_id)
     return to_candidate_view(TaskSpec.model_validate(task.spec))
+
+
+@router.get("/{session_id}/tasks/{task_id}/files", response_model=SavedFilesOut)
+def get_files(session_id: uuid.UUID, task_id: str, db: DbSession) -> SavedFilesOut:
+    """The candidate's latest saved files (from a save or a run), editable files only."""
+    session = _get_session(db, session_id)
+    task = _get_task(db, session, task_id)
+    snapshot = db.scalar(
+        select(FileSnapshot)
+        .where(FileSnapshot.session_id == session.id, FileSnapshot.task_id == task_id)
+        .order_by(FileSnapshot.ts.desc(), FileSnapshot.id.desc())
+        .limit(1)
+    )
+    if snapshot is None:
+        return SavedFilesOut(snapshot_id=None, ts=None, files=None)
+    editable, _ = split_editable(TaskSpec.model_validate(task.spec), snapshot.files)
+    return SavedFilesOut(snapshot_id=snapshot.id, ts=snapshot.ts, files=editable)
 
 
 @router.put("/{session_id}/tasks/{task_id}/files", response_model=SnapshotOut)

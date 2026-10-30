@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Markdown from "react-markdown";
-import { api, ApiError, type SessionOut } from "@/lib/api";
+import { API_BASE, api, ApiError, type SessionOut } from "@/lib/api";
 import { Telemetry } from "@/lib/telemetry";
 import type { CandidateTaskView } from "@/lib/types";
 import { allFiles, editableOnly, isEditable, protectedReason } from "@/lib/workspace";
@@ -18,26 +18,6 @@ const FINAL_SAVE_MS = 3000; // save once more this long before the deadline
 type Phase = "loading" | "error" | "active" | "submitting" | "submitted" | "timeup";
 type SaveState = "saved" | "saving" | "unsaved" | "error";
 type OpenFiles = { files: string[]; active: string };
-
-const draftKey = (sessionId: string, taskId: string) => `ide-draft:${sessionId}:${taskId}`;
-
-// Drafts in localStorage survive a reload (the API has no "read my files" endpoint).
-function readDraft(sessionId: string, task: CandidateTaskView): Record<string, string> {
-  try {
-    const draft = JSON.parse(localStorage.getItem(draftKey(sessionId, task.task_id)) ?? "{}");
-    return editableOnly(task, draft);
-  } catch {
-    return {};
-  }
-}
-
-function writeDraft(sessionId: string, task: CandidateTaskView, files: Record<string, string>) {
-  try {
-    localStorage.setItem(draftKey(sessionId, task.task_id), JSON.stringify(editableOnly(task, files)));
-  } catch {
-    // Storage full or blocked: the 5 s autosave still covers the work.
-  }
-}
 
 function firstFile(task: CandidateTaskView): string {
   const files = Object.keys(allFiles(task));
@@ -152,22 +132,23 @@ export default function SessionIDE({ sessionId }: { sessionId: string }) {
       try {
         const s = await api.getSession(sessionId);
         const refs = [...s.tasks].sort((a, b) => a.order - b.order);
-        const views = await Promise.all(refs.map((t) => api.getTask(sessionId, t.task_id)));
+        const [views, saved] = await Promise.all([
+          Promise.all(refs.map((t) => api.getTask(sessionId, t.task_id))),
+          Promise.all(refs.map((t) => api.getFiles(sessionId, t.task_id))),
+        ]);
         if (cancelled) return;
-        for (const task of views) {
-          const starter = editableOnly(task, task.starter_files);
-          const draft = readDraft(sessionId, task);
-          files.current[task.task_id] = { ...starter, ...draft };
-          const changed = Object.entries(draft).some(([p, c]) => starter[p] !== c);
-          versions.current[task.task_id] = changed ? 1 : 0;
+        views.forEach((task, i) => {
+          // The latest saved snapshot wins; starter files fill in anything it lacks.
+          files.current[task.task_id] = { ...editableOnly(task, task.starter_files), ...(saved[i].files ?? {}) };
+          versions.current[task.task_id] = 0;
           savedVersions.current[task.task_id] = 0;
-        }
+        });
         tasksRef.current = views;
         setTasks(views);
         setInitialFiles(Object.fromEntries(views.map((t) => [t.task_id, { ...allFiles(t), ...files.current[t.task_id] }])));
         setActiveTaskId(views[0]?.task_id ?? "");
         setOpen(Object.fromEntries(views.map((t) => [t.task_id, { files: [firstFile(t)], active: firstFile(t) }])));
-        setSaveState(views.some((t) => isDirty(t.task_id)) ? "unsaved" : "saved");
+        setSaveState("saved");
         setPhase("active");
         applySession(s);
       } catch (err) {
@@ -187,12 +168,26 @@ export default function SessionIDE({ sessionId }: { sessionId: string }) {
     telemetry.start();
     const autosave = setInterval(() => void saveDirty(), AUTOSAVE_MS);
     const resyncTimer = setInterval(() => void resync(), RESYNC_MS);
+    // Closing or reloading the tab: send unsaved edits (up to 5 s of work) with keepalive.
+    // Best effort; browsers cap keepalive bodies at 64 KB.
+    const onPageHide = () => {
+      for (const task of tasksRef.current.filter((t) => isDirty(t.task_id))) {
+        void fetch(`${API_BASE}/sessions/${sessionId}/tasks/${task.task_id}/files`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ files: editableOnly(task, files.current[task.task_id]) }),
+          keepalive: true,
+        }).catch(() => {});
+      }
+    };
+    window.addEventListener("pagehide", onPageHide);
     return () => {
       clearInterval(autosave);
       clearInterval(resyncTimer);
+      window.removeEventListener("pagehide", onPageHide);
       telemetry.stop();
     };
-  }, [phase, telemetry, saveDirty, resync]);
+  }, [phase, sessionId, telemetry, saveDirty, resync]);
 
   // Countdown; at the deadline the editor locks (the backend auto-submits within 30 s).
   useEffect(() => {
@@ -255,7 +250,6 @@ export default function SessionIDE({ sessionId }: { sessionId: string }) {
     if (locked || !isEditable(task, path)) return;
     files.current[task.task_id][path] = value;
     versions.current[task.task_id] = (versions.current[task.task_id] ?? 0) + 1;
-    writeDraft(sessionId, task, files.current[task.task_id]);
     setSaveState("unsaved");
   };
 
@@ -306,11 +300,6 @@ export default function SessionIDE({ sessionId }: { sessionId: string }) {
     await saveDirty();
     try {
       await api.submit(sessionId);
-      for (const t of tasks) {
-        try {
-          localStorage.removeItem(draftKey(sessionId, t.task_id));
-        } catch {}
-      }
       setPhase("submitted");
     } catch (err) {
       if (err instanceof ApiError && err.status === 409) {

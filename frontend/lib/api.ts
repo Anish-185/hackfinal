@@ -15,6 +15,11 @@ export type SessionOut = {
   submitted_at: string | null;
   tasks: TaskRef[];
 };
+export type SavedFiles = {
+  snapshot_id: number | null;
+  ts: string | null;
+  files: Record<string, string> | null; // null: nothing saved yet
+};
 export type JobView = {
   job_id: string;
   kind: "run" | "submit";
@@ -49,6 +54,7 @@ async function request<T>(method: string, path: string, body?: unknown): Promise
 export const api = {
   getSession: (id: string) => request<SessionOut>("GET", `/sessions/${id}`),
   getTask: (id: string, taskId: string) => request<CandidateTaskView>("GET", `/sessions/${id}/tasks/${taskId}`),
+  getFiles: (id: string, taskId: string) => request<SavedFiles>("GET", `/sessions/${id}/tasks/${taskId}/files`),
   saveFiles: (id: string, taskId: string, files: Record<string, string>) =>
     request<{ snapshot_id: number; ts: string }>("PUT", `/sessions/${id}/tasks/${taskId}/files`, { files }),
   run: (id: string, taskId: string, files: Record<string, string>) =>

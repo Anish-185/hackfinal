@@ -147,6 +147,56 @@ def test_save_files_stores_a_snapshot(http, db, session_id) -> None:
     assert snapshot.task_id == DOMAIN_ID
 
 
+# --- GET files ---
+
+
+def test_get_files_before_any_save_is_empty(http, session_id) -> None:
+    response = http.get(f"/sessions/{session_id}/tasks/{DOMAIN_ID}/files")
+
+    assert response.status_code == 200
+    assert response.json() == {"snapshot_id": None, "ts": None, "files": None}
+
+
+def test_get_files_returns_the_latest_snapshot_of_that_task(http, session_id) -> None:
+    url = f"/sessions/{session_id}/tasks/{DOMAIN_ID}/files"
+    http.put(url, json={"files": FILES})
+    latest = http.put(url, json={"files": {"app/main.py": "print('v2')\n"}}).json()
+    http.put(f"/sessions/{session_id}/tasks/{DSA_ID}/files", json={"files": DSA_FILES})
+
+    body = http.get(url).json()
+
+    assert body["snapshot_id"] == latest["snapshot_id"]
+    assert body["files"] == {"app/main.py": "print('v2')\n"}
+    assert http.get(f"/sessions/{session_id}/tasks/{DSA_ID}/files").json()["files"] == DSA_FILES
+
+
+def test_get_files_returns_only_editable_files(http, db, session_id) -> None:
+    # Snapshots written by the backend itself could hold more; the allowlist still applies.
+    db.add(
+        FileSnapshot(
+            session_id=uuid.UUID(session_id),
+            task_id=DOMAIN_ID,
+            ts=datetime.now(UTC),
+            files={**FILES, "tests/test_x.py": "x", "conftest.py": "x", "new.py": "x"},
+        )
+    )
+    db.flush()
+
+    assert http.get(f"/sessions/{session_id}/tasks/{DOMAIN_ID}/files").json()["files"] == FILES
+
+
+def test_get_files_still_works_after_the_deadline(http, db, session_id) -> None:
+    http.put(f"/sessions/{session_id}/tasks/{DOMAIN_ID}/files", json={"files": FILES})
+    expire(db, session_id)
+
+    assert http.get(f"/sessions/{session_id}/tasks/{DOMAIN_ID}/files").json()["files"] == FILES
+
+
+@pytest.mark.parametrize("path", ["unknown-task", "nope"])
+def test_get_files_unknown_task_is_404(http, session_id, path) -> None:
+    assert http.get(f"/sessions/{session_id}/tasks/{path}/files").status_code == 404
+
+
 @pytest.mark.parametrize("path", ["../etc/passwd", "/abs.py", "a/../b.py"])
 def test_save_files_rejects_unsafe_paths(http, session_id, path) -> None:
     response = http.put(
