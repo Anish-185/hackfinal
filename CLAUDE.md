@@ -107,8 +107,12 @@ backend/     app/            FastAPI app and plumbing:
                              tasks), grading.py (run/submit/auto-submit),
                              workspace.py (editable allowlist), integrity.py
                              (suspicious-code scan), candidate_view.py, config.py
-             builder/        task builders: manual.py (P1.3 demo tasks: AST bug,
-                             AST test split, validation), seeds.py, seed_demo.py
+             builder/        task builders: manual.py (P1.3 demo tasks; its bug comes
+                             from mutate.py, hand AST bug as fallback), mutate.py
+                             (P2.2 mutation engine, LibCST operators, sandbox
+                             pre-filter, draft Novice spec), tasks.py (shared:
+                             concepts.yaml, starter files, visible/hidden split,
+                             validation), seeds.py, seed_demo.py
              app/dsa.py      DSA grading: harness gets inputs only, outputs
                              compared on the backend (runner/harness/)
              profiler/       portfolio -> Profile (P2.1): keywords.py (keyword maps),
@@ -144,8 +148,8 @@ docs/        blueprint, prompts, progress, interviewer spec
 
 ## Commands
 make up | make down | make migrate | make seed-demo | make e2e | make test |
-make test-docker | make lint | make contracts | make runtimes | make llm-smoke |
-make llm-usage
+make test-docker | make lint | make contracts | make runtimes | make mutate |
+make llm-smoke | make llm-usage
 (Keep this list in sync with the Makefile.)
 
 - `make seed-demo`: builds and validates the P1.3 demo tasks in the sandbox
@@ -172,6 +176,9 @@ make llm-usage
   in the worker (the only service with the Docker socket); needs
   `make runtimes` first.
 - `make contracts`: regenerate Pydantic and TS types; commit the output.
+- `make mutate SEED=... CONCEPT=... [RNG_SEED=0]`: list a seed concept's bug
+  candidates, pre-filter them in the sandbox (≤12 runs) and print a validated
+  draft Novice task from the best one. Runs in the worker; no LLM calls.
 - `make llm-smoke`: one real request per slot; spends credits on a cache miss.
 - `make llm-usage`: tokens and estimated spend per slot.
 

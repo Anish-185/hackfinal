@@ -1,4 +1,4 @@
-.PHONY: up down migrate seed-demo e2e test test-docker lint contracts runtimes llm-smoke llm-usage
+.PHONY: up down migrate seed-demo e2e test test-docker lint contracts runtimes mutate llm-smoke llm-usage
 
 up:
 	docker compose up -d --build
@@ -46,6 +46,13 @@ contracts:
 runtimes:
 	docker build -t assess-python311 runtimes/python311
 	docker build -t assess-node20 runtimes/node20
+
+# Mutation engine (P2.2): list a seed concept's bug candidates, pre-filter them in the sandbox
+# and build a draft Novice task from the best one. Runs in the worker (Docker socket).
+# Usage: make mutate SEED=py-fastapi-expenses CONCEPT=pagination [RNG_SEED=0]
+RNG_SEED ?= 0
+mutate:
+	docker compose run --rm worker python -m builder.mutate $(SEED) $(CONCEPT) --rng-seed $(RNG_SEED)
 
 # One small real request per model slot. Spends Featherless credits on a cache miss.
 llm-smoke:

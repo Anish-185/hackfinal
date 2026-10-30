@@ -344,6 +344,12 @@ Acceptance checks:
 - `make test` passes; show `make mutate` output
 ```
 
+Implemented in backend/builder/mutate.py (operators, inject_bug, prefilter, ranked,
+draft_novice_task; `python -m builder.mutate SEED CONCEPT`) and backend/builder/tasks.py
+(shared with manual.py: concepts.yaml loading, starter files, the concept-wide visible/hidden
+split, validate_task). manual.py takes the engine's off-by-one candidate at paginate()'s
+offset, byte-identical to the P1.3 bug, so the demo and `make e2e` are unchanged.
+
 ### P2.3 Feature removal (Adept)
 
 ```text

@@ -1,18 +1,27 @@
-"""Hand-built demo tasks (P1.3): a Novice pagination bug and one DSA problem.
+"""Demo tasks (P1.3): a Novice pagination bug and one DSA problem.
 
-P2.x replaces these with generated tasks; they go through the same contract, grading and
-validation. Building needs Docker: test ids are collected and both tasks are validated in
-the sandbox (the starter fails at least one visible test; the reference passes everything).
+The pagination bug comes from the mutation engine (builder/mutate.py, P2.2): the engine's
+off-by-one candidate at paginate()'s offset, which `make e2e` knows how to fix. If the
+engine stops producing it, the hand-written AST transform below is the fallback. Building
+needs Docker: test ids are collected and both tasks are validated in the sandbox (the
+starter fails at least one visible test; the reference passes everything).
 """
 
 import ast
 import json
-from dataclasses import dataclass
 from typing import Any
 
 from app import grading
+from builder import mutate
 from builder.seeds import DSA_DIR, SEEDS_DIR, seed_files
-from contracts_gen.task_spec import TaskSpec
+from builder.tasks import (
+    BuiltTask,
+    choose_visible,
+    collect_test_names,
+    draft_certificate,
+    split_test_module,
+    validate_task,
+)
 from runner import run_tests
 
 EXPENSES_SEED = "py-fastapi-expenses"
@@ -20,6 +29,9 @@ PAGINATION_TESTS = "tests/test_pagination.py"
 HIDDEN_PAGINATION_TESTS = "tests/test_pagination_hidden.py"
 DSA_PROBLEM = "longest_unique_substring"
 DSA_CASES_SEED = 20261031  # dsa/longest_unique_substring/make_cases.py
+DEMO_RNG_SEED = 1031
+# The demo bug as it appears in the starter; e2e/demo.mjs pastes the fix for this line.
+DEMO_BUG_LINE = "offset = page * page_size"
 
 PAGINATION_STATEMENT = """\
 ## Expenses list pages are wrong
@@ -33,12 +45,6 @@ filtered, sorted expenses. Keep the response shape (`items`, `page`, `page_size`
 `total`, `has_next`) unchanged. Run the visible tests to check your fix; more tests
 run when you submit.
 """
-
-
-@dataclass(frozen=True)
-class BuiltTask:
-    spec: dict[str, Any]
-    validation: dict[str, Any]
 
 
 # --- Bug injection --------------------------------------------------------------------
@@ -81,62 +87,16 @@ def inject_offset_bug(source: str) -> str:
     return "".join(lines)
 
 
-# --- Test splitting -------------------------------------------------------------------
-
-
-def collect_test_names(source: str) -> list[str]:
-    """Top-level test functions, in source order."""
-    return [
-        node.name
-        for node in ast.parse(source).body
-        if isinstance(node, ast.FunctionDef | ast.AsyncFunctionDef)
-        and node.name.startswith("test_")
-    ]
-
-
-def split_test_module(source: str, selected: set[str]) -> tuple[str, str]:
-    """(module with the `selected` tests, module with the other tests).
-
-    Both keep every non-test statement (imports, fixtures, helpers) in source order.
-    """
-    names = collect_test_names(source)
-    if unknown := selected - set(names):
-        raise ValueError(f"unknown tests: {sorted(unknown)}")
-    lines = source.splitlines()
-    header: list[tuple[ast.stmt, str]] = []
-    tests: list[tuple[str, str]] = []
-    for node in ast.parse(source).body:
-        first = min([node.lineno] + [d.lineno for d in getattr(node, "decorator_list", [])])
-        text = "\n".join(lines[first - 1 : node.end_lineno])
-        if isinstance(node, ast.FunctionDef | ast.AsyncFunctionDef) and node.name in names:
-            tests.append((node.name, text))
-        else:
-            header.append((node, text))
-
-    def module(keep: set[str]) -> str:
-        parts: list[str] = []
-        previous: ast.stmt | None = None
-        for node, text in header:
-            imports = (ast.Import, ast.ImportFrom)
-            joined = (
-                previous is not None and isinstance(previous, imports) and isinstance(node, imports)
-            )
-            parts.append(("\n" if joined else "\n\n\n" if parts else "") + text)
-            previous = node
-        parts += ["\n\n\n" + text for name, text in tests if name in keep]
-        return "".join(parts) + "\n"
-
-    return module(selected), module(set(names) - selected)
-
-
-def choose_visible(names: list[str], failing: set[str]) -> list[str]:
-    """About a third of `names`: the first failing test, then passing ones, in source order."""
-    if not failing:
-        raise ValueError("the starter must fail at least one test")
-    count = max(1, round(len(names) / 3))
-    first_failing = next(n for n in names if n in failing)
-    passing = [n for n in names if n not in failing]
-    return [n for n in names if n == first_failing or n in passing[: count - 1]]
+def demo_starter_utils(reference_utils: str) -> str:
+    """app/utils.py with the demo bug: the engine's candidate, else the hand transform."""
+    for candidate in mutate.inject_bug(EXPENSES_SEED, "pagination", DEMO_RNG_SEED):
+        if (
+            candidate.operator == "off_by_one"
+            and candidate.target_symbols == ["app/utils.py::paginate"]
+            and candidate.changed_line.strip() == DEMO_BUG_LINE
+        ):
+            return candidate.starter_files["app/utils.py"]
+    return inject_offset_bug(reference_utils)
 
 
 # --- Domain task ----------------------------------------------------------------------
@@ -151,7 +111,7 @@ def build_pagination_task() -> BuiltTask:
         for path, content in files.items()
         if path.startswith("app/") or path in ("pytest.ini", "tests/conftest.py")
     }
-    starter["app/utils.py"] = inject_offset_bug(reference_utils)
+    starter["app/utils.py"] = demo_starter_utils(reference_utils)
 
     pagination = files[PAGINATION_TESTS]
     names = collect_test_names(pagination)
@@ -184,8 +144,8 @@ def build_pagination_task() -> BuiltTask:
         "ai_solve_rate": 0.0,
         "difficulty_index": 0.0,
     }
-    spec = grading.derive_test_ids(spec | {"certificate": _certificate(["app/utils.py"])})
-    return _validated(spec, {"app/utils.py": reference_utils}, ["app/utils.py"])
+    spec = grading.derive_test_ids(spec | {"certificate": draft_certificate(["app/utils.py"])})
+    return validate_task(spec, {"app/utils.py": reference_utils}, ["app/utils.py"])
 
 
 def _failing_functions(starter: dict[str, str], pagination: str) -> set[str]:
@@ -225,7 +185,7 @@ def dsa_task_spec() -> dict[str, Any]:
         "perf": None,
         "time_budget_min": 25,
         "random_seeds": [DSA_CASES_SEED],
-        "certificate": _certificate(["solution.py"]),
+        "certificate": draft_certificate(["solution.py"]),
         "ai_solve_rate": 0.0,
         "difficulty_index": 0.0,
     }
@@ -234,56 +194,4 @@ def dsa_task_spec() -> dict[str, Any]:
 
 def build_dsa_task() -> BuiltTask:
     reference = (DSA_DIR / DSA_PROBLEM / "reference.py").read_text()
-    return _validated(dsa_task_spec(), {"solution.py": reference}, ["solution.py"])
-
-
-# --- Validation -----------------------------------------------------------------------
-
-
-def _certificate(scope_files: list[str], reference_pass: bool = False, starter_fail: bool = False):
-    # mutation_score, bruteforce_agree and perf are filled by the validation gate (P2.7).
-    return {
-        "reference_pass": reference_pass,
-        "starter_fail": starter_fail,
-        "mutation_score": 0.0,
-        "bruteforce_agree": None,
-        "perf_ref_ms": None,
-        "perf_naive_ms": None,
-        "scope_files": scope_files,
-    }
-
-
-def _validated(
-    spec: dict[str, Any], reference_files: dict[str, str], scope_files: list[str]
-) -> BuiltTask:
-    """Grade the starter and the reference in the sandbox; refuse a task that isn't sound."""
-    task = TaskSpec.model_validate(spec)
-    starter = grading.grade_task(task, {})
-    reference = grading.grade_task(task, reference_files)
-
-    def counts(grade: grading.TaskGrade) -> dict[str, Any]:
-        return {
-            "visible": f"{len(grade.visible_passed)}/{len(task.visible_test_ids)}",
-            "hidden": f"{len(grade.hidden_passed)}/{len(task.hidden_test_ids)}",
-        }
-
-    starter_fails_visible = len(starter.visible_passed) < len(task.visible_test_ids)
-    starter_fails_hidden = len(starter.hidden_passed) < len(task.hidden_test_ids)
-    reference_passes_all = len(reference.visible_passed) == len(task.visible_test_ids) and len(
-        reference.hidden_passed
-    ) == len(task.hidden_test_ids)
-    validation = {
-        "task_id": task.task_id,
-        "starter": counts(starter),
-        "reference": counts(reference),
-        "starter_fails_visible": starter_fails_visible,
-        "reference_passes_all": reference_passes_all,
-    }
-    if not (starter_fails_visible and reference_passes_all):
-        raise ValueError(f"task {task.task_id} failed validation: {validation}")
-    spec = spec | {
-        "certificate": _certificate(scope_files, reference_passes_all, starter_fails_hidden)
-    }
-    return BuiltTask(
-        spec=TaskSpec.model_validate(spec).model_dump(mode="json"), validation=validation
-    )
+    return validate_task(dsa_task_spec(), {"solution.py": reference}, ["solution.py"])

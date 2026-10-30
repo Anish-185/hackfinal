@@ -25,6 +25,8 @@ dependencies = [
     "docker==7.2.0",
     # dsa/taxonomy.yaml and seeds/*/concepts.yaml (profiler).
     "pyyaml==6.0.3",
+    # Formatting-preserving code transforms for task builders (mutation, feature removal).
+    "libcst==1.9.0",
 ]
 
 [project.optional-dependencies]
