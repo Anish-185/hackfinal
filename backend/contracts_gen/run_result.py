@@ -50,6 +50,10 @@ class RunResult(BaseModel):
     """
     ok: the test command ran to completion (tests may still have failed). timeout: killed at the time limit. oom: killed for exceeding the memory limit. error: tests could not be collected or run, or the test command crashed.
     """
+    reason: str | None
+    """
+    Why status is error, when the backend knows. test_set_mismatch: the collected test ids differed from the task's expected ids, so no test counts as passed. Null otherwise.
+    """
     duration_ms: int = Field(..., ge=0)
     tests: list[TestResult]
     summary: Summary

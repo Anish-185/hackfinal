@@ -24,6 +24,8 @@
   ],
   "visible_tests": [],
   "hidden_tests": [],
+  "visible_test_ids": [],
+  "hidden_test_ids": [],
   "dsa_cases": {
     "visible": [
       {

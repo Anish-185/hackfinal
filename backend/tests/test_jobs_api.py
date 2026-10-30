@@ -68,12 +68,26 @@ def test_enqueue_records_the_job_before_sending(monkeypatch) -> None:
         "send_task",
         lambda name, args, task_id: sent.append((name, redis_client.exists(f"job:{task_id}"))),
     )
-    record = jobs.JobRecord(kind="submit", session_id="s", task_id=None)
 
-    job_id = jobs.enqueue("submit_job", ["s"], record)
+    job_id = jobs.enqueue_submit("s")
 
     try:
         assert sent == [("submit_job", 1)]
         assert jobs.get_job(job_id) is not None
     finally:
         redis_client.delete(f"job:{job_id}")
+
+
+def test_run_lock_is_released_only_by_its_own_job() -> None:
+    session_id = f"test-{uuid.uuid4()}"
+    job_ids = [jobs.acquire_run_lock(session_id, "t")]
+    try:
+        jobs.release_run_lock(session_id, "someone-else")
+        # The holder's record exists and its job hasn't run: still in progress.
+        with pytest.raises(jobs.RunInProgress):
+            jobs.acquire_run_lock(session_id, "t")
+
+        jobs.release_run_lock(session_id, job_ids[0])
+        job_ids.append(jobs.acquire_run_lock(session_id, "t"))
+    finally:
+        redis_client.delete(f"run_lock:{session_id}", *(f"job:{j}" for j in job_ids))

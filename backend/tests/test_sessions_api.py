@@ -17,20 +17,9 @@ from tests.api_support import LEAK_MARKER, domain_spec, dsa_spec, leaky, portfol
 
 DOMAIN_ID = "fastapi-inventory-low-stock"
 DSA_ID = "dsa-longest-unique-substring"
-FILES = {"app/main.py": "print('hi')\n", "solution.py": "def f():\n    return 1\n"}
-
-
-@pytest.fixture
-def sent(monkeypatch) -> list[dict]:
-    """Records Celery send_task calls instead of talking to the broker."""
-    calls: list[dict] = []
-    monkeypatch.setattr(
-        jobs.celery_app,
-        "send_task",
-        lambda name, args, task_id: calls.append({"name": name, "args": args, "task_id": task_id}),
-    )
-    monkeypatch.setattr(jobs.redis_client, "set", lambda *a, **kw: True)
-    return calls
+# Only starter files are editable: app/main.py in the domain task, solution.py in the DSA one.
+FILES = {"app/main.py": "print('hi')\n"}
+DSA_FILES = {"solution.py": "def f():\n    return 1\n"}
 
 
 @pytest.fixture
@@ -243,11 +232,11 @@ def test_events_are_append_only(http, db, session_id) -> None:
 
 
 def test_run_saves_files_and_enqueues_a_job(http, db, session_id, sent) -> None:
-    response = http.post(f"/sessions/{session_id}/tasks/{DSA_ID}/run", json={"files": FILES})
+    response = http.post(f"/sessions/{session_id}/tasks/{DSA_ID}/run", json={"files": DSA_FILES})
 
     assert response.status_code == 200
     job_id = response.json()["job_id"]
-    assert sent == [{"name": "run_job", "args": [session_id, DSA_ID, FILES], "task_id": job_id}]
+    assert sent == [{"name": "run_job", "args": [session_id, DSA_ID, DSA_FILES], "task_id": job_id}]
     assert count(db, FileSnapshot) == 1
 
 
@@ -287,3 +276,63 @@ def test_every_write_after_deadline_is_409(http, db, session_id, sent, write) ->
     assert sent == []
     assert count(db, Event) == count(db, FileSnapshot) == 0
     assert db.get(AssessmentSession, uuid.UUID(session_id)).status == "active"
+
+
+# --- Anti-tampering, concurrency, ids ---
+
+
+@pytest.mark.parametrize(
+    ("path", "reason"),
+    [
+        ("tests/test_x.py", "test directories are read-only"),
+        ("conftest.py", "test or package configuration"),
+        ("app/new_module.py", "only files in the task's starter code"),
+    ],
+)
+def test_save_rejects_files_outside_the_editable_allowlist(http, db, session_id, path, reason):
+    files = {"app/main.py": "ok = 1\n", path: "x = 1\n"}
+
+    response = http.put(f"/sessions/{session_id}/tasks/{DOMAIN_ID}/files", json={"files": files})
+
+    assert response.status_code == 422
+    detail = response.json()["detail"]
+    assert list(detail["paths"]) == [path]
+    assert reason in detail["paths"][path]
+    assert count(db, FileSnapshot) == 0
+
+
+def test_run_rejects_files_outside_the_editable_allowlist(http, session_id, sent) -> None:
+    files = {"solution.py": "x = 1\n", "conftest.py": "x = 1\n"}
+
+    response = http.post(f"/sessions/{session_id}/tasks/{DSA_ID}/run", json={"files": files})
+
+    assert response.status_code == 422
+    assert sent == []
+
+
+def test_second_run_while_one_is_queued_is_429(http, session_id, sent, monkeypatch) -> None:
+    url = f"/sessions/{session_id}/tasks/{DSA_ID}/run"
+
+    first = http.post(url, json={"files": DSA_FILES})
+    second = http.post(url, json={"files": DSA_FILES})
+
+    assert first.status_code == 200
+    assert second.status_code == 429
+    assert len(sent) == 1
+
+    # Once the first job has finished, the next Run is accepted.
+    monkeypatch.setattr(jobs, "celery_state", lambda _id: ("SUCCESS", None))
+    assert http.post(url, json={"files": DSA_FILES}).status_code == 200
+
+
+def test_session_ids_are_random_uuid4(http, db) -> None:
+    ids = []
+    for _ in range(3):
+        assessment = create_assessment(db, portfolio(), "novice", [dsa_spec()])
+        body = http.post("/sessions", json={"assessment_id": str(assessment.id)}).json()
+        ids.append(uuid.UUID(body["session_id"]))
+
+    assert all(session_id.version == 4 for session_id in ids)
+    assert len({session_id.int for session_id in ids}) == 3
+    # Not sequential: neighbouring ids differ in far more than the last digit.
+    assert all(abs(a.int - b.int) > 2**64 for a, b in zip(ids, ids[1:], strict=False))

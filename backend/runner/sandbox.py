@@ -1,15 +1,16 @@
 """Run tests on candidate code in a fresh, locked-down container (CLAUDE.md rule 3).
 
 Lifecycle of one run:
-1. Create a tmpfs-backed volume for /workspace (size-capped, in RAM). The root filesystem
-   is read-only, and Docker can't copy files into a plain --tmpfs mount, so /workspace is
-   a volume instead.
+1. Create two tmpfs-backed volumes (size-capped, in RAM): /workspace for the files, and
+   /runner-out for the report and exit code, outside the workspace and under random
+   names per run. The root filesystem is read-only, and Docker can't copy files into a
+   plain --tmpfs mount, so these are volumes instead.
 2. Start the container. Its launcher waits for /workspace/.runner/go.
-3. Copy the files in, then create the go file. The launcher runs the test command and
-   writes its exit code to /workspace/.runner/exit_code.
+3. Copy the files in (`readonly` ones owned by root, mode 0444), then create the go
+   file. The launcher runs the test command and writes its exit code to /runner-out.
 4. Poll for the exit code until the deadline. Read the report while the container is
    still running (a tmpfs volume is emptied once the container stops).
-5. Always remove the container and the volume.
+5. Always remove the container and the volumes.
 """
 
 import io
@@ -29,7 +30,7 @@ from pydantic import ValidationError
 
 from contracts_gen.run_result import RunResult, Summary, TestResult
 from contracts_gen.task_spec import RelPath
-from runner.runtimes import REPORT_PATH, RUNTIMES, WORKSPACE
+from runner.runtimes import OUT_DIR, RUNTIMES, WORKSPACE
 
 logger = logging.getLogger("runner")
 
@@ -42,14 +43,18 @@ LOG_MAX_SIZE = "1m"  # caps container log storage; we only keep the tail anyway
 TAIL_BYTES = 4096
 POLL_INTERVAL_S = 0.1
 
+OUT_SIZE = "8m"
+
 RESERVED_DIR = ".runner"
-EXIT_CODE_PATH = f"{WORKSPACE}/{RESERVED_DIR}/exit_code"
-LAUNCHER = (
-    f"while [ ! -e {WORKSPACE}/{RESERVED_DIR}/go ]; do sleep 0.05; done; "
-    f'"$@"; echo $? > {EXIT_CODE_PATH}; '
-    # Stay alive so the report can be read before the tmpfs volume goes away.
-    "exec sleep 3600"
-)
+
+
+def _launcher(exit_code_path: str) -> str:
+    return (
+        f"while [ ! -e {WORKSPACE}/{RESERVED_DIR}/go ]; do sleep 0.05; done; "
+        f'"$@"; echo $? > {exit_code_path}; '
+        # Stay alive so the report can be read before the tmpfs volume goes away.
+        "exec sleep 3600"
+    )
 
 
 class RunnerError(RuntimeError):
@@ -61,30 +66,28 @@ def run_tests(
     files: dict[str, str],
     test_paths: list[str],
     timeout_s: int = 30,
+    readonly: frozenset[str] = frozenset(),
 ) -> RunResult:
+    """Run `test_paths` against `files`. Paths in `readonly` are copied in root-owned, 0444."""
     spec = RUNTIMES.get(runtime)
     if spec is None:
         raise ValueError(f"Unknown runtime {runtime!r}; expected one of {sorted(RUNTIMES)}")
     _validate_paths(files, test_paths)
 
     client = _docker_client()
-    volume = client.volumes.create(
-        name=f"assess-run-{uuid.uuid4().hex[:12]}",
-        driver="local",
-        driver_opts={
-            "type": "tmpfs",
-            "device": "tmpfs",
-            "o": f"size={WORKSPACE_SIZE},uid={RUNNER_UID},gid={RUNNER_UID},mode=0700",
-        },
-        labels={"assess.runner": "workspace"},
-    )
-    test_command = spec.test_command(test_paths, set(files))
+    volumes = [_tmpfs_volume(client, "run", WORKSPACE_SIZE), _tmpfs_volume(client, "out", OUT_SIZE)]
+    workspace_volume, out_volume = volumes
+    # Random per run and outside /workspace, so candidate code can't find or pre-write them.
+    run_key = uuid.uuid4().hex
+    report_path = f"{OUT_DIR}/{run_key}.json"
+    exit_code_path = f"{OUT_DIR}/{run_key}.exit"
+    test_command = spec.test_command(test_paths, set(files), report_path)
     container: Container | None = None
     try:
         try:
             container = client.containers.create(
                 image=spec.image,
-                command=["sh", "-c", LAUNCHER, "launcher", *test_command],
+                command=["sh", "-c", _launcher(exit_code_path), "launcher", *test_command],
                 user=f"{RUNNER_UID}:{RUNNER_UID}",
                 working_dir=WORKSPACE,
                 environment={
@@ -100,7 +103,10 @@ def run_tests(
                 cap_drop=["ALL"],
                 security_opt=["no-new-privileges"],
                 init=True,
-                volumes={volume.name: {"bind": WORKSPACE, "mode": "rw"}},
+                volumes={
+                    workspace_volume.name: {"bind": WORKSPACE, "mode": "rw"},
+                    out_volume.name: {"bind": OUT_DIR, "mode": "rw"},
+                },
                 log_config=LogConfig(
                     type=LogConfig.types.JSON, config={"max-size": LOG_MAX_SIZE, "max-file": "1"}
                 ),
@@ -110,13 +116,13 @@ def run_tests(
             raise RunnerError(f"Image {spec.image} not found; run `make runtimes`") from exc
 
         container.start()
-        container.put_archive(WORKSPACE, _tar(files))
+        container.put_archive(WORKSPACE, _tar(files, readonly))
         container.put_archive(WORKSPACE, _tar({f"{RESERVED_DIR}/go": ""}))
         started = time.monotonic()
 
-        exit_code, timed_out = _wait_for_exit_code(container, started + timeout_s)
+        exit_code, timed_out = _wait_for_exit_code(container, exit_code_path, started + timeout_s)
         duration_ms = round((time.monotonic() - started) * 1000)
-        report = None if timed_out else _read_json(container, REPORT_PATH)
+        report = None if timed_out else _read_json(container, report_path)
         if timed_out:
             container.kill()
         container.reload()
@@ -126,7 +132,7 @@ def run_tests(
     except DockerException as exc:
         raise RunnerError(f"Sandbox failure: {exc}") from exc
     finally:
-        _cleanup(container, volume)
+        _cleanup(container, volumes)
 
     tests = spec.parse_report(report) if report is not None else []
     if timed_out:
@@ -140,6 +146,7 @@ def run_tests(
 
     result = RunResult(
         status=status,
+        reason=None,
         duration_ms=duration_ms,
         tests=tests,
         summary=_summarize(tests),
@@ -184,8 +191,24 @@ def _validate_paths(files: dict[str, str], test_paths: list[str]) -> None:
             raise ValueError(f"Invalid test path {path!r}: would be read as a command-line option")
 
 
-def _tar(files: dict[str, str]) -> bytes:
-    """Tar owned by the sandbox user, with explicit parent directories and runner dirs."""
+def _tmpfs_volume(client: docker.DockerClient, purpose: str, size: str) -> Any:
+    return client.volumes.create(
+        name=f"assess-{purpose}-{uuid.uuid4().hex[:12]}",
+        driver="local",
+        driver_opts={
+            "type": "tmpfs",
+            "device": "tmpfs",
+            "o": f"size={size},uid={RUNNER_UID},gid={RUNNER_UID},mode=0700",
+        },
+        labels={"assess.runner": purpose},
+    )
+
+
+def _tar(files: dict[str, str], readonly: frozenset[str] = frozenset()) -> bytes:
+    """Tar owned by the sandbox user, with explicit parent directories and runner dirs.
+
+    Files in `readonly` are owned by root with mode 0444, so the sandbox user can't edit them.
+    """
     dirs = {f"{RESERVED_DIR}", f"{RESERVED_DIR}/tmp", f"{RESERVED_DIR}/home"}
     for path in files:
         parts = path.split("/")[:-1]
@@ -198,25 +221,30 @@ def _tar(files: dict[str, str]) -> bytes:
             tar.addfile(info)
         for path, content in files.items():
             data = content.encode()
-            info = _tar_info(path, tarfile.REGTYPE, 0o644)
+            if path in readonly:
+                info = _tar_info(path, tarfile.REGTYPE, 0o444, uid=0)
+            else:
+                info = _tar_info(path, tarfile.REGTYPE, 0o644)
             info.size = len(data)
             tar.addfile(info, io.BytesIO(data))
     return buffer.getvalue()
 
 
-def _tar_info(name: str, kind: bytes, mode: int) -> tarfile.TarInfo:
+def _tar_info(name: str, kind: bytes, mode: int, uid: int = RUNNER_UID) -> tarfile.TarInfo:
     info = tarfile.TarInfo(name)
     info.type = kind
     info.mode = mode
-    info.uid = info.gid = RUNNER_UID
+    info.uid = info.gid = uid
     info.mtime = int(time.time())
     return info
 
 
-def _wait_for_exit_code(container: Container, deadline: float) -> tuple[int | None, bool]:
+def _wait_for_exit_code(
+    container: Container, exit_code_path: str, deadline: float
+) -> tuple[int | None, bool]:
     """Returns (exit code, timed out). The exit code is None if the launcher died."""
     while True:
-        raw = _read_file(container, EXIT_CODE_PATH)
+        raw = _read_file(container, exit_code_path)
         if raw and raw.strip():
             try:
                 return int(raw.strip()), False
@@ -262,13 +290,14 @@ def _tail(output: bytes) -> str:
     return output[-TAIL_BYTES:].decode("utf-8", errors="replace")
 
 
-def _cleanup(container: Container | None, volume: Any) -> None:
+def _cleanup(container: Container | None, volumes: list[Any]) -> None:
     if container is not None:
         try:
             container.remove(force=True)
         except APIError:
             logger.exception("Failed to remove sandbox container %s", container.id)
-    try:
-        volume.remove(force=True)
-    except APIError:
-        logger.exception("Failed to remove sandbox volume %s", volume.name)
+    for volume in volumes:
+        try:
+            volume.remove(force=True)
+        except APIError:
+            logger.exception("Failed to remove sandbox volume %s", volume.name)

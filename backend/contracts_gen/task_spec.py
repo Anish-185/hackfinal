@@ -161,6 +161,14 @@ class TaskSpec(BaseModel):
     """
     visible_tests: list[TestFile]
     hidden_tests: list[TestFile]
+    visible_test_ids: list[str]
+    """
+    Exact set of test ids (e.g. pytest node ids) the runner must collect from visible_tests, recorded when the task is built. Any other set means the run is not trusted: status error, reason test_set_mismatch.
+    """
+    hidden_test_ids: list[str]
+    """
+    Same as visible_test_ids, for hidden_tests.
+    """
     dsa_cases: DsaCases | None
     """
     Input/expected cases for DSA tasks. Null for domain tasks.

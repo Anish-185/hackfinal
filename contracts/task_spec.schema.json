@@ -21,6 +21,8 @@
     "entry_symbols",
     "visible_tests",
     "hidden_tests",
+    "visible_test_ids",
+    "hidden_test_ids",
     "dsa_cases",
     "perf",
     "time_budget_min",
@@ -86,6 +88,18 @@
     "hidden_tests": {
       "type": "array",
       "items": { "$ref": "#/$defs/TestFile" }
+    },
+    "visible_test_ids": {
+      "type": "array",
+      "description": "Exact set of test ids (e.g. pytest node ids) the runner must collect from visible_tests, recorded when the task is built. Any other set means the run is not trusted: status error, reason test_set_mismatch.",
+      "items": { "type": "string" },
+      "uniqueItems": true
+    },
+    "hidden_test_ids": {
+      "type": "array",
+      "description": "Same as visible_test_ids, for hidden_tests.",
+      "items": { "type": "string" },
+      "uniqueItems": true
     },
     "dsa_cases": {
       "oneOf": [{ "$ref": "#/$defs/DsaCases" }, { "type": "null" }],

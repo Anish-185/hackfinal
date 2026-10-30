@@ -1,5 +1,6 @@
 {
   "status": "crashed",
+  "reason": null,
   "duration_ms": 1840,
   "tests": [
     {

@@ -1,18 +1,10 @@
-from celery import Celery
+"""Celery tasks. The app object lives in app.celery_app; the work itself in app.grading."""
 
-from app.config import get_settings
+from app import grading, jobs
+from app.celery_app import celery_app
+from app.db import SessionLocal
 
-settings = get_settings()
-
-celery_app = Celery("app", broker=settings.redis_url, backend=settings.redis_url)
-celery_app.conf.update(
-    task_serializer="json",
-    result_serializer="json",
-    accept_content=["json"],
-    broker_connection_retry_on_startup=True,
-    # Lets GET /jobs/{id} tell "queued" from "running".
-    task_track_started=True,
-)
+__all__ = ["celery_app"]
 
 
 @celery_app.task(name="ping")
@@ -20,12 +12,24 @@ def ping() -> str:
     return "pong"
 
 
-# The API enqueues these by name (app/jobs.py). P1.2 implements them.
-@celery_app.task(name="run_job")
-def run_job(session_id: str, task_id: str, files: dict[str, str]) -> dict:
-    raise NotImplementedError("run_job is implemented in P1.2")
+@celery_app.task(name="run_job", bind=True)
+def run_job(self, session_id: str, task_id: str, files: dict[str, str]) -> dict:
+    """Returns the visible RunResult only (GET /jobs/{id} shows it to the candidate)."""
+    try:
+        with SessionLocal() as db:
+            return grading.process_run(db, session_id, task_id, files)
+    finally:
+        jobs.release_run_lock(session_id, self.request.id)
 
 
-@celery_app.task(name="submit_job")
+# acks_late: a job lost to a worker crash is redelivered; process_submit is idempotent.
+@celery_app.task(name="submit_job", acks_late=True)
 def submit_job(session_id: str) -> None:
-    raise NotImplementedError("submit_job is implemented in P1.2")
+    with SessionLocal() as db:
+        grading.process_submit(db, session_id)
+
+
+@celery_app.task(name="auto_submit_expired")
+def auto_submit_expired() -> list[str]:
+    with SessionLocal() as db:
+        return grading.auto_submit_expired(db)

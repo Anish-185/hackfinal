@@ -58,6 +58,14 @@ export interface TaskSpec {
   visible_tests: TestFile[];
   hidden_tests: TestFile[];
   /**
+   * Exact set of test ids (e.g. pytest node ids) the runner must collect from visible_tests, recorded when the task is built. Any other set means the run is not trusted: status error, reason test_set_mismatch.
+   */
+  visible_test_ids: string[];
+  /**
+   * Same as visible_test_ids, for hidden_tests.
+   */
+  hidden_test_ids: string[];
+  /**
    * Input/expected cases for DSA tasks. Null for domain tasks.
    */
   dsa_cases: DsaCases | null;

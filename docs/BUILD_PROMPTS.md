@@ -89,32 +89,78 @@ Acceptance checks:
 - curl sequence: create session → fetch task → save files → post events
 ```
 
-### P1.2 Worker jobs
+### P1.2 Worker jobs (amended: hidden tests isolated, anti-tampering)
 
 ```text
 Follow the session protocol in CLAUDE.md. Branch: p1-2-workers.
 
 1. run_job(session_id, task_id, files):
-   - Visible tests via backend/runner → run kind "visible".
-   - Hidden tests silently → run kind "silent". Hidden test files come from
-     the task's reference source on the backend, copied into the container
-     only for this run, read-only.
+   - Build the workspace: starter files, then the candidate's files filtered
+     through the editable allowlist (step 4), then the visible test files
+     from the backend copied over the top.
+   - Run visible tests → run kind "visible".
+   - Run hidden tests in a SEPARATE container where the hidden test files are
+     added (read-only). Output is never returned anywhere → run kind
+     "silent". Hidden files are never present in the visible run, so
+     nothing the candidate prints can leak them.
    - One "run" event: visible {passed,total}, hidden_silent
      {passed,total,failing_ids}.
-   - The job result returned to the API includes ONLY the visible RunResult.
-2. submit_job(session_id): for each task, latest snapshot → visible + hidden
-   tests → run kind "submit" → "submit" event → session submitted → scoring
-   (stub: store per-task pass counts).
-3. Celery beat auto-submit every 30 s for sessions past their deadline.
-4. Never return hidden stdout/stderr to the API.
+   - The job result returned to the API: ONLY the visible RunResult.
+   - At most one active run per session; a second Run while one is queued
+     or running returns 429.
 
-Tests: run_job stores both runs and one event with no hidden data in the
-response; submit_job uses the latest snapshot; auto-submit fires.
+2. submit_job(session_id): for each task, latest snapshot → same workspace
+   rules → visible + hidden runs → run kind "submit" → "submit" event →
+   scoring stub (store per-task pass counts). The session is already locked
+   by the submit route; make submit_job idempotent if it's retried.
+
+3. Celery beat auto-submit every 30 s for sessions past their deadline.
+
+4. Anti-tampering (keep each check simple and unit-tested):
+   a) Editable allowlist: only paths present in the task's starter_files are
+      editable. Enforce at save time (reject other paths with 422 and a clear
+      message) and again at run time (drop anything else). Always drop test
+      dirs, conftest.py, pytest.ini, tox.ini, setup.cfg, pyproject.toml
+      changes, sitecustomize.py, usercustomize.py, *.pth, and for Node:
+      package.json, jest.config.*, babel config, .npmrc.
+   b) Expected test IDs: the set of collected test IDs must exactly match
+      the IDs expected for the visible or hidden set (derive them from the
+      task's test files when the task is built, and store them on the spec).
+      Any mismatch → status "error" with reason "test_set_mismatch"; never
+      count it as passes.
+   c) Report path: write the JSON report to a random filename per run,
+      outside /workspace, passed on the command line.
+   d) Suspicious-code scan of the candidate's changed files: flag
+      _pytest, sys.modules, os._exit, sys.exit at module level, builtins
+      patching, importlib tricks, and file writes outside /workspace. Store
+      it as an integrity note on the run; never block or score on it.
+
+5. Confirm session IDs are UUID4 (not sequential); add a test.
+
+6. Never return hidden stdout/stderr, hidden test names, or hidden failure
+   messages to the API.
+
+Tests:
+- run_job stores both runs and one event; API response has no hidden data
+- A saved tests/test_x.py or conftest.py is rejected at save time and
+  ignored at run time
+- A candidate conftest that forces passes has no effect (it's dropped)
+- Test-ID mismatch produces status "error", not passes
+- A second concurrent Run returns 429
+- submit_job uses the latest snapshot and is idempotent
+- auto-submit fires for an expired session
 
 Acceptance checks:
-- `make test` and `make test-docker` pass
-- Show the event row for one real run
+- `make test`, `make test-docker`, `make lint` pass
+- Show the event row and the stored run rows for one real run
 ```
+
+Implemented in backend/app/: grading.py (run, submit, auto-submit, test-id
+check, derive_test_ids for builders), workspace.py (allowlist, workspace
+assembly), integrity.py (scan), jobs.py (run lock), celery_app.py (beat
+schedule), worker.py (Celery tasks). Contracts: TaskSpec.visible_test_ids /
+hidden_test_ids, RunResult.reason. Builders (P1.3, P2.x) must fill the test
+ids with grading.derive_test_ids.
 
 ### P1.3 Hard-coded demo task
 
@@ -148,6 +194,10 @@ Session page at frontend/app/session/[id]/:
 - Bottom: test results (pass/fail per test, messages).
 - Top bar: countdown from the server deadline (resync every 30 s), Run,
   Submit, autosave status.
+Editable files: only starter files outside tests and test/package config
+(backend/app/workspace.py); show the rest read-only and never send them, or
+the save returns 422. A Run while another is in flight returns 429: disable
+Run until the job finishes.
 Behavior: autosave every 5 s and on Run; Run → POST → poll /jobs/{id} every
 1 s → visible results; Submit → confirm → "submitted" screen; at the
 deadline lock the editor and show "Time's up — submitted."

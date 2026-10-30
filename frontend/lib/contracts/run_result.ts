@@ -8,6 +8,10 @@ export interface RunResult {
    * ok: the test command ran to completion (tests may still have failed). timeout: killed at the time limit. oom: killed for exceeding the memory limit. error: tests could not be collected or run, or the test command crashed.
    */
   status: "ok" | "timeout" | "error" | "oom";
+  /**
+   * Why status is error, when the backend knows. test_set_mismatch: the collected test ids differed from the task's expected ids, so no test counts as passed. Null otherwise.
+   */
+  reason: string | null;
   duration_ms: number;
   tests: TestResult[];
   summary: Summary;

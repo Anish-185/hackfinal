@@ -90,11 +90,21 @@ def test_jest_report_is_mapped_to_test_results() -> None:
 def test_jest_gets_a_default_config_only_when_the_repo_has_none() -> None:
     command = RUNTIMES["node20"].test_command
 
-    bare_repo = command(["sum.test.js"], {"sum.js", "sum.test.js"})
-    repo_with_config = command(["sum.test.js"], {"package.json", "sum.test.js"})
+    bare_repo = command(["sum.test.js"], {"sum.js", "sum.test.js"}, "/runner-out/r.json")
+    repo_with_config = command(
+        ["sum.test.js"], {"package.json", "sum.test.js"}, "/runner-out/r.json"
+    )
 
     assert any(arg.startswith("--config=") for arg in bare_repo)
     assert not any(arg.startswith("--config=") for arg in repo_with_config)
+
+
+@pytest.mark.parametrize("runtime", ["python311", "node20"])
+def test_report_goes_to_the_given_path(runtime: str) -> None:
+    command = RUNTIMES[runtime].test_command(["test_x.py"], {"test_x.py"}, "/runner-out/abc.json")
+
+    assert any(arg.endswith("=/runner-out/abc.json") for arg in command)
+    assert not any("/workspace/.runner" in arg for arg in command)
 
 
 def test_jest_suite_that_fails_to_load_is_not_clean() -> None:

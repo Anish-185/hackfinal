@@ -15,6 +15,7 @@ from sqlalchemy import (
     Text,
     UniqueConstraint,
     func,
+    text,
 )
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
@@ -111,7 +112,9 @@ class Run(Base):
     task_id: Mapped[str] = mapped_column(Text)
     kind: Mapped[str] = mapped_column(String(16))
     result: Mapped[dict[str, Any]]
-    """A RunResult."""
+    """visible and silent: a RunResult. submit: {"visible": RunResult, "hidden": RunResult}."""
+    integrity: Mapped[dict[str, Any]] = mapped_column(server_default=text("'{}'::jsonb"))
+    """Report-only notes: {"dropped_paths": [...], "flags": [IntegrityFlag, ...]}. Never scored."""
     ts: Mapped[datetime] = mapped_column(DateTime(timezone=True))
 
 

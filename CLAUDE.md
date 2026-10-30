@@ -44,6 +44,10 @@ End:
 7. Secrets live in .env only. Never commit .env.
 8. Trail Map metrics, integrity flags, and the voice interview are shown in
    the report but never affect the score.
+9. Hidden tests run only in their own sandbox, never next to visible ones.
+   Candidates can edit only starter files outside tests/config
+   (app/workspace.py), and a run counts only if exactly the task's expected
+   test ids were collected (TaskSpec.visible_test_ids / hidden_test_ids).
 
 ## Token policy (whole project)
 - Every Featherless call sets max_tokens and a low temperature.
@@ -93,8 +97,11 @@ frontend/    Next.js app: app/recruiter, app/session/[id], app/report/[id],
 backend/     app/            FastAPI app and plumbing:
                              main.py, routes/ (one module per resource),
                              models.py (SQLAlchemy tables), db.py, jobs.py
-                             (enqueue + job status), worker.py (Celery app
-                             and tasks), candidate_view.py, config.py
+                             (enqueue, job status, run lock), celery_app.py
+                             (Celery app + beat schedule), worker.py (Celery
+                             tasks), grading.py (run/submit/auto-submit),
+                             workspace.py (editable allowlist), integrity.py
+                             (suspicious-code scan), candidate_view.py, config.py
              migrations/     Alembic (alembic.ini next to it)
              llm/ runner/ contracts_gen/ scripts/ tests/
              planned packages: profiler/ builder/ gate/ assistant/

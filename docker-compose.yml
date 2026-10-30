@@ -58,6 +58,12 @@ services:
       # DEVELOPMENT ONLY: this is root-equivalent access to the host.
       - /var/run/docker.sock:/var/run/docker.sock
 
+  # Celery beat: enqueues auto_submit_expired every 30 s (app/celery_app.py).
+  # Run exactly one beat process.
+  beat:
+    <<: *backend
+    command: celery -A app.worker beat --loglevel=info --schedule /tmp/celerybeat-schedule
+
   frontend:
     build: ./frontend
     environment:

@@ -8,6 +8,8 @@ from fastapi.testclient import TestClient
 from sqlalchemy import URL, Engine, create_engine, make_url, text
 from sqlalchemy.orm import Session
 
+from app import jobs
+from app.cache import redis_client
 from app.config import get_settings
 from app.db import get_db
 from app.main import app
@@ -69,3 +71,21 @@ def http(db: Session) -> Iterator[TestClient]:
     app.dependency_overrides[get_db] = lambda: db
     yield TestClient(app)
     app.dependency_overrides.clear()
+
+
+@pytest.fixture
+def sent(monkeypatch) -> Iterator[list[dict]]:
+    """Records Celery send_task calls instead of talking to the broker.
+
+    Job records and run locks go to the real Redis (the lock needs SET NX) and are
+    deleted afterwards.
+    """
+    calls: list[dict] = []
+    monkeypatch.setattr(
+        jobs.celery_app,
+        "send_task",
+        lambda name, args, task_id: calls.append({"name": name, "args": args, "task_id": task_id}),
+    )
+    yield calls
+    for call in calls:
+        redis_client.delete(f"job:{call['task_id']}", f"run_lock:{call['args'][0]}")

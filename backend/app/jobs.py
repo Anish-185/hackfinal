@@ -2,6 +2,7 @@
 
 Each job gets a small record in Redis ({kind, session_id, task_id}), so GET /jobs/{id}
 answers 404 for ids we never issued instead of Celery's "PENDING forever".
+A session has at most one run job in flight, guarded by a Redis lock holding its job id.
 """
 
 import json
@@ -13,7 +14,7 @@ from celery.result import AsyncResult
 from pydantic import BaseModel, ValidationError
 
 from app.cache import redis_client
-from app.worker import celery_app
+from app.celery_app import celery_app
 from contracts_gen.run_result import RunResult
 
 logger = logging.getLogger(__name__)
@@ -22,6 +23,8 @@ JobKind = Literal["run", "submit"]
 JobStatus = Literal["queued", "running", "done", "failed"]
 
 JOB_RECORD_TTL_S = 24 * 3600
+# Longer than a run job can take (two sandbox runs); a crashed worker frees it this way.
+RUN_LOCK_TTL_S = 300
 
 _STATUS = {
     "PENDING": "queued",
@@ -32,6 +35,10 @@ _STATUS = {
     "FAILURE": "failed",
     "REVOKED": "failed",
 }
+
+
+class RunInProgress(Exception):
+    """The session already has a run job queued or running."""
 
 
 class JobRecord(BaseModel):
@@ -49,12 +56,57 @@ class JobView(BaseModel):
     error: str | None
 
 
-def enqueue(task_name: str, args: list[Any], record: JobRecord) -> str:
-    job_id = str(uuid.uuid4())
+def new_job_id() -> str:
+    return str(uuid.uuid4())
+
+
+def send_job(job_id: str, task_name: str, args: list[Any], record: JobRecord) -> None:
     # Record first, so a fast worker can't finish a job we don't know about yet.
     redis_client.set(f"job:{job_id}", record.model_dump_json(), ex=JOB_RECORD_TTL_S)
     celery_app.send_task(task_name, args=args, task_id=job_id)
+
+
+def enqueue_submit(session_id: str) -> str:
+    job_id = new_job_id()
+    send_job(
+        job_id,
+        "submit_job",
+        [session_id],
+        JobRecord(kind="submit", session_id=session_id, task_id=None),
+    )
     return job_id
+
+
+def _run_lock(session_id: str) -> str:
+    return f"run_lock:{session_id}"
+
+
+def acquire_run_lock(session_id: str, task_id: str) -> str:
+    """Reserve the session's single run slot; returns the job id to use for the run.
+
+    The job record is written before the lock, so a holder without a record is truly
+    stale. Raises RunInProgress if the current holder is still queued or running.
+    """
+    job_id = new_job_id()
+    record = JobRecord(kind="run", session_id=session_id, task_id=task_id)
+    redis_client.set(f"job:{job_id}", record.model_dump_json(), ex=JOB_RECORD_TTL_S)
+    key = _run_lock(session_id)
+    if redis_client.set(key, job_id, nx=True, ex=RUN_LOCK_TTL_S):
+        return job_id
+    holder = redis_client.get(key)
+    job = get_job(holder.decode()) if holder else None
+    if job is not None and job.status in ("queued", "running"):
+        redis_client.delete(f"job:{job_id}")
+        raise RunInProgress
+    # The holder finished without releasing (or its record expired): take over.
+    redis_client.set(key, job_id, ex=RUN_LOCK_TTL_S)
+    return job_id
+
+
+def release_run_lock(session_id: str, job_id: str) -> None:
+    key = _run_lock(session_id)
+    if redis_client.get(key) == job_id.encode():
+        redis_client.delete(key)
 
 
 def celery_state(job_id: str) -> tuple[str, Any]:

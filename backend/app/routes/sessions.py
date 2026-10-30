@@ -21,6 +21,7 @@ from app.models import (
     FileSnapshot,
     Task,
 )
+from app.workspace import not_editable_reason
 from contracts_gen.candidate_task_view import CandidateTaskView
 from contracts_gen.event import Event as EventIn
 from contracts_gen.task_spec import TaskSpec
@@ -114,6 +115,17 @@ def _require_writable(session: AssessmentSession) -> None:
         raise HTTPException(status.HTTP_409_CONFLICT, "session deadline has passed")
 
 
+def _require_editable(task: Task, files: dict[str, str]) -> None:
+    """422 listing every path the candidate may not write, with the reason for each."""
+    spec = TaskSpec.model_validate(task.spec)
+    refused = {path: reason for path in files if (reason := not_editable_reason(spec, path))}
+    if refused:
+        raise HTTPException(
+            status.HTTP_422_UNPROCESSABLE_CONTENT,
+            {"message": "these files are not editable", "paths": refused},
+        )
+
+
 def _session_out(db: Session, session: AssessmentSession) -> SessionOut:
     now = _now()
     state = session.status
@@ -177,8 +189,9 @@ def get_task(session_id: uuid.UUID, task_id: str, db: DbSession) -> CandidateTas
 @router.put("/{session_id}/tasks/{task_id}/files", response_model=SnapshotOut)
 def save_files(session_id: uuid.UUID, task_id: str, body: FilesIn, db: DbSession) -> SnapshotOut:
     session = _get_session(db, session_id)
-    _get_task(db, session, task_id)
+    task = _get_task(db, session, task_id)
     _require_writable(session)
+    _require_editable(task, body.files)
     snapshot = FileSnapshot(session_id=session.id, task_id=task_id, ts=_now(), files=body.files)
     db.add(snapshot)
     db.commit()
@@ -223,17 +236,32 @@ def post_events(
 
 @router.post("/{session_id}/tasks/{task_id}/run", response_model=JobOut)
 def run_task(session_id: uuid.UUID, task_id: str, body: FilesIn, db: DbSession) -> JobOut:
-    """Autosave the files, then enqueue a run of the visible (and, silently, hidden) tests."""
+    """Autosave the files, then enqueue a run of the visible (and, silently, hidden) tests.
+
+    One run per session at a time: 429 while the previous one is queued or running.
+    """
     session = _get_session(db, session_id)
-    _get_task(db, session, task_id)
+    task = _get_task(db, session, task_id)
     _require_writable(session)
-    db.add(FileSnapshot(session_id=session.id, task_id=task_id, ts=_now(), files=body.files))
-    db.commit()
-    job_id = jobs.enqueue(
-        "run_job",
-        [str(session.id), task_id, body.files],
-        jobs.JobRecord(kind="run", session_id=str(session.id), task_id=task_id),
-    )
+    _require_editable(task, body.files)
+    try:
+        job_id = jobs.acquire_run_lock(str(session.id), task_id)
+    except jobs.RunInProgress:
+        raise HTTPException(
+            status.HTTP_429_TOO_MANY_REQUESTS, "a run is already in progress for this session"
+        ) from None
+    try:
+        db.add(FileSnapshot(session_id=session.id, task_id=task_id, ts=_now(), files=body.files))
+        db.commit()
+        jobs.send_job(
+            job_id,
+            "run_job",
+            [str(session.id), task_id, body.files],
+            jobs.JobRecord(kind="run", session_id=str(session.id), task_id=task_id),
+        )
+    except Exception:
+        jobs.release_run_lock(str(session.id), job_id)
+        raise
     return JobOut(job_id=job_id)
 
 
@@ -245,9 +273,4 @@ def submit_session(session_id: uuid.UUID, db: DbSession) -> JobOut:
     session.status = "submitted"
     session.submitted_at = _now()
     db.commit()
-    job_id = jobs.enqueue(
-        "submit_job",
-        [str(session.id)],
-        jobs.JobRecord(kind="submit", session_id=str(session.id), task_id=None),
-    )
-    return JobOut(job_id=job_id)
+    return JobOut(job_id=jobs.enqueue_submit(str(session.id)))

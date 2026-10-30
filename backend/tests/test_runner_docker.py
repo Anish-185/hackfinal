@@ -113,6 +113,25 @@ def test_sandbox_is_locked_down() -> None:
     assert result.summary.model_dump() == {"passed": 3, "failed": 0, "total": 3}
 
 
+def test_readonly_files_and_report_are_out_of_reach() -> None:
+    files = {
+        "data.txt": "original",
+        "test_tamper.py": (
+            "import os\n\nimport pytest\n\n\n"
+            "def test_readonly_file_cannot_be_edited():\n"
+            "    with pytest.raises(PermissionError):\n"
+            '        open("/workspace/data.txt", "w")\n\n\n'
+            "def test_no_report_or_exit_code_in_the_workspace():\n"
+            '    assert sorted(os.listdir("/workspace/.runner")) == ["go", "home", "tmp"]\n'
+        ),
+    }
+
+    result = run_tests("python311", files, ["test_tamper.py"], readonly=frozenset({"data.txt"}))
+
+    assert result.status == "ok", result.stdout_tail
+    assert result.summary.model_dump() == {"passed": 2, "failed": 0, "total": 2}
+
+
 def test_collection_error_is_status_error() -> None:
     files = {"test_broken.py": "def test_x(:\n    pass\n"}
 
