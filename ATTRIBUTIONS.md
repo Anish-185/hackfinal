@@ -44,6 +44,25 @@ Add every new one here in the same change that introduces it (CLAUDE.md).
 | [Monaco Editor](https://github.com/microsoft/monaco-editor) / [@monaco-editor/react](https://github.com/suren-atoyan/monaco-react) | MIT | Candidate IDE editor (P1.4). monaco-editor 0.55.1 is bundled from npm (core editor + a few syntax highlighters, lib/monaco.ts), no CDN (P1.4b) |
 | [react-markdown](https://github.com/remarkjs/react-markdown) | MIT | Rendering task statements and repo tours (P1.4) |
 
+### Showcase site (`showcase/package.json`)
+
+A standalone static site for the project presentation. Versions are pinned exactly.
+
+| Library | License | Use |
+| :--- | :--- | :--- |
+| [Next.js](https://github.com/vercel/next.js) 16.4.3 | MIT | App framework, static export |
+| [React](https://github.com/facebook/react) / React DOM 19.3.0 | MIT | UI |
+| [TypeScript](https://github.com/microsoft/TypeScript) 5.9.3 | Apache-2.0 | Type checking |
+| [DefinitelyTyped](https://github.com/DefinitelyTyped/DefinitelyTyped) (@types/node, @types/react, @types/react-dom) | MIT | Type definitions |
+| [Motion](https://github.com/motiondivision/motion) 14.3.0 | MIT | Scroll-linked and reveal animations |
+| [Lenis](https://github.com/darkroomengineering/lenis) 1.3.26 | MIT | Smooth scrolling |
+| [Fontsource](https://github.com/fontsource/fontsource) (@fontsource-variable/archivo, source-serif-4, jetbrains-mono 5.3.0) | MIT (packaging) | Self-hosted font files, no font CDN |
+| [Archivo](https://github.com/Omnibus-Type/Archivo) (Omnibus-Type) | OFL-1.1 | Display typeface |
+| [Source Serif 4](https://github.com/adobe-fonts/source-serif) (Adobe) | OFL-1.1 | Text typeface |
+| [JetBrains Mono](https://github.com/JetBrains/JetBrainsMono) | OFL-1.1 | Code typeface |
+
+Product screenshots on the site are captured from our own running app with Playwright (listed under End-to-end test).
+
 ### Runner images (`runtimes/`)
 
 | Software | License | Use |
