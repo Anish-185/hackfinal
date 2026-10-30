@@ -1,7 +1,9 @@
 """Enqueue Celery jobs and report their status to the API.
 
-Each job gets a small record in Redis ({kind, session_id, task_id}), so GET /jobs/{id}
-answers 404 for ids we never issued instead of Celery's "PENDING forever".
+Each job gets a small record in Redis ({kind, session_id, task_id, result}), so
+GET /jobs/{id} answers 404 for ids we never issued instead of Celery's "PENDING forever".
+A run job publishes its visible RunResult into the record as soon as the visible run
+finishes; the job stays "running" until the hidden run is stored too.
 A session has at most one run job in flight, guarded by a Redis lock holding its job id.
 """
 
@@ -45,14 +47,18 @@ class JobRecord(BaseModel):
     kind: JobKind
     session_id: str
     task_id: str | None
+    result: dict[str, Any] | None = None
+    """Visible RunResult of a run job, published before the hidden run."""
 
 
 class JobView(BaseModel):
     job_id: str
     kind: JobKind
     status: JobStatus
+    """done/failed: the whole job has finished and the session may Run again."""
     result: RunResult | None
-    """Visible RunResult of a finished run job. Null otherwise."""
+    """Visible RunResult of a run job, shown as soon as it exists (status may still be
+    "running" while hidden tests run). Null otherwise."""
     error: str | None
 
 
@@ -109,9 +115,18 @@ def release_run_lock(session_id: str, job_id: str) -> None:
         redis_client.delete(key)
 
 
-def celery_state(job_id: str) -> tuple[str, Any]:
-    result = AsyncResult(job_id, app=celery_app)
-    return result.state, result.result if result.state == "SUCCESS" else None
+def publish_run_result(job_id: str, result: dict[str, Any]) -> None:
+    """Store a run job's visible RunResult in its record (the only result the API shows)."""
+    raw = redis_client.get(f"job:{job_id}")
+    if raw is None:
+        logger.error("No record for job %s; visible result not published", job_id)
+        return
+    record = JobRecord.model_validate(json.loads(raw)).model_copy(update={"result": result})
+    redis_client.set(f"job:{job_id}", record.model_dump_json(), ex=JOB_RECORD_TTL_S)
+
+
+def celery_state(job_id: str) -> str:
+    return AsyncResult(job_id, app=celery_app).state
 
 
 def get_job(job_id: str) -> JobView | None:
@@ -119,16 +134,18 @@ def get_job(job_id: str) -> JobView | None:
     if raw is None:
         return None
     record = JobRecord.model_validate(json.loads(raw))
-    state, value = celery_state(job_id)
-    status: JobStatus = _STATUS.get(state, "queued")
+    status: JobStatus = _STATUS.get(celery_state(job_id), "queued")
 
     result = None
     error = "job failed" if status == "failed" else None
-    if status == "done" and record.kind == "run":
-        # The worker returns only the visible RunResult. Anything else is not passed on.
+    if record.kind == "run" and record.result is not None:
+        # Only a valid visible RunResult is passed on; anything else is withheld.
         try:
-            result = RunResult.model_validate(value)
+            result = RunResult.model_validate(record.result)
         except ValidationError:
-            logger.error("Job %s returned something other than a RunResult", job_id)
+            logger.error("Job %s published something other than a RunResult", job_id)
             status, error = "failed", "job failed"
+    elif record.kind == "run" and status == "done":
+        logger.error("Run job %s finished without publishing a result", job_id)
+        status, error = "failed", "job failed"
     return JobView(job_id=job_id, kind=record.kind, status=status, result=result, error=error)

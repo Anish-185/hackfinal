@@ -162,25 +162,49 @@ schedule), worker.py (Celery tasks). Contracts: TaskSpec.visible_test_ids /
 hidden_test_ids, RunResult.reason. Builders (P1.3, P2.x) must fill the test
 ids with grading.derive_test_ids.
 
-### P1.3 Hard-coded demo task
+### P1.3 Hard-coded demo task (amended: reuse P1.2's task, isolated DSA answers)
 
 ```text
 Follow the session protocol in CLAUDE.md. Branch: p1-3-demo-task.
 
-1. backend/builder/manual.py: Novice task from seeds/py-fastapi-expenses:
-   off-by-one bug in app/utils.py::paginate via a small deterministic AST
-   transform; ~6 pagination tests visible, the rest hidden; hand-written
-   statement_md, repo tour, target_symbols, entry_symbols.
+1. Domain task, backend/builder/manual.py. Reuse what P1.2 already built for
+   its demo task (the seed_spec fixture in tests/test_grading_docker.py and
+   the scratch builder used for its acceptance run): move it here and make
+   the tests import it instead of duplicating it.
+   - Novice task from seeds/py-fastapi-expenses: off-by-one bug in
+     app/utils.py::paginate via a small deterministic AST transform.
+   - Split: about a third of the PAGINATION tests visible, including at
+     least one that fails on the starter; the remaining pagination tests
+     plus all other seed tests hidden, so hidden tests exercise the same bug.
+     (Test files are the unit of a run: put the visible pagination tests and
+     the hidden ones in separate files, extracted with AST.)
+   - Fill visible_test_ids and hidden_test_ids with grading.derive_test_ids.
+   - Hand-written statement_md, repo tour, target_symbols, entry_symbols.
+
 2. DSA task "longest substring without repeating characters"
-   (sliding_window): Python stub, 5 visible + 30 hidden cases as JSON
-   [{"input": {...}, "expected": ...}], plus a generic Python test file that
-   loads JSON cases and calls the candidate's function.
+   (sliding_window): Python stub, 5 visible + 30 hidden cases. Expected
+   answers must never enter the sandbox:
+   - The in-container harness receives only inputs (a JSON list of
+     {id, input}), calls the candidate's function on each one with a
+     per-case timeout, and writes {id, output | error} to the random report
+     path in /runner-out.
+   - The backend compares outputs with the expected values outside the
+     sandbox, producing a normal RunResult (one test per case id).
+   - Missing or extra case ids → error / test_set_mismatch, as in P1.2.
+   - Output comparison is exact by default, with an optional per-problem
+     comparator (e.g. unordered lists, float tolerance) stored in the spec
+     (contract change: update the schema, `make contracts`, fixtures).
+   - visible_test_ids / hidden_test_ids are the case ids.
+   - Test: a candidate function that tries to read a cases file finds no
+     expected values anywhere in the container.
+
 3. `make seed-demo` creates the assessment for the portfolio fixture and
    prints the session URL.
 4. Validate: starter fails ≥1 visible test; the seed passes everything.
 
 Acceptance checks:
 - `make seed-demo` prints the URL and both validation results
+- The DSA "no expected values in the container" test passes
 ```
 
 ### P1.4 Candidate IDE
@@ -196,10 +220,11 @@ Session page at frontend/app/session/[id]/:
   Submit, autosave status.
 Editable files: only starter files outside tests and test/package config
 (backend/app/workspace.py); show the rest read-only and never send them, or
-the save returns 422. A Run while another is in flight returns 429: disable
-Run until the job finishes.
+the save returns 422. A Run while another is in flight returns 429.
 Behavior: autosave every 5 s and on Run; Run → POST → poll /jobs/{id} every
-1 s → visible results; Submit → confirm → "submitted" screen; at the
+1 s → show the visible results as soon as `result` is non-null (status may
+still be "running" while hidden tests run); re-enable Run when status is
+"done" or "failed"; Submit → confirm → "submitted" screen; at the
 deadline lock the editor and show "Time's up — submitted."
 Telemetry (frontend/lib/telemetry.ts): focus sampled once per second (file,
 line; symbol null), edit aggregated per second (file, chars_added,

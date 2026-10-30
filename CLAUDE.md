@@ -48,6 +48,7 @@ End:
    Candidates can edit only starter files outside tests/config
    (app/workspace.py), and a run counts only if exactly the task's expected
    test ids were collected (TaskSpec.visible_test_ids / hidden_test_ids).
+   Threat model and known limits: docs/BLUEPRINT.md section 11.
 
 ## Token policy (whole project)
 - Every Featherless call sets max_tokens and a low temperature.

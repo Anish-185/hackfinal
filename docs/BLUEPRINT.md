@@ -191,3 +191,29 @@ Demo (5 min): problem → two portfolios, two assessments → certificate and a
 rejected task → live session with a blocked extraction attempt → report:
 claim map, hint ROI, Trail Map (same score, different trails) → short voice
 interview clip → Re-grade gives the same number.
+
+## 11. Threat model
+
+What a candidate (or their AI tools) might try against grading, and what stops it.
+Code: backend/app/workspace.py, grading.py, integrity.py, backend/runner/.
+
+| Attack | Defence |
+| --- | --- |
+| Edit or add tests, conftest.py, pytest.ini, package.json, jest/babel config, sitecustomize.py, .pth files | **Editable allowlist**: only starter files outside tests and test/package config can be edited. Enforced at save (422 with a reason per path), at Run, and again when the workspace is built (anything else is dropped and noted as `dropped_paths`) |
+| Read hidden tests (print them, read them from disk) | **Separate hidden runs**: hidden tests run only in their own sandbox; the visible run never contains them. Hidden output, test names and messages are stored, never returned. DSA expected answers never enter any sandbox (P1.3) |
+| Delete, rename or replace test files during a run | **Root-owned test files**: test and config files are root-owned 0444, and every directory above them (the workspace root included) is root-owned 0755, so the sandbox user can't modify, delete, rename or add files there |
+| Skip, add or rename tests to change pass counts | **Test-ID check**: the collected test ids must equal the ids recorded when the task was built (`visible_test_ids` / `hidden_test_ids`); otherwise status error, reason `test_set_mismatch`, zero passes |
+| Pre-write or overwrite the JSON report | **Random report path**: report and exit code go to a separate volume outside /workspace under a random name per run |
+| Interfere with pytest, the interpreter or the file system from candidate code | **Suspicious-code flags**: `_pytest`, `sys.modules`, `os._exit`, module-level exit, builtins patching, importlib tricks, writes outside /workspace are flagged on the run (`runs.integrity`) for the recruiter. Never blocks, never scored |
+| Escape the sandbox, use the network, exhaust resources | Runner container: network off, read-only root file system, non-root user, no capabilities, CPU/memory/PID/time limits, fresh container per run |
+| Many parallel Runs to probe hidden tests | One run per session at a time (429); hidden results only ever leave as counts in the run event, which the candidate never sees |
+
+**Known limitation.** Candidate code is imported into the pytest process, so it can
+still tamper with pytest at run time (e.g. patch the reporter, or find the report path
+in `sys.argv` and overwrite the report). This is detected, not prevented: a forged
+report with a different test set fails the test-ID check, and writes outside /workspace
+and pytest internals are flagged. A forged report that keeps the exact test ids but flips
+outcomes is not caught automatically; the flags make it visible in the report. Closing
+this fully would mean reporting from outside the test process (e.g. per-test
+subprocesses), which costs run time.
+

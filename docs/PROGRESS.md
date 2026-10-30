@@ -15,6 +15,7 @@ Roles: A Execution · B Generation + AI and scoring · C Frontend + interviewer 
 | P0.5 | Seed: py-fastapi-expenses | B | Done | 2026-10-31: seed tests pass |
 | P1.1 | Database and API | A | Done | 2026-10-31: 7 tables + Alembic 0001 (events append-only via trigger); session, task, files, events, run, submit, job routes in backend/app/routes/; make test 99 passed; curl sequence OK. run_job/submit_job are stubs until P1.2 |
 | P1.2 | Worker jobs | A | Done | 2026-10-31 (amended prompt): visible and hidden runs in separate sandboxes, run event, one run per session (429), idempotent submit, beat auto-submit every 30 s, anti-tampering 4a–4d; make test 168 passed, make test-docker 16 passed; live run + auto-submit verified |
+| P1.2b | Hardening: root-owned test dirs, early visible result, threat model | A | Done | 2026-10-31: dirs above test/config files root-owned (Docker test tries delete/rename/replace/add); visible result published before the hidden run: Run → visible result median 4.69 s → 2.59 s (job done ~4.9 s); BLUEPRINT §11 threat model |
 | P1.3 | Hard-coded demo task | B | Not started | |
 | P1.4 | Candidate IDE | C | Not started | |
 | P1.5 | Basic scoring and report | A | Not started | |
@@ -60,6 +61,9 @@ Roles: A Execution · B Generation + AI and scoring · C Frontend + interviewer 
 | 2026-10-31 | Team of 3 with roles A, B, C | Team size |
 | 2026-10-31 | Tasks store the exact expected test ids (TaskSpec.visible_test_ids / hidden_test_ids, filled by grading.derive_test_ids at build time); any other collected set is status "error", reason test_set_mismatch (new RunResult.reason) | Candidate code can't add, remove or rename tests to inflate passes |
 | 2026-10-31 | Hidden tests run in a separate sandbox; candidates may edit only unprotected starter files | Nothing printed by candidate code can reveal hidden tests; conftest/config tampering is impossible |
+| 2026-10-31 | GET /jobs/{id} shows the visible result as soon as the visible run ends; status stays "running" (and the run lock held) until the hidden run is stored | Candidate waits ~2.6 s instead of ~4.7 s; one run per session still holds |
+| 2026-10-31 | DSA expected answers never enter the sandbox: the harness gets inputs only, the backend compares outputs (P1.3 amended) | The candidate's function can't read the answers |
+| 2026-10-31 | Known limitation accepted: code inside the pytest process can tamper with the report; detected (test-ID check, flags), not prevented (BLUEPRINT §11) | Preventing it needs out-of-process reporting, which costs run time |
 | 2026-10-31 | Interviewer slot defaults to meta-llama/Meta-Llama-3.1-8B-Instruct ($0.05/$0.08 per 1M); TTS defaults to hexgrad/Kokoro-82M, voice af_bella. Both provisional until the P4.9 comparison | Cheapest instruct model in the catalog, no thinking mode; Kokoro is Featherless's documented TTS example |
 
 ## Session log
@@ -70,3 +74,4 @@ Roles: A Execution · B Generation + AI and scoring · C Frontend + interviewer 
 | 2026-10-31 | Anish (Claude Code) | p0-sync: added docs/, merged CLAUDE.new.md into CLAUDE.md, interviewer slot + test, .env.example synced, finished P0.0. make test 59 passed, make test-docker 10 passed, make lint clean. (P0.1–P0.5 were already on the fork's main as febdb72) | P1.1 Database and API |
 | 2026-10-31 | Anish (Claude Code) | P1.1 db and api: models, migration, routes, leak test, deadline 409s; used backend/app/ instead of backend/api/ and backend/db/ (CLAUDE.md layout and BUILD_PROMPTS paths updated) | P1.2 Worker jobs |
 | 2026-10-31 | Anish (Claude Code) | P1.2 worker jobs (amended): grading, anti-tampering, beat auto-submit, contract fields for expected test ids and run reason, migration 0002 (runs.integrity) | P1.3 Hard-coded demo task (fill test ids with grading.derive_test_ids) |
+| 2026-10-31 | Anish (Claude Code) | P1.2b hardening: root-owned test dirs + Docker tamper test, early visible result (4.69 s → 2.59 s), threat model; P1.3 prompt amended (reuse P1.2 task, new split, DSA answers outside the sandbox) | P1.3 Hard-coded demo task (amended) |

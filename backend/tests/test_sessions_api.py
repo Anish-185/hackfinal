@@ -321,7 +321,7 @@ def test_second_run_while_one_is_queued_is_429(http, session_id, sent, monkeypat
     assert len(sent) == 1
 
     # Once the first job has finished, the next Run is accepted.
-    monkeypatch.setattr(jobs, "celery_state", lambda _id: ("SUCCESS", None))
+    monkeypatch.setattr(jobs, "celery_state", lambda _id: "SUCCESS")
     assert http.post(url, json={"files": DSA_FILES}).status_code == 200
 
 

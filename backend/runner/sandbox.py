@@ -6,8 +6,10 @@ Lifecycle of one run:
    names per run. The root filesystem is read-only, and Docker can't copy files into a
    plain --tmpfs mount, so these are volumes instead.
 2. Start the container. Its launcher waits for /workspace/.runner/go.
-3. Copy the files in (`readonly` ones owned by root, mode 0444), then create the go
-   file. The launcher runs the test command and writes its exit code to /runner-out.
+3. Copy the files in, then create the go file. `readonly` files are owned by root with
+   mode 0444, and so is every directory above them, the workspace root included, with
+   mode 0755: the sandbox user can't edit, delete, rename or add files there. The
+   launcher runs the test command and writes its exit code to /runner-out.
 4. Poll for the exit code until the deadline. Read the report while the container is
    still running (a tmpfs volume is emptied once the container stops).
 5. Always remove the container and the volumes.
@@ -68,14 +70,19 @@ def run_tests(
     timeout_s: int = 30,
     readonly: frozenset[str] = frozenset(),
 ) -> RunResult:
-    """Run `test_paths` against `files`. Paths in `readonly` are copied in root-owned, 0444."""
+    """Run `test_paths` against `files`. `readonly` paths and their directories are root-owned."""
     spec = RUNTIMES.get(runtime)
     if spec is None:
         raise ValueError(f"Unknown runtime {runtime!r}; expected one of {sorted(RUNTIMES)}")
     _validate_paths(files, test_paths)
 
     client = _docker_client()
-    volumes = [_tmpfs_volume(client, "run", WORKSPACE_SIZE), _tmpfs_volume(client, "out", OUT_SIZE)]
+    # The workspace root is above every readonly file, so it is root-owned too when there are any.
+    root_owner = 0 if readonly else RUNNER_UID
+    volumes = [
+        _tmpfs_volume(client, "run", WORKSPACE_SIZE, owner=root_owner),
+        _tmpfs_volume(client, "out", OUT_SIZE),
+    ]
     workspace_volume, out_volume = volumes
     # Random per run and outside /workspace, so candidate code can't find or pre-write them.
     run_key = uuid.uuid4().hex
@@ -191,14 +198,18 @@ def _validate_paths(files: dict[str, str], test_paths: list[str]) -> None:
             raise ValueError(f"Invalid test path {path!r}: would be read as a command-line option")
 
 
-def _tmpfs_volume(client: docker.DockerClient, purpose: str, size: str) -> Any:
+def _tmpfs_volume(
+    client: docker.DockerClient, purpose: str, size: str, owner: int = RUNNER_UID
+) -> Any:
+    # A root-owned volume must be readable by the sandbox user: 0755 instead of 0700.
+    mode = "0700" if owner == RUNNER_UID else "0755"
     return client.volumes.create(
         name=f"assess-{purpose}-{uuid.uuid4().hex[:12]}",
         driver="local",
         driver_opts={
             "type": "tmpfs",
             "device": "tmpfs",
-            "o": f"size={size},uid={RUNNER_UID},gid={RUNNER_UID},mode=0700",
+            "o": f"size={size},uid={owner},gid={owner},mode={mode}",
         },
         labels={"assess.runner": purpose},
     )
@@ -207,18 +218,20 @@ def _tmpfs_volume(client: docker.DockerClient, purpose: str, size: str) -> Any:
 def _tar(files: dict[str, str], readonly: frozenset[str] = frozenset()) -> bytes:
     """Tar owned by the sandbox user, with explicit parent directories and runner dirs.
 
-    Files in `readonly` are owned by root with mode 0444, so the sandbox user can't edit them.
+    Files in `readonly` are owned by root with mode 0444, and every directory above them
+    is root-owned with mode 0755, so the sandbox user can't edit, delete, rename or replace
+    them. Other directories stay writable.
     """
     dirs = {f"{RESERVED_DIR}", f"{RESERVED_DIR}/tmp", f"{RESERVED_DIR}/home"}
     for path in files:
-        parts = path.split("/")[:-1]
-        dirs.update("/".join(parts[: i + 1]) for i in range(len(parts)))
+        dirs.update(_ancestors(path))
+    protected_dirs = {d for path in readonly for d in _ancestors(path)}
 
     buffer = io.BytesIO()
     with tarfile.open(fileobj=buffer, mode="w") as tar:
         for directory in sorted(dirs):
-            info = _tar_info(directory, tarfile.DIRTYPE, 0o755)
-            tar.addfile(info)
+            uid = 0 if directory in protected_dirs else RUNNER_UID
+            tar.addfile(_tar_info(directory, tarfile.DIRTYPE, 0o755, uid=uid))
         for path, content in files.items():
             data = content.encode()
             if path in readonly:
@@ -228,6 +241,12 @@ def _tar(files: dict[str, str], readonly: frozenset[str] = frozenset()) -> bytes
             info.size = len(data)
             tar.addfile(info, io.BytesIO(data))
     return buffer.getvalue()
+
+
+def _ancestors(path: str) -> list[str]:
+    """Directories above `path`, excluding the workspace root: a/b/c.py -> [a, a/b]."""
+    parts = path.split("/")[:-1]
+    return ["/".join(parts[: i + 1]) for i in range(len(parts))]
 
 
 def _tar_info(name: str, kind: bytes, mode: int, uid: int = RUNNER_UID) -> tarfile.TarInfo:

@@ -7,6 +7,7 @@ and failing ids, which go into the database only.
 
 import logging
 import uuid
+from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from typing import Any
@@ -80,19 +81,19 @@ def passed_ids(result: RunResult, expected_ids: list[str]) -> set[str]:
     return {t.id for t in result.tests if t.outcome == "passed"} & set(expected_ids)
 
 
-def grade_task(spec: TaskSpec, candidate_files: dict[str, str]) -> TaskGrade:
-    visible = checked_run(
-        spec.runtime,
-        build_workspace(spec, candidate_files, spec.visible_tests),
-        spec.visible_tests,
-        spec.visible_test_ids,
-    )
-    hidden = checked_run(
-        spec.runtime,
-        build_workspace(spec, candidate_files, spec.hidden_tests),
-        spec.hidden_tests,
-        spec.hidden_test_ids,
-    )
+def run_visible(spec: TaskSpec, candidate_files: dict[str, str]) -> RunResult:
+    files = build_workspace(spec, candidate_files, spec.visible_tests)
+    return checked_run(spec.runtime, files, spec.visible_tests, spec.visible_test_ids)
+
+
+def run_hidden(spec: TaskSpec, candidate_files: dict[str, str]) -> RunResult:
+    files = build_workspace(spec, candidate_files, spec.hidden_tests)
+    return checked_run(spec.runtime, files, spec.hidden_tests, spec.hidden_test_ids)
+
+
+def combine(
+    spec: TaskSpec, candidate_files: dict[str, str], visible: RunResult, hidden: RunResult
+) -> TaskGrade:
     _, dropped = split_editable(spec, candidate_files)
     flags = scan(changed_files(spec, candidate_files))
     return TaskGrade(
@@ -105,6 +106,11 @@ def grade_task(spec: TaskSpec, candidate_files: dict[str, str]) -> TaskGrade:
             "flags": [flag.model_dump() for flag in flags],
         },
     )
+
+
+def grade_task(spec: TaskSpec, candidate_files: dict[str, str]) -> TaskGrade:
+    visible = run_visible(spec, candidate_files)
+    return combine(spec, candidate_files, visible, run_hidden(spec, candidate_files))
 
 
 def derive_test_ids(spec: dict[str, Any]) -> dict[str, Any]:
@@ -128,15 +134,25 @@ def derive_test_ids(spec: dict[str, Any]) -> dict[str, Any]:
     return spec | ids
 
 
-def process_run(db: Session, session_id: str, task_id: str, files: dict[str, str]) -> dict:
-    """Run job body: visible + silent hidden run, two run rows, one run event.
+def process_run(
+    db: Session,
+    session_id: str,
+    task_id: str,
+    files: dict[str, str],
+    on_visible: Callable[[dict], None] = lambda _result: None,
+) -> dict:
+    """Run job body: visible run, then the silent hidden run, two run rows, one run event.
 
-    Returns the visible RunResult only; that is all the API ever sees.
+    `on_visible` gets the visible RunResult as soon as it exists, before the hidden run
+    starts, so the candidate isn't kept waiting. Returns the visible RunResult only; that
+    is all the API ever sees.
     """
     session = db.get(AssessmentSession, uuid.UUID(session_id))
     task = _task(db, session, task_id)
     spec = TaskSpec.model_validate(task.spec)
-    grade = grade_task(spec, files)
+    visible = run_visible(spec, files)
+    on_visible(visible.model_dump(mode="json"))
+    grade = combine(spec, files, visible, run_hidden(spec, files))
     now = datetime.now(UTC)
 
     db.add_all(

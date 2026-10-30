@@ -132,6 +132,41 @@ def test_readonly_files_and_report_are_out_of_reach() -> None:
     assert result.summary.model_dump() == {"passed": 2, "failed": 0, "total": 2}
 
 
+def test_protected_test_files_cannot_be_deleted_replaced_or_added() -> None:
+    attempts = {
+        "delete": 'os.remove("/workspace/tests/test_other.py")',
+        "rename_file": 'os.rename("/workspace/tests/test_other.py", "/workspace/tests/x.py")',
+        "rename_dir": 'os.rename("/workspace/tests", "/workspace/tests_old")',
+        "replace_dir": 'shutil.rmtree("/workspace/tests")',
+        "add_conftest": 'open("/workspace/tests/conftest.py", "w")',
+        "add_at_root": 'open("/workspace/conftest.py", "w")',
+        "edit_config": 'open("/workspace/pytest.ini", "a")',
+    }
+    body = "".join(
+        f"def test_cannot_{name}():\n    with pytest.raises(PermissionError):\n        {code}\n\n\n"
+        for name, code in attempts.items()
+    )
+    body += (
+        "def test_code_dirs_stay_writable():\n"
+        '    with open("/workspace/app/scratch.txt", "w") as f:\n'
+        '        f.write("ok")\n'
+    )
+    files = {
+        "pytest.ini": "[pytest]\n",
+        "app/calc.py": "X = 1\n",
+        "tests/test_other.py": "def test_other():\n    pass\n",
+        "tests/test_tamper.py": "import os\nimport shutil\n\nimport pytest\n\n\n" + body,
+    }
+    readonly = frozenset({"pytest.ini", "tests/test_other.py", "tests/test_tamper.py"})
+
+    result = run_tests("python311", files, ["tests/test_tamper.py"], readonly=readonly)
+
+    assert result.status == "ok", result.stdout_tail
+    failed = [t.id for t in result.tests if t.outcome != "passed"]
+    assert failed == [], [t.message for t in result.tests if t.outcome != "passed"]
+    assert result.summary.total == len(attempts) + 1
+
+
 def test_collection_error_is_status_error() -> None:
     files = {"test_broken.py": "def test_x(:\n    pass\n"}
 

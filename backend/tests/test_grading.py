@@ -1,13 +1,15 @@
 """Run, submit and auto-submit jobs with a fake runner (no Docker) and the test database."""
 
+import json
 import uuid
+from contextlib import nullcontext
 from datetime import UTC, datetime, timedelta
 
 import pytest
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from app import grading, jobs
+from app import grading, jobs, worker
 from app.assessments import create_assessment
 from app.cache import redis_client
 from app.celery_app import AUTO_SUBMIT_INTERVAL_S, celery_app
@@ -78,9 +80,9 @@ def test_failing_hidden_ids_are_recorded_but_not_returned(db, runner, session_id
 def test_job_api_response_has_no_hidden_data(db, runner, session_id, client, monkeypatch):
     visible = grading.process_run(db, session_id, TASK, {"app/calc.py": BUGGY})
     job_id = str(uuid.uuid4())
-    record = jobs.JobRecord(kind="run", session_id=session_id, task_id=TASK)
+    record = jobs.JobRecord(kind="run", session_id=session_id, task_id=TASK, result=visible)
     redis_client.set(f"job:{job_id}", record.model_dump_json(), ex=60)
-    monkeypatch.setattr(jobs, "celery_state", lambda _id: ("SUCCESS", visible))
+    monkeypatch.setattr(jobs, "celery_state", lambda _id: "SUCCESS")
     try:
         response = client.get(f"/jobs/{job_id}")
     finally:
@@ -90,6 +92,44 @@ def test_job_api_response_has_no_hidden_data(db, runner, session_id, client, mon
     assert response.json()["result"]["summary"]["total"] == 2
     assert LEAK_MARKER not in response.text
     assert "hidden" not in response.text
+
+
+def test_visible_result_is_handed_over_before_the_hidden_run(db, runner, session_id) -> None:
+    seen = []
+
+    grading.process_run(
+        db,
+        session_id,
+        TASK,
+        {"app/calc.py": FIXED},
+        on_visible=lambda result: seen.append((result["summary"]["total"], len(runner.calls))),
+    )
+
+    assert seen == [(2, 1)]  # visible result ready after the first sandbox run only
+    assert len(runner.calls) == 2
+
+
+def test_worker_publishes_early_and_releases_the_lock_last(db, runner, session_id, monkeypatch):
+    job_id = jobs.acquire_run_lock(session_id, TASK)
+    lock_held_at_publish = []
+    publish = jobs.publish_run_result
+
+    def spy(published_job_id, result):
+        lock_held_at_publish.append(redis_client.get(f"run_lock:{session_id}") == job_id.encode())
+        publish(published_job_id, result)
+
+    monkeypatch.setattr(jobs, "publish_run_result", spy)
+    monkeypatch.setattr(worker, "SessionLocal", lambda: nullcontext(db))
+    try:
+        worker.run_job.apply(args=[session_id, TASK, {"app/calc.py": FIXED}], task_id=job_id)
+
+        assert lock_held_at_publish == [True]
+        assert redis_client.get(f"run_lock:{session_id}") is None
+        published = json.loads(redis_client.get(f"job:{job_id}"))["result"]
+        assert published["summary"] == {"passed": 2, "failed": 0, "total": 2}
+        assert [r.kind for r in rows(db, Run)] == ["visible", "silent"]
+    finally:
+        redis_client.delete(f"job:{job_id}", f"run_lock:{session_id}")
 
 
 def test_hidden_files_never_reach_the_visible_run(db, runner, session_id) -> None:

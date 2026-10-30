@@ -1,5 +1,6 @@
 """GET /jobs/{id}: status mapping and visible-results-only output. Celery state is faked."""
 
+import json
 import uuid
 
 import pytest
@@ -20,8 +21,8 @@ def job_id() -> str:
     redis_client.delete(f"job:{job_id}")
 
 
-def fake_state(monkeypatch, state: str, value=None) -> None:
-    monkeypatch.setattr(jobs, "celery_state", lambda _id: (state, value))
+def fake_state(monkeypatch, state: str) -> None:
+    monkeypatch.setattr(jobs, "celery_state", lambda _id: state)
 
 
 def test_unknown_job_is_404(client) -> None:
@@ -42,23 +43,49 @@ def test_status_mapping(client, monkeypatch, job_id, state, status) -> None:
     assert body["error"] == ("job failed" if status == "failed" else None)
 
 
-def test_finished_run_returns_the_visible_run_result(client, monkeypatch, job_id) -> None:
-    fake_state(monkeypatch, "SUCCESS", RUN_RESULT)
+def test_visible_result_is_shown_while_hidden_tests_still_run(client, monkeypatch, job_id):
+    fake_state(monkeypatch, "STARTED")
+    jobs.publish_run_result(job_id, RUN_RESULT)
 
     body = client.get(f"/jobs/{job_id}").json()
 
-    assert body["status"] == "done"
-    assert body["result"] == RUN_RESULT
+    assert (body["status"], body["result"]) == ("running", RUN_RESULT)
+
+
+def test_finished_run_returns_the_visible_run_result(client, monkeypatch, job_id) -> None:
+    fake_state(monkeypatch, "SUCCESS")
+    jobs.publish_run_result(job_id, RUN_RESULT)
+
+    body = client.get(f"/jobs/{job_id}").json()
+
+    assert (body["status"], body["result"], body["error"]) == ("done", RUN_RESULT, None)
+
+
+def test_finished_run_without_a_published_result_is_failed(client, monkeypatch, job_id):
+    fake_state(monkeypatch, "SUCCESS")
+
+    body = client.get(f"/jobs/{job_id}").json()
+
+    assert (body["status"], body["result"]) == ("failed", None)
 
 
 def test_result_with_extra_data_is_withheld(client, monkeypatch, job_id) -> None:
-    fake_state(monkeypatch, "SUCCESS", RUN_RESULT | {"hidden_silent": {"passed": 1, "total": 2}})
+    fake_state(monkeypatch, "SUCCESS")
+    jobs.publish_run_result(job_id, RUN_RESULT | {"hidden_silent": {"passed": 1, "total": 2}})
 
     body = client.get(f"/jobs/{job_id}").json()
 
     assert body["status"] == "failed"
     assert body["result"] is None
     assert "hidden" not in str(body)
+
+
+def test_publish_keeps_the_record_and_its_ttl(job_id) -> None:
+    jobs.publish_run_result(job_id, RUN_RESULT)
+
+    record = json.loads(redis_client.get(f"job:{job_id}"))
+    assert record == {"kind": "run", "session_id": "s", "task_id": "t", "result": RUN_RESULT}
+    assert redis_client.ttl(f"job:{job_id}") > 60
 
 
 def test_enqueue_records_the_job_before_sending(monkeypatch) -> None:

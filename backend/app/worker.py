@@ -13,13 +13,22 @@ def ping() -> str:
 
 
 @celery_app.task(name="run_job", bind=True)
-def run_job(self, session_id: str, task_id: str, files: dict[str, str]) -> dict:
-    """Returns the visible RunResult only (GET /jobs/{id} shows it to the candidate)."""
+def run_job(self, session_id: str, task_id: str, files: dict[str, str]) -> None:
+    """Publishes the visible RunResult to the job record as soon as it exists (that is
+    what GET /jobs/{id} shows), then runs the hidden tests. The session's run lock is
+    released only after both."""
+    job_id = self.request.id
     try:
         with SessionLocal() as db:
-            return grading.process_run(db, session_id, task_id, files)
+            grading.process_run(
+                db,
+                session_id,
+                task_id,
+                files,
+                on_visible=lambda result: jobs.publish_run_result(job_id, result),
+            )
     finally:
-        jobs.release_run_lock(session_id, self.request.id)
+        jobs.release_run_lock(session_id, job_id)
 
 
 # acks_late: a job lost to a worker crash is redelivered; process_submit is idempotent.
