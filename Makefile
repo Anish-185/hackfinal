@@ -1,4 +1,4 @@
-.PHONY: up down migrate seed-demo e2e test test-docker lint contracts runtimes mutate llm-smoke llm-usage dsa-import
+.PHONY: up down migrate seed-demo e2e test test-docker lint contracts runtimes mutate remove-feature llm-smoke llm-usage dsa-import
 
 up:
 	docker compose up -d --build
@@ -54,6 +54,12 @@ runtimes:
 RNG_SEED ?= 0
 mutate:
 	docker compose run --rm worker python -m builder.mutate $(SEED) $(CONCEPT) --rng-seed $(RNG_SEED)
+
+# Feature removal (P2.3): stub a seed concept's code across 2-3 files, check it in the sandbox
+# and print a validated draft Adept task. Without CONCEPT, lists which concepts are eligible.
+# Usage: make remove-feature SEED=py-fastapi-expenses [CONCEPT=reporting]
+remove-feature:
+	docker compose run --rm worker python -m builder.remove_feature $(SEED) $(CONCEPT)
 
 # One small real request per model slot. Spends Featherless credits on a cache miss.
 llm-smoke:
