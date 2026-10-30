@@ -23,6 +23,7 @@ Open-source libraries, datasets, and borrowed methods used in this project.
 | [Instructor](https://github.com/567-labs/instructor) | MIT | Structured (JSON mode) LLM output with validation retries |
 | [fakeredis](https://github.com/cunla/fakeredis-py) | BSD-3-Clause | In-memory Redis for LLM client tests |
 | [Docker SDK for Python](https://github.com/docker/docker-py) | Apache-2.0 | Starting sandbox containers in backend/runner |
+| [PyYAML](https://github.com/yaml/pyyaml) | MIT | Reading seed concepts.yaml files |
 
 ## Runner images (runtimes/)
 

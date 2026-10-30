@@ -16,8 +16,8 @@ test-docker:
 	docker compose run --rm worker pytest -m docker --durations=0
 
 lint:
-	docker compose run --rm --no-deps api ruff check .
-	docker compose run --rm --no-deps api ruff format --check .
+	docker compose run --rm --no-deps api ruff check . /seeds
+	docker compose run --rm --no-deps api ruff format --check . /seeds
 	docker compose run --rm --no-deps frontend npm run lint
 
 # Regenerate types from contracts/*.schema.json. Commit the output.
