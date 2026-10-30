@@ -17,7 +17,7 @@ Roles: A Execution · B Generation + AI and scoring · C Frontend + interviewer 
 | P1.2 | Worker jobs | A | Done | 2026-10-31 (amended prompt): visible and hidden runs in separate sandboxes, run event, one run per session (429), idempotent submit, beat auto-submit every 30 s, anti-tampering 4a–4d; make test 168 passed, make test-docker 16 passed; live run + auto-submit verified |
 | P1.2b | Hardening: root-owned test dirs, early visible result, threat model | A | Done | 2026-10-31: dirs above test/config files root-owned (Docker test tries delete/rename/replace/add); visible result published before the hidden run: Run → visible result median 4.69 s → 2.59 s (job done ~4.9 s); BLUEPRINT §11 threat model |
 | P1.3 | Hard-coded demo task | B | Done | 2026-10-31 (amended): builder/manual.py (AST bug in paginate, AST split: 3 of 8 pagination tests visible incl. a failing one, rest + all other seed tests hidden; ids via derive_test_ids); DSA longest-unique-substring, 5 + 30 cases, harness gets inputs only, comparator in spec; make seed-demo validates both; make test 205, make test-docker 25 passed |
-| P1.4 | Candidate IDE | C | Not started | |
+| P1.4 | Candidate IDE | C | Done | 2026-10-31: frontend/app/session/[id] (task tabs, statement/tour, file tree, Monaco tabs, results, countdown, autosave, Run/poll, Submit, deadline lock) + lib/telemetry.ts, lib/workspace.ts, lib/api.ts; npm run build + lint clean; headless-Chromium run on the seed-demo session: starter 2/3 → fix → 3/3, DSA 5/5, submit graded hidden 54/54 and 30/30; deadline lock + beat auto-submit verified |
 | P1.5 | Basic scoring and report | A | Not started | |
 | P2.1 | Taxonomy and profiler | B | Not started | |
 | P2.2 | Mutation engine (Novice) | B | Not started | |
@@ -66,6 +66,8 @@ Roles: A Execution · B Generation + AI and scoring · C Frontend + interviewer 
 | 2026-10-31 | DSA comparator lives in the spec (TaskSpec.dsa_cases.comparator: null = exact JSON identity, unordered_list, float_tolerance) | Problems with several valid answers or float results can be graded without trusting the sandbox |
 | 2026-10-31 | The P1.3 DSA problem (LeetCode-medium style) is tagged tier novice to match the Novice demo assessment | Demo only; P2.6 selects DSA problems by tier and solved-count thresholds |
 | 2026-10-31 | Known limitation accepted: code inside the pytest process can tamper with the report; detected (test-ID check, flags), not prevented (BLUEPRINT §11) | Preventing it needs out-of-process reporting, which costs run time |
+| 2026-10-31 | The browser calls the API through a Next.js rewrite (/api/* → API_URL), not CORS | Same origin, so sendBeacon on unload works with application/json |
+| 2026-10-31 | The IDE keeps a per-task draft in localStorage | No API endpoint returns saved files yet; a reload would otherwise lose up to 5 s of work and fall back to the starter |
 | 2026-10-31 | Interviewer slot defaults to meta-llama/Meta-Llama-3.1-8B-Instruct ($0.05/$0.08 per 1M); TTS defaults to hexgrad/Kokoro-82M, voice af_bella. Both provisional until the P4.9 comparison | Cheapest instruct model in the catalog, no thinking mode; Kokoro is Featherless's documented TTS example |
 
 ## Session log
@@ -78,3 +80,4 @@ Roles: A Execution · B Generation + AI and scoring · C Frontend + interviewer 
 | 2026-10-31 | Anish (Claude Code) | P1.2 worker jobs (amended): grading, anti-tampering, beat auto-submit, contract fields for expected test ids and run reason, migration 0002 (runs.integrity) | P1.3 Hard-coded demo task (fill test ids with grading.derive_test_ids) |
 | 2026-10-31 | Anish (Claude Code) | P1.2b hardening: root-owned test dirs + Docker tamper test, early visible result (4.69 s → 2.59 s), threat model; P1.3 prompt amended (reuse P1.2 task, new split, DSA answers outside the sandbox) | P1.3 Hard-coded demo task (amended) |
 | 2026-10-31 | Anish (Claude Code) | P1.3 demo tasks (both amendments): pagination task from the seed via AST, DSA task with sandbox-isolated answers, make seed-demo. Run → visible result: domain 6.4 s / DSA 0.8 s on a loaded machine (same-load re-run of the P1.2b task: 6.8 s) | P1.4 Candidate IDE |
+| 2026-10-31 | Anish (Claude Code) | P1.4 candidate IDE against the real API (no mocks); Featherless key added to local .env only (P1.4 makes no LLM calls, so no credits spent) | P1.5 Basic scoring and report |

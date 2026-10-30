@@ -40,6 +40,8 @@ Add every new one here in the same change that introduces it (CLAUDE.md).
 | [DefinitelyTyped](https://github.com/DefinitelyTyped/DefinitelyTyped) (@types/node, @types/react, @types/react-dom) | MIT | Type definitions |
 | [ESLint](https://github.com/eslint/eslint) / eslint-config-next | MIT | Lint |
 | [json-schema-to-typescript](https://github.com/bcherny/json-schema-to-typescript) | MIT | Generating TypeScript types from contracts/ |
+| [Monaco Editor](https://github.com/microsoft/monaco-editor) / [@monaco-editor/react](https://github.com/suren-atoyan/monaco-react) | MIT | Candidate IDE editor (P1.4). The editor itself loads from the jsDelivr CDN (monaco-editor 0.55.1, the loader's default); the npm package supplies types |
+| [react-markdown](https://github.com/remarkjs/react-markdown) | MIT | Rendering task statements and repo tours (P1.4) |
 
 ### Runner images (`runtimes/`)
 
@@ -95,7 +97,6 @@ From docs/BLUEPRINT.md section 7. Move a row up to "Used as dependencies" or
 | [StrykerJS](https://github.com/stryker-mutator/stryker-js) | Apache-2.0 | Mutation score, JavaScript (P2.7) |
 | [fast-check](https://github.com/dubzzz/fast-check) | MIT | Property-based tests, JavaScript (P2.7) |
 | [llm-sandbox](https://github.com/vndee/llm-sandbox) | MIT | Alternative runner backend |
-| [Monaco Editor](https://github.com/microsoft/monaco-editor) / [@monaco-editor/react](https://github.com/suren-atoyan/monaco-react) | MIT | Candidate IDE (P1.4) |
 | [Sandpack](https://github.com/codesandbox/sandpack) | Apache-2.0 | Web preview only |
 | [copydetect](https://github.com/blingenf/copydetect) | MIT | Assistant leak guard vs reference (P3.2) |
 | [LLM Guard](https://github.com/protectai/llm-guard) (rules) | MIT | Assistant input rules (P3.2) |

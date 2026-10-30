@@ -10,9 +10,12 @@
     "contracts": "node scripts/generate-contracts.mjs"
   },
   "dependencies": {
+    "@monaco-editor/react": "4.7.0",
+    "monaco-editor": "0.55.1",
     "next": "16.4.3",
     "react": "19.3.0",
-    "react-dom": "19.3.0"
+    "react-dom": "19.3.0",
+    "react-markdown": "10.1.0"
   },
   "devDependencies": {
     "@tailwindcss/turbopack": "^4",

@@ -94,7 +94,9 @@ Also used by the P0 code (see .env.example for values and comments):
 ## Layout
 contracts/   JSON Schemas (source of truth) + fixtures + generated types
 frontend/    Next.js app: app/recruiter, app/session/[id], app/report/[id],
-             app/interview/[id]
+             app/interview/[id]. lib/api.ts (browser client, calls /api,
+             rewritten to API_URL in next.config.ts), lib/telemetry.ts,
+             lib/workspace.ts (mirror of backend/app/workspace.py: keep in sync)
 backend/     app/            FastAPI app and plumbing:
                              main.py, routes/ (one module per resource),
                              models.py (SQLAlchemy tables), db.py, jobs.py
@@ -150,6 +152,8 @@ make lint | make contracts | make runtimes | make llm-smoke | make llm-usage
 
 First-time setup: `cp .env.example .env` (fill FEATHERLESS_API_KEY), then
 `make runtimes`, `make up` and `make migrate`.
+After adding a frontend dependency: `docker compose up -d --build -V frontend`
+(-V refreshes the container's node_modules volume).
 Files created inside a container (e.g. a generated migration) are owned by
 root; fix with `docker compose run --rm --no-deps api chown -R $(id -u):$(id -g) /app`.
 
