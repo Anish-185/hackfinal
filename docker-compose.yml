@@ -9,6 +9,8 @@ x-backend: &backend
   env_file: .env
   volumes:
     - ./backend:/app
+    # Schemas + fixtures, at ../contracts relative to /app (same as on the host).
+    - ./contracts:/contracts:ro
   depends_on:
     postgres:
       condition: service_healthy
@@ -62,6 +64,7 @@ services:
       NEXT_TELEMETRY_DISABLED: "1"
     volumes:
       - ./frontend:/app
+      - ./contracts:/contracts:ro
       # Keep the image's Linux node_modules and build cache instead of the host's.
       - /app/node_modules
       - /app/.next

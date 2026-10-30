@@ -1,3 +1,4 @@
+import { connection } from "next/server";
 import { Suspense } from "react";
 
 type Health = { status: string; db: boolean; redis: boolean };
@@ -22,6 +23,8 @@ function Indicator({ label, ok }: { label: string; ok: boolean }) {
 }
 
 async function HealthStatus() {
+  // Render per request; otherwise the build prerenders this and logs an aborted fetch.
+  await connection();
   let health: Health;
   try {
     health = await fetchHealth();

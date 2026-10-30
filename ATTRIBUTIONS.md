@@ -17,6 +17,8 @@ Open-source libraries, datasets, and borrowed methods used in this project.
 | [pytest](https://github.com/pytest-dev/pytest) | MIT | Tests |
 | [httpx2](https://github.com/pydantic/httpx2) | BSD-3-Clause | HTTP client for FastAPI's TestClient |
 | [Ruff](https://github.com/astral-sh/ruff) | MIT | Lint and format |
+| [jsonschema](https://github.com/python-jsonschema/jsonschema) | MIT | Validating contract fixtures in tests |
+| [datamodel-code-generator](https://github.com/koxudaxi/datamodel-code-generator) | MIT | Generating Pydantic models from contracts/ |
 
 ## Frontend (TypeScript)
 
@@ -27,6 +29,13 @@ Open-source libraries, datasets, and borrowed methods used in this project.
 | [Tailwind CSS](https://github.com/tailwindlabs/tailwindcss) | MIT | Styling |
 | [TypeScript](https://github.com/microsoft/TypeScript) | Apache-2.0 | Type checking |
 | [ESLint](https://github.com/eslint/eslint) / eslint-config-next | MIT | Lint |
+| [json-schema-to-typescript](https://github.com/bcherny/json-schema-to-typescript) | MIT | Generating TypeScript types from contracts/ |
+
+## Schemas and borrowed methods
+
+| Source | License | Use |
+| :--- | :--- | :--- |
+| [JSON Resume schema](https://github.com/jsonresume/resume-schema) | MIT | `contracts/portfolio.schema.json` follows its `basics`, `skills`, `projects` and `meta` structure and its ISO 8601 date pattern |
 
 ## Infrastructure
 

@@ -9,7 +9,9 @@ WORKDIR /app
 
 # Install dependencies first so code edits don't bust the layer cache.
 COPY pyproject.toml ./
-RUN mkdir app && touch app/__init__.py && pip install -e ".[dev]"
+RUN mkdir app contracts_gen \
+    && touch app/__init__.py contracts_gen/__init__.py \
+    && pip install -e ".[dev]"
 
 COPY . .
 
