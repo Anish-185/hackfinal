@@ -1,0 +1,74 @@
+# DEVELOPMENT ONLY. Not for production use:
+#   - the worker mounts the host Docker socket, which grants root-equivalent
+#     access to the host;
+#   - source code is bind-mounted and servers run with auto-reload;
+#   - credentials come from a local .env file.
+
+x-backend: &backend
+  build: ./backend
+  env_file: .env
+  volumes:
+    - ./backend:/app
+  depends_on:
+    postgres:
+      condition: service_healthy
+    redis:
+      condition: service_healthy
+
+services:
+  postgres:
+    image: postgres:16
+    env_file: .env
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  redis:
+    image: redis:7
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  api:
+    <<: *backend
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+    environment:
+      # Bind-mounted files from a Windows/macOS host don't emit inotify events.
+      WATCHFILES_FORCE_POLLING: "true"
+    ports:
+      - "8000:8000"
+
+  worker:
+    <<: *backend
+    command: celery -A app.worker worker --loglevel=info
+    volumes:
+      - ./backend:/app
+      # Lets the worker start runner containers on the host Docker daemon.
+      # DEVELOPMENT ONLY: this is root-equivalent access to the host.
+      - /var/run/docker.sock:/var/run/docker.sock
+
+  frontend:
+    build: ./frontend
+    environment:
+      # Server-side fetches go over the compose network, not localhost.
+      API_URL: http://api:8000
+      WATCHPACK_POLLING: "true"
+      NEXT_TELEMETRY_DISABLED: "1"
+    volumes:
+      - ./frontend:/app
+      # Keep the image's Linux node_modules and build cache instead of the host's.
+      - /app/node_modules
+      - /app/.next
+    ports:
+      - "3000:3000"
+    depends_on:
+      - api
+
+volumes:
+  postgres-data:
