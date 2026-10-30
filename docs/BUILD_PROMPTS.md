@@ -57,7 +57,8 @@ Acceptance checks:
 ```text
 Follow the session protocol in CLAUDE.md. Branch: p1-1-db-api.
 
-1. SQLAlchemy models + Alembic migration in backend/db/:
+1. SQLAlchemy models in backend/app/models.py + Alembic migration in
+   backend/migrations/:
    assessments (id, candidate_name, portfolio JSON, tier, status, created_at),
    tasks (id, assessment_id, spec JSON matching task_spec, order),
    sessions (id, assessment_id, started_at, deadline_at, submitted_at, status),
@@ -66,7 +67,7 @@ Follow the session protocol in CLAUDE.md. Branch: p1-1-db-api.
    runs (id, session_id, task_id, kind visible|silent|submit, result JSON, ts),
    scores (id, session_id, computed_at, breakdown JSON).
    Index events on (session_id, ts).
-2. API routes in backend/api/:
+2. API routes in backend/app/routes/:
    - POST /sessions {assessment_id}: starts a session; server sets
      deadline_at = now + 60 min. Starting twice returns the same session.
    - GET /sessions/{id}: status, server time, deadline, task list.

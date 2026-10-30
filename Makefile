@@ -1,4 +1,4 @@
-.PHONY: up down test test-docker lint contracts runtimes llm-smoke llm-usage
+.PHONY: up down migrate test test-docker lint contracts runtimes llm-smoke llm-usage
 
 up:
 	docker compose up -d --build
@@ -6,7 +6,12 @@ up:
 down:
 	docker compose down
 
-# Starts postgres/redis if needed; the health test hits the real services.
+# Apply database migrations (backend/migrations) to the dev database.
+migrate:
+	docker compose run --rm api alembic upgrade head
+
+# Starts postgres/redis if needed; the health test hits the real services. API tests
+# build their own <db>_test database from the migrations, never touching dev data.
 test:
 	docker compose run --rm api pytest
 

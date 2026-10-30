@@ -90,10 +90,17 @@ Also used by the P0 code (see .env.example for values and comments):
 contracts/   JSON Schemas (source of truth) + fixtures + generated types
 frontend/    Next.js app: app/recruiter, app/session/[id], app/report/[id],
              app/interview/[id]
-backend/     api/ db/ profiler/ builder/ gate/ runner/ assistant/ scoring/
-             trail/ interviewer/ llm/ workers/ contracts_gen/
-             (P0 so far: app/ = FastAPI app, Celery worker, settings;
-             llm/; runner/; contracts_gen/; scripts/; tests/)
+backend/     app/            FastAPI app and plumbing:
+                             main.py, routes/ (one module per resource),
+                             models.py (SQLAlchemy tables), db.py, jobs.py
+                             (enqueue + job status), worker.py (Celery app
+                             and tasks), candidate_view.py, config.py
+             migrations/     Alembic (alembic.ini next to it)
+             llm/ runner/ contracts_gen/ scripts/ tests/
+             planned packages: profiler/ builder/ gate/ assistant/
+             scoring/ trail/ interviewer/
+             A new top-level package must be added to `packages` in
+             backend/pyproject.toml and to the mkdir line in backend/Dockerfile.
 seeds/       hand-written seed repos, each with tests + concepts.yaml
 dsa/         taxonomy, DSA bank, JSON test cases, runners per language
 runtimes/    Dockerfiles per runtime
@@ -106,11 +113,16 @@ docs/        blueprint, prompts, progress, interviewer spec
 - master: multi-file bug + performance constraint + medium/hard DSA, assistant enabled
 
 ## Commands
-make up | make down | make test | make test-docker | make lint |
+make up | make down | make migrate | make test | make test-docker | make lint |
 make contracts | make runtimes | make llm-smoke | make llm-usage
 (Keep this list in sync with the Makefile. `make seed-demo` arrives with P1.3.)
 
+- `make migrate`: `alembic upgrade head` on the dev database. A schema change
+  means: edit app/models.py → `docker compose run --rm api alembic revision
+  --autogenerate -m "..."` → review the file → `make migrate`.
+  tests/test_migrations.py fails if models and migrations differ.
 - `make test`: backend tests in the api container; starts postgres and redis.
+  API tests use their own `<db>_test` database built from the migrations.
 - `make test-docker`: runner tests that start real sandbox containers. Runs
   in the worker (the only service with the Docker socket); needs
   `make runtimes` first.
@@ -119,7 +131,9 @@ make contracts | make runtimes | make llm-smoke | make llm-usage
 - `make llm-usage`: tokens and estimated spend per slot.
 
 First-time setup: `cp .env.example .env` (fill FEATHERLESS_API_KEY), then
-`make runtimes` and `make up`.
+`make runtimes`, `make up` and `make migrate`.
+Files created inside a container (e.g. a generated migration) are owned by
+root; fix with `docker compose run --rm --no-deps api chown -R $(id -u):$(id -g) /app`.
 
 ## Team
 3 members: Sriram Aditya Sai (lead), G Anish, Faiz.

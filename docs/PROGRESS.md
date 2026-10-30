@@ -13,7 +13,7 @@ Roles: A Execution · B Generation + AI and scoring · C Frontend + interviewer 
 | P0.3 | Featherless client | B | Done | 2026-10-31: 13 unit tests pass (interviewer slot added in p0-sync); smoke test pending an API key |
 | P0.4 | Runtimes and runner | A | Done | 2026-10-31: make test-docker 10 passed |
 | P0.5 | Seed: py-fastapi-expenses | B | Done | 2026-10-31: seed tests pass |
-| P1.1 | Database and API | A | Not started | |
+| P1.1 | Database and API | A | Done | 2026-10-31: 7 tables + Alembic 0001 (events append-only via trigger); session, task, files, events, run, submit, job routes in backend/app/routes/; make test 99 passed; curl sequence OK. run_job/submit_job are stubs until P1.2 |
 | P1.2 | Worker jobs | A | Not started | |
 | P1.3 | Hard-coded demo task | B | Not started | |
 | P1.4 | Candidate IDE | C | Not started | |
@@ -66,3 +66,4 @@ Roles: A Execution · B Generation + AI and scoring · C Frontend + interviewer 
 | --- | --- | --- | --- |
 | 2026-10-31 | Anish (Claude Code) | Verified P0.1–P0.5 locally; nothing pushed yet | Add docs, verify P0.0, push everything to main |
 | 2026-10-31 | Anish (Claude Code) | p0-sync: added docs/, merged CLAUDE.new.md into CLAUDE.md, interviewer slot + test, .env.example synced, finished P0.0. make test 59 passed, make test-docker 10 passed, make lint clean. (P0.1–P0.5 were already on the fork's main as febdb72) | P1.1 Database and API |
+| 2026-10-31 | Anish (Claude Code) | P1.1 db and api: models, migration, routes, leak test, deadline 409s; used backend/app/ instead of backend/api/ and backend/db/ (CLAUDE.md layout and BUILD_PROMPTS paths updated) | P1.2 Worker jobs |

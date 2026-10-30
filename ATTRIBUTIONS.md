@@ -13,6 +13,7 @@ Add every new one here in the same change that introduces it (CLAUDE.md).
 | [Uvicorn](https://github.com/encode/uvicorn) | BSD-3-Clause | ASGI server |
 | [Pydantic](https://github.com/pydantic/pydantic) / [pydantic-settings](https://github.com/pydantic/pydantic-settings) | MIT | Data models, env config |
 | [SQLAlchemy](https://github.com/sqlalchemy/sqlalchemy) | MIT | Database access |
+| [Alembic](https://github.com/sqlalchemy/alembic) | MIT | Database migrations |
 | [psycopg](https://github.com/psycopg/psycopg) | LGPL-3.0 | PostgreSQL driver |
 | [redis-py](https://github.com/redis/redis-py) | MIT | Redis client |
 | [Celery](https://github.com/celery/celery) | BSD-3-Clause | Background task queue |
@@ -85,7 +86,6 @@ From docs/BLUEPRINT.md section 7. Move a row up to "Used as dependencies" or
 
 | Resource | License | Planned use |
 | :--- | :--- | :--- |
-| [Alembic](https://github.com/sqlalchemy/alembic) | MIT | Database migrations (P1.1) |
 | [SWE-smith](https://github.com/SWE-bench/SWE-smith) (method) | MIT | Bug mutation and issue text (P2.2) |
 | [LibCST](https://github.com/Instagram/LibCST) | MIT | Formatting-preserving code edits (P2.2, P2.3) |
 | [LeetCodeDataset](https://github.com/newfacade/LeetCodeDataset) | Apache-2.0 | Tagged DSA problems and tests, never served verbatim (P2.6) |

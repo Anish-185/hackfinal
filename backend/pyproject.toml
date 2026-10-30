@@ -14,6 +14,7 @@ dependencies = [
     "uvicorn[standard]==0.54.0",
     "pydantic-settings==2.16.2",
     "sqlalchemy==2.1.6",
+    "alembic==1.20.1",
     "psycopg[binary]==3.3.6",
     # kombu[redis] (pulled in by celery[redis]) requires redis<6.5.
     "redis==6.4.0",

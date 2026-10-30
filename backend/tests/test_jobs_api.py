@@ -1,0 +1,79 @@
+"""GET /jobs/{id}: status mapping and visible-results-only output. Celery state is faked."""
+
+import uuid
+
+import pytest
+
+from app import jobs
+from app.cache import redis_client
+from tests.api_support import fixture
+
+RUN_RESULT = fixture("run_result.valid.json")
+
+
+@pytest.fixture
+def job_id() -> str:
+    job_id = f"test-{uuid.uuid4()}"
+    record = jobs.JobRecord(kind="run", session_id="s", task_id="t")
+    redis_client.set(f"job:{job_id}", record.model_dump_json(), ex=60)
+    yield job_id
+    redis_client.delete(f"job:{job_id}")
+
+
+def fake_state(monkeypatch, state: str, value=None) -> None:
+    monkeypatch.setattr(jobs, "celery_state", lambda _id: (state, value))
+
+
+def test_unknown_job_is_404(client) -> None:
+    assert client.get(f"/jobs/{uuid.uuid4()}").status_code == 404
+
+
+@pytest.mark.parametrize(
+    ("state", "status"),
+    [("PENDING", "queued"), ("STARTED", "running"), ("FAILURE", "failed")],
+)
+def test_status_mapping(client, monkeypatch, job_id, state, status) -> None:
+    fake_state(monkeypatch, state)
+
+    body = client.get(f"/jobs/{job_id}").json()
+
+    assert body["status"] == status
+    assert body["result"] is None
+    assert body["error"] == ("job failed" if status == "failed" else None)
+
+
+def test_finished_run_returns_the_visible_run_result(client, monkeypatch, job_id) -> None:
+    fake_state(monkeypatch, "SUCCESS", RUN_RESULT)
+
+    body = client.get(f"/jobs/{job_id}").json()
+
+    assert body["status"] == "done"
+    assert body["result"] == RUN_RESULT
+
+
+def test_result_with_extra_data_is_withheld(client, monkeypatch, job_id) -> None:
+    fake_state(monkeypatch, "SUCCESS", RUN_RESULT | {"hidden_silent": {"passed": 1, "total": 2}})
+
+    body = client.get(f"/jobs/{job_id}").json()
+
+    assert body["status"] == "failed"
+    assert body["result"] is None
+    assert "hidden" not in str(body)
+
+
+def test_enqueue_records_the_job_before_sending(monkeypatch) -> None:
+    sent = []
+    monkeypatch.setattr(
+        jobs.celery_app,
+        "send_task",
+        lambda name, args, task_id: sent.append((name, redis_client.exists(f"job:{task_id}"))),
+    )
+    record = jobs.JobRecord(kind="submit", session_id="s", task_id=None)
+
+    job_id = jobs.enqueue("submit_job", ["s"], record)
+
+    try:
+        assert sent == [("submit_job", 1)]
+        assert jobs.get_job(job_id) is not None
+    finally:
+        redis_client.delete(f"job:{job_id}")
