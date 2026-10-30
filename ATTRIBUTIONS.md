@@ -79,7 +79,7 @@ pytest, FastAPI, SQLAlchemy and Pydantic are also installed in the Python image 
 | [Featherless API](https://featherless.ai/) | Service | All LLM calls (and, from P4.9, speech) |
 | [DeepSeek-V4-Flash](https://huggingface.co/deepseek-ai) (-0731 build) | See model card | Generator and assistant slots |
 | [Qwen3-Coder-30B-A3B-Instruct](https://huggingface.co/Qwen/Qwen3-Coder-30B-A3B-Instruct) | Apache-2.0 | Probe slot (480B variant for final calibration) |
-| [Meta-Llama-3.1-8B-Instruct](https://huggingface.co/meta-llama/Llama-3.1-8B-Instruct) | Llama 3.1 Community License | Interviewer slot (provisional default) |
+| [Qwen2.5-7B-Instruct](https://huggingface.co/Qwen/Qwen2.5-7B-Instruct) | Apache-2.0 | Interviewer slot (provisional until P4.9) |
 
 ## Methods we adapted
 

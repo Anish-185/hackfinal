@@ -145,8 +145,8 @@ make llm-usage
   (~1 min), stores an assessment for the portfolio fixture, starts its session
   (the 60-minute timer starts now) and prints the session URL.
 
-- `make e2e`: needs the stack up (`make up`; restart the worker after backend
-  changes, it doesn't reload). Runs `make seed-demo`, then headless Chromium:
+- `make e2e`: needs the stack up (`make up`). Restarts worker and beat (Celery
+  doesn't reload code), runs `make seed-demo`, then headless Chromium:
   starter Run (a visible test fails) → fix both tasks by pasting into the bundled
   Monaco → Run → Submit → report, asserting final 100 / Strong, every visible and
   hidden test passed, run counts, time on task, report = breakdown JSON, Re-grade

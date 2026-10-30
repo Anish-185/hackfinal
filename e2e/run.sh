@@ -1,6 +1,7 @@
 #!/bin/sh
 # `make e2e`: a fresh seed-demo session, then the headless browser flow in e2e/demo.mjs.
-# Needs the stack running (`make up`) with the current code (the worker doesn't reload).
+# Needs the stack running (`make up`). Restarts worker and beat first: Celery doesn't
+# reload code, and a stale worker would grade with old code and fail for no real reason.
 set -eu
 cd "$(dirname "$0")/.."
 
@@ -11,6 +12,8 @@ for service in api worker beat frontend; do
         exit 1
     fi
 done
+
+docker compose restart worker beat
 
 mkdir -p e2e/artifacts
 out=$(make -s seed-demo)

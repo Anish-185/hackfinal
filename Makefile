@@ -15,8 +15,8 @@ migrate:
 seed-demo:
 	docker compose run --rm worker sh -c "alembic upgrade head && python -m builder.seed_demo"
 
-# Headless-browser run of the demo against the running stack (`make up` first): a fresh
-# seed-demo session, fix both tasks in the bundled Monaco, Run, Submit, open the report
+# Headless-browser run of the demo against the running stack (`make up` first). Restarts
+# worker and beat so they run the current code, then: a fresh seed-demo session, fix both tasks in the bundled Monaco, Run, Submit, open the report
 # and assert the scores. Any request leaving the stack fails it. ~2 min.
 e2e:
 	./e2e/run.sh
