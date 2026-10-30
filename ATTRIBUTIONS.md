@@ -19,6 +19,16 @@ Open-source libraries, datasets, and borrowed methods used in this project.
 | [Ruff](https://github.com/astral-sh/ruff) | MIT | Lint and format |
 | [jsonschema](https://github.com/python-jsonschema/jsonschema) | MIT | Validating contract fixtures in tests |
 | [datamodel-code-generator](https://github.com/koxudaxi/datamodel-code-generator) | MIT | Generating Pydantic models from contracts/ |
+| [OpenAI Python SDK](https://github.com/openai/openai-python) | Apache-2.0 | Client for Featherless's OpenAI-compatible API |
+| [Instructor](https://github.com/567-labs/instructor) | MIT | Structured (JSON mode) LLM output with validation retries |
+| [fakeredis](https://github.com/cunla/fakeredis-py) | BSD-3-Clause | In-memory Redis for LLM client tests |
+
+## Models (via Featherless)
+
+| Model | License | Use |
+| :--- | :--- | :--- |
+| [DeepSeek-V4-Flash](https://huggingface.co/deepseek-ai) (-0731 build) | See model card | Generator and assistant slots |
+| [Qwen3-Coder-30B-A3B-Instruct](https://huggingface.co/Qwen/Qwen3-Coder-30B-A3B-Instruct) | Apache-2.0 | Probe slot (480B variant for final calibration) |
 
 ## Frontend (TypeScript)
 

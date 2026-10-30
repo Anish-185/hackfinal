@@ -9,11 +9,6 @@ class Settings(BaseSettings):
     database_url: str
     redis_url: str
 
-    featherless_api_key: str = ""
-    featherless_model_generator: str = ""
-    featherless_model_assistant: str = ""
-    featherless_model_probe: str = ""
-
 
 @lru_cache
 def get_settings() -> Settings:

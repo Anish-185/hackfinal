@@ -18,6 +18,9 @@ dependencies = [
     # kombu[redis] (pulled in by celery[redis]) requires redis<6.5.
     "redis==6.4.0",
     "celery[redis]==5.6.3",
+    # instructor 1.17 caps jiter<0.15; openai>=3.3.1 needs jiter>=0.16.
+    "openai==3.3.0",
+    "instructor==1.17.0",
 ]
 
 [project.optional-dependencies]
@@ -27,10 +30,11 @@ dev = [
     "ruff==0.17.3",
     "jsonschema==4.26.0",
     "datamodel-code-generator==0.87.0",
+    "fakeredis==2.40.0",
 ]
 
 [tool.hatch.build.targets.wheel]
-packages = ["app", "contracts_gen"]
+packages = ["app", "contracts_gen", "llm"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

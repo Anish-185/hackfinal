@@ -1,4 +1,4 @@
-.PHONY: up down test lint contracts
+.PHONY: up down test lint contracts llm-smoke llm-usage
 
 up:
 	docker compose up -d --build
@@ -19,3 +19,11 @@ lint:
 contracts:
 	docker compose run --rm --no-deps api python scripts/generate_contracts.py
 	docker compose run --rm --no-deps frontend npm run --silent contracts
+
+# One small real request per model slot. Spends Featherless credits on a cache miss.
+llm-smoke:
+	docker compose run --rm api python -m llm.smoke
+
+# Tokens and estimated spend per slot.
+llm-usage:
+	docker compose run --rm api python -m llm.usage
