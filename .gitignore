@@ -40,3 +40,6 @@ volumes/
 *~
 .DS_Store
 Thumbs.db
+
+# DSA bank: dataset downloads and original problem descriptions (never committed)
+dsa/raw/

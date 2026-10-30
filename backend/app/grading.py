@@ -26,6 +26,7 @@ from app.workspace import (
     split_editable,
 )
 from contracts_gen.event import (
+    HiddenSample,
     HiddenSilentCounts,
     RunEvent,
     RunPayload,
@@ -83,15 +84,27 @@ def run_visible(spec: TaskSpec, candidate_files: dict[str, str]) -> RunResult:
     return checked_run(spec.runtime, files, spec.visible_tests, spec.visible_test_ids)
 
 
-def run_hidden(spec: TaskSpec, candidate_files: dict[str, str]) -> RunResult:
+def hidden_ids(spec: TaskSpec, sample: HiddenSample | None) -> list[str]:
+    """The hidden test ids that count: the session's sample for DSA tasks, else all."""
+    return list(sample.case_ids) if sample is not None else list(spec.hidden_test_ids)
+
+
+def run_hidden(
+    spec: TaskSpec, candidate_files: dict[str, str], sample: HiddenSample | None = None
+) -> RunResult:
     if spec.kind == "dsa":
-        return dsa.run_cases(spec, candidate_files, spec.dsa_cases.hidden, spec.hidden_test_ids)
+        cases = dsa.sampled_cases(spec, sample)
+        return dsa.run_cases(spec, candidate_files, cases, hidden_ids(spec, sample))
     files = build_workspace(spec, candidate_files, spec.hidden_tests)
     return checked_run(spec.runtime, files, spec.hidden_tests, spec.hidden_test_ids)
 
 
 def combine(
-    spec: TaskSpec, candidate_files: dict[str, str], visible: RunResult, hidden: RunResult
+    spec: TaskSpec,
+    candidate_files: dict[str, str],
+    visible: RunResult,
+    hidden: RunResult,
+    sample: HiddenSample | None = None,
 ) -> TaskGrade:
     _, dropped = split_editable(spec, candidate_files)
     flags = scan(changed_files(spec, candidate_files))
@@ -99,7 +112,7 @@ def combine(
         visible=visible,
         hidden=hidden,
         visible_passed=passed_ids(visible, spec.visible_test_ids),
-        hidden_passed=passed_ids(hidden, spec.hidden_test_ids),
+        hidden_passed=passed_ids(hidden, hidden_ids(spec, sample)),
         integrity={
             "dropped_paths": dropped,
             "flags": [flag.model_dump() for flag in flags],
@@ -107,9 +120,13 @@ def combine(
     )
 
 
-def grade_task(spec: TaskSpec, candidate_files: dict[str, str]) -> TaskGrade:
+def grade_task(
+    spec: TaskSpec, candidate_files: dict[str, str], sample: HiddenSample | None = None
+) -> TaskGrade:
+    """Grade on the visible tests and the hidden ones (a session's sample, else all)."""
     visible = run_visible(spec, candidate_files)
-    return combine(spec, candidate_files, visible, run_hidden(spec, candidate_files))
+    hidden = run_hidden(spec, candidate_files, sample)
+    return combine(spec, candidate_files, visible, hidden, sample)
 
 
 def derive_test_ids(spec: dict[str, Any]) -> dict[str, Any]:
@@ -156,9 +173,11 @@ def process_run(
     session = db.get(AssessmentSession, uuid.UUID(session_id))
     task = _task(db, session, task_id)
     spec = TaskSpec.model_validate(task.spec)
+    sample = dsa.hidden_sample(spec, session_id)
     visible = run_visible(spec, files)
     on_visible(visible.model_dump(mode="json"))
-    grade = combine(spec, files, visible, run_hidden(spec, files))
+    grade = combine(spec, files, visible, run_hidden(spec, files, sample), sample)
+    hidden_expected = hidden_ids(spec, sample)
     now = datetime.now(UTC)
 
     db.add_all(
@@ -181,7 +200,7 @@ def process_run(
             ),
         ]
     )
-    failing = sorted(set(spec.hidden_test_ids) - grade.hidden_passed)
+    failing = sorted(set(hidden_expected) - grade.hidden_passed)
     event = RunEvent(
         session_id=session_id,
         task_id=task_id,
@@ -191,7 +210,7 @@ def process_run(
             visible=TestCounts(passed=len(grade.visible_passed), total=len(spec.visible_test_ids)),
             hidden_silent=HiddenSilentCounts(
                 passed=len(grade.hidden_passed),
-                total=len(spec.hidden_test_ids),
+                total=len(hidden_expected),
                 failing_ids=failing,
             ),
         ),
@@ -229,29 +248,39 @@ def process_submit(db: Session, session_id: str) -> None:
             .order_by(FileSnapshot.ts.desc(), FileSnapshot.id.desc())
             .limit(1)
         ).first()
-        grade = grade_task(spec, snapshot.files if snapshot else {})
+        sample = dsa.hidden_sample(spec, session_id)
+        grade = grade_task(spec, snapshot.files if snapshot else {}, sample)
         now = datetime.now(UTC)
+        result = {
+            "visible": grade.visible.model_dump(mode="json"),
+            "hidden": grade.hidden.model_dump(mode="json"),
+        }
+        if sample is not None:
+            result["hidden_sample"] = sample.model_dump(mode="json")
         db.add(
             Run(
                 session_id=session.id,
                 task_id=task.task_id,
                 kind="submit",
-                result={
-                    "visible": grade.visible.model_dump(mode="json"),
-                    "hidden": grade.hidden.model_dump(mode="json"),
-                },
+                result=result,
                 integrity=grade.integrity | {"snapshot_id": snapshot.id if snapshot else None},
                 ts=now,
             )
         )
         visible = TestCounts(passed=len(grade.visible_passed), total=len(spec.visible_test_ids))
-        hidden = TestCounts(passed=len(grade.hidden_passed), total=len(spec.hidden_test_ids))
+        hidden = TestCounts(passed=len(grade.hidden_passed), total=len(hidden_ids(spec, sample)))
         event = SubmitEvent(
             session_id=session_id,
             task_id=task.task_id,
             ts=_ms(now),
             type="submit",
-            payload=SubmitPayload(visible=visible, hidden=hidden, perf_ms=None, final=True),
+            payload=SubmitPayload(
+                visible=visible,
+                hidden=hidden,
+                perf_ms=None,
+                final=True,
+                **({"hidden_sample": sample} if sample is not None else {}),
+            ),
         )
         db.add(_event_row(session.id, event))
     db.flush()
@@ -290,7 +319,8 @@ def _event_row(session_id: uuid.UUID, event: RunEvent | SubmitEvent) -> Event:
         task_id=event.task_id,
         ts=event.ts,
         type=event.type,
-        payload=event.payload.model_dump(mode="json"),
+        # exclude_unset: optional fields (hidden_sample) appear only when given.
+        payload=event.payload.model_dump(mode="json", exclude_unset=True),
     )
 
 

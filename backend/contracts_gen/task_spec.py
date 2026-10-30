@@ -120,6 +120,32 @@ class DsaCases(BaseModel):
     """
 
 
+class NameMapping(BaseModel):
+    model_config = ConfigDict(
+        extra="forbid",
+    )
+    original: str = Field(..., pattern="^[A-Za-z_][A-Za-z0-9_]*$")
+    """
+    A name valid in both Python and JavaScript.
+    """
+    renamed: str = Field(..., pattern="^[A-Za-z_][A-Za-z0-9_]*$")
+    """
+    A name valid in both Python and JavaScript.
+    """
+
+
+class DsaNames(BaseModel):
+    """
+    1:1 renaming. parameters is in signature order (the JS harness passes arguments positionally in this order).
+    """
+
+    model_config = ConfigDict(
+        extra="forbid",
+    )
+    function: NameMapping
+    parameters: list[NameMapping]
+
+
 class TaskSpec(BaseModel):
     """
     Full specification of one assessment task. BACKEND ONLY: contains the reference solution pointer, hidden tests and certificate. The browser gets CandidateTaskView instead.
@@ -187,7 +213,11 @@ class TaskSpec(BaseModel):
     """
     dsa_cases: DsaCases | None
     """
-    Input/expected cases for DSA tasks. Null for domain tasks.
+    Input/expected cases for DSA tasks. Null for domain tasks. For bank problems, hidden is the pool a session's hidden sample is drawn from (see SubmitPayload.hidden_sample).
+    """
+    dsa_names: DsaNames | None = None
+    """
+    DSA bank problems: how the bank's function and parameter names were renamed for this task (seed_id is the bank problem id). Case inputs use the renamed parameters. Absent or null for domain tasks and the P1.3 demo problem.
     """
     perf: Perf | None
     """

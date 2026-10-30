@@ -1,31 +1,37 @@
 """DSA grading. Expected answers never enter the sandbox.
 
-The harness (runner/harness/python_cases.py) gets only {id, input} pairs, calls the
-candidate's function on each with a per-case timeout, and reports outputs. This module
+The harness (runner/harness/python_cases.py or node_cases.js) gets only {id, input} pairs,
+calls the candidate's function on each with a per-case timeout, and reports outputs. This module
 compares them with the expected values and builds a normal RunResult, one test per case
 id. A report whose case ids differ from the expected ids is error / test_set_mismatch.
 """
 
+import hashlib
 import json
 import math
+import random
 from pathlib import Path
 from typing import Any
 
 import runner
 from app.workspace import build_workspace, protected_reason
+from contracts_gen.event import HiddenSample
 from contracts_gen.run_result import RunResult, Summary, TestResult
 from contracts_gen.task_spec import Comparator, DsaCase, TaskSpec
 from runner import ProgramRun, run_program
 
-HARNESS_PATH = "_harness/run_cases.py"
 INPUTS_PATH = "_harness/inputs.json"
 CASE_TIMEOUT_S = 2.0
 RUN_OVERHEAD_S = 10
 SHOWN_CHARS = 200
 TEST_SET_MISMATCH = "test_set_mismatch"
+HIDDEN_SAMPLE_SIZE = 30
 
+_HARNESS_DIR = Path(runner.__file__).parent / "harness"
+# runtime -> (path in the sandbox, harness source)
 _HARNESS = {
-    "python311": (Path(runner.__file__).parent / "harness" / "python_cases.py").read_text(),
+    "python311": ("_harness/run_cases.py", (_HARNESS_DIR / "python_cases.py").read_text()),
+    "node20": ("_harness/run_cases.js", (_HARNESS_DIR / "node_cases.js").read_text()),
 }
 
 
@@ -37,6 +43,28 @@ def entry_point(spec: TaskSpec) -> tuple[str, str]:
     return path, function
 
 
+def hidden_sample(spec: TaskSpec, session_id: str) -> HiddenSample | None:
+    """The hidden cases a session is graded on: up to HIDDEN_SAMPLE_SIZE from the pool.
+
+    Seeded by the session and task ids, so every run and the submit of a session use the
+    same cases; the submit stores the seed and the ids so a re-grade never re-samples.
+    """
+    if spec.kind != "dsa" or spec.dsa_cases is None:
+        return None
+    digest = hashlib.sha256(f"{session_id}:{spec.task_id}".encode()).digest()
+    seed = int.from_bytes(digest[:4], "big")
+    pool = [case.id for case in spec.dsa_cases.hidden]
+    chosen = set(random.Random(seed).sample(pool, min(HIDDEN_SAMPLE_SIZE, len(pool))))
+    return HiddenSample(seed=seed, case_ids=[case_id for case_id in pool if case_id in chosen])
+
+
+def sampled_cases(spec: TaskSpec, sample: HiddenSample | None) -> list[DsaCase]:
+    if sample is None:
+        return list(spec.dsa_cases.hidden)
+    wanted = set(sample.case_ids)
+    return [case for case in spec.dsa_cases.hidden if case.id in wanted]
+
+
 def execute_cases(
     spec: TaskSpec,
     candidate_files: dict[str, str],
@@ -44,30 +72,30 @@ def execute_cases(
     case_timeout_s: float = CASE_TIMEOUT_S,
 ) -> ProgramRun:
     """Run the harness on `cases` (inputs only) in a fresh sandbox."""
-    harness = _HARNESS.get(spec.runtime)
-    if harness is None:
-        raise ValueError(f"No DSA harness for runtime {spec.runtime!r} yet (node20: P2.6)")
+    if spec.runtime not in _HARNESS:
+        raise ValueError(f"No DSA harness for runtime {spec.runtime!r}")
+    harness_path, harness = _HARNESS[spec.runtime]
     module, function = entry_point(spec)
     inputs = [{"id": case.id, "input": case.input} for case in cases]
     files = build_workspace(spec, candidate_files, []) | {
-        HARNESS_PATH: harness,
+        harness_path: harness,
         INPUTS_PATH: json.dumps(inputs),
     }
     readonly = frozenset(
-        {HARNESS_PATH, INPUTS_PATH} | {p for p in files if protected_reason(p) is not None}
+        {harness_path, INPUTS_PATH} | {p for p in files if protected_reason(p) is not None}
     )
+    args = [harness_path, INPUTS_PATH, "", module, function, str(case_timeout_s)]
+    if spec.runtime == "node20":
+        # Object inputs are passed positionally, so the harness needs the parameter order.
+        if spec.dsa_names is None:
+            raise ValueError(f"node20 DSA task {spec.task_id} needs dsa_names")
+        args.append(",".join(p.renamed for p in spec.dsa_names.parameters))
+        launcher = ["node"]
+    else:
+        launcher = ["python", "-I"]
 
     def command(report_path: str) -> list[str]:
-        return [
-            "python",
-            "-I",
-            HARNESS_PATH,
-            INPUTS_PATH,
-            report_path,
-            module,
-            function,
-            str(case_timeout_s),
-        ]
+        return launcher + args[:2] + [report_path] + args[3:]
 
     timeout_s = RUN_OVERHEAD_S + math.ceil(len(cases) * case_timeout_s)
     return run_program(spec.runtime, files, command, timeout_s=timeout_s, readonly=readonly)

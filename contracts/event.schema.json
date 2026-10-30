@@ -48,6 +48,16 @@
       "additionalProperties": false
     },
 
+    "HiddenSample": {
+      "type": "object",
+      "description": "Hidden cases sampled from the task's hidden pool for one session. Stored so a re-grade uses exactly the same cases.",
+      "required": ["seed", "case_ids"],
+      "properties": {
+        "seed": { "type": "integer", "minimum": 0 },
+        "case_ids": { "type": "array", "items": { "type": "string" }, "uniqueItems": true }
+      },
+      "additionalProperties": false
+    },
     "RunPayload": {
       "type": "object",
       "required": ["visible", "hidden_silent"],
@@ -68,7 +78,11 @@
           "minimum": 0,
           "description": "Measured runtime on the perf input. Null when the task has no perf constraint."
         },
-        "final": { "type": "boolean", "description": "True for the submission that gets scored." }
+        "final": { "type": "boolean", "description": "True for the submission that gets scored." },
+        "hidden_sample": {
+          "oneOf": [{ "$ref": "#/$defs/HiddenSample" }, { "type": "null" }],
+          "description": "DSA tasks: the hidden cases this session was graded on. Absent or null for domain tasks."
+        }
       },
       "additionalProperties": false
     },

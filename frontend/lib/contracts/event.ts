@@ -65,6 +65,17 @@ export interface SubmitPayload {
    * True for the submission that gets scored.
    */
   final: boolean;
+  /**
+   * DSA tasks: the hidden cases this session was graded on. Absent or null for domain tasks.
+   */
+  hidden_sample?: HiddenSample | null;
+}
+/**
+ * Hidden cases sampled from the task's hidden pool for one session. Stored so a re-grade uses exactly the same cases.
+ */
+export interface HiddenSample {
+  seed: number;
+  case_ids: string[];
 }
 export interface HintRequestEvent {
   session_id: SessionId;

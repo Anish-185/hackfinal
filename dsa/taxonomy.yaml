@@ -64,7 +64,7 @@ topics:
     synonyms: [binary_search_tree, binary_search_trees]
     tiers: [adept, master]
   heaps:
-    synonyms: [heap, priority_queue, priority_queues, top_k]
+    synonyms: [heap, heap_priority_queue, priority_queue, priority_queues, top_k]
     tiers: [adept, master]
   graphs_bfs_dfs:
     synonyms: [graph, graphs, bfs, dfs, breadth_first_search, depth_first_search, graph_traversal, topological_sort, toposort]

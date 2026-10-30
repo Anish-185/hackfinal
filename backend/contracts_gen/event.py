@@ -29,6 +29,18 @@ class HiddenSilentCounts(BaseModel):
     failing_ids: list[str]
 
 
+class HiddenSample(BaseModel):
+    """
+    Hidden cases sampled from the task's hidden pool for one session. Stored so a re-grade uses exactly the same cases.
+    """
+
+    model_config = ConfigDict(
+        extra="forbid",
+    )
+    seed: int = Field(..., ge=0)
+    case_ids: list[str]
+
+
 class RunPayload(BaseModel):
     model_config = ConfigDict(
         extra="forbid",
@@ -50,6 +62,10 @@ class SubmitPayload(BaseModel):
     final: bool
     """
     True for the submission that gets scored.
+    """
+    hidden_sample: HiddenSample | None = None
+    """
+    DSA tasks: the hidden cases this session was graded on. Absent or null for domain tasks.
     """
 
 

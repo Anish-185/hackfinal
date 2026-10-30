@@ -26,7 +26,7 @@ Roles: A Execution · B Generation + AI and scoring · C Frontend + interviewer 
 | P2.3 | Feature removal (Adept) | B | Not started | |
 | P2.4 | Master builder | B | Not started | |
 | P2.5 | LLM enrichment | B | Not started | |
-| P2.6 | DSA bank, runners, rewriting | A, B | Not started | |
+| P2.6 | DSA bank, runners, rewriting | A, B | Done | 2026-10-31: `make dsa-import` (LeetCodeDataset @215604a, ast-only parsing, references re-run in the sandbox) → 100 imported + the P1.3 problem (novice 36, adept 38, master 65); select_problem with lower-tier fallback; domain rewrite (one generator call, validated names + renamed reference in the sandbox, one retry, template fallback); node_cases.js harness; ≤30 hidden cases sampled per session, seed + ids stored on submit; make test 323, make test-docker 35, make e2e PASS |
 | P2.7 | Validation gate and certificate | B | Not started | |
 | P2.8 | AI solve-rate probe | B | Not started | |
 | P2.9 | Builder pipeline and recruiter page | B, C | Not started | |
@@ -85,6 +85,14 @@ Roles: A Execution · B Generation + AI and scoring · C Frontend + interviewer 
 | 2026-10-31 | POST /profiles creates the assessment (status "profiled", tier = suggested tier) and stores the Profile on it (assessments.profile) | "Stored on the assessment" before any task exists; P2.9 lets the recruiter change the tier and builds the tasks |
 | 2026-10-31 | LLMClient.structured() takes max_tokens (default 800, part of the cache key) | Token policy: every call sets max_tokens; P2.1 needs 150 |
 | 2026-10-31 | Speed rules added to CLAUDE.md; the pytest-xdist rule is recorded as a rule but not applied yet (parallel safety of the API and docker suites unchecked; the API tests share one `<db>_test` database) | Chore scope is the rules text; apply xdist when a suite is shown parallel-safe |
+| 2026-10-31 | DSA problem id = TaskSpec.seed_id (already "the DSA bank entry"); new contract fields TaskSpec.dsa_names and SubmitPayload.hidden_sample are optional | No duplicate field; stored specs and events from before P2.6 stay valid |
+| 2026-10-31 | Hidden sample seed = first 4 bytes of sha256(session_id:task_id); the same sample is used for silent runs and the submit; stored on the submit Run row and event; scoring uses the stored ids | Stable Trail metrics within a session; a re-grade never re-samples (tested with the sampling size changed) |
+| 2026-10-31 | Bank: 5 visible = the 5 smallest cases, hidden pool ≤ 60 (dataset order), cases ≤ 8000 JSON chars, ints within ±2^53 (exact in JS), quotas easy 35 / medium 40 / hard 25 spread round-robin over each problem's rarest tag | P2.6 asks for 80–120 spread across tiers; keeps the repo at ~4 MB and JS/Python results identical |
+| 2026-10-31 | A tier is dropped from a problem when one of its topics isn't allowed for that tier in taxonomy.yaml (e.g. an Easy heaps problem is not novice); `heap_priority_queue` added as a heaps synonym (LeetCode's tag name) | Such a problem could never be selected for that tier |
+| 2026-10-31 | Rewrite rejected (then retried once with the reason, so the retry isn't a cache hit) when: names not 1:1/snake_case/reserved in Python or JS, the story shares an 8-word run with the original, the story still says `old_name` in backticks, or the renamed reference fails a case. Template = our own problem.md, else a generic statement from the metadata with the bank's names | P2.6 validation; the backtick rule came from the first real rewrite (story said `k` for target_sum) |
+| 2026-10-31 | node20 DSA tasks are validated with the Python reference (renamed) on a python311 copy of the spec; the JS starter must fail visible | Expected values are computed on the backend, so the Python reference is the oracle; harness parity is covered by tests on 3 problems |
+| 2026-10-31 | JS harness: candidate module and each call run in a vm context with a timeout (interrupts sync infinite loops); object inputs passed positionally in dsa_names order; undefined → null; non-finite numbers are an error (as in Python) | Mirrors python_cases.py without a process per case |
+| 2026-10-31 | Problems whose snake_case entry name would shadow a builtin or a name in the reference are dropped (5) rather than renamed | Simpler; plenty of candidates |
 
 ## Session log
 
@@ -101,4 +109,5 @@ Roles: A Execution · B Generation + AI and scoring · C Frontend + interviewer 
 | 2026-10-31 | Anish (Claude Code) | P1.5 scoring and report + `make e2e` (asked for the e2e; P1.5 done first so the e2e can assert real scores). No LLM calls | P2.1 Taxonomy and profiler; re-run `make e2e` after IDE/report/grading/scoring changes |
 | 2026-10-31 | Anish (Claude Code) | LLM config check: make llm-smoke (interviewer slot gated → Qwen/Qwen2.5-7B-Instruct), make llm-usage ($0.000129 total), working model IDs recorded; make e2e now restarts worker and beat | P2.1 Taxonomy and profiler |
 | 2026-10-31 | Anish (Claude Code) | P2.1 taxonomy and profiler; one real generator call for the vague fixture ($0.00006) | P2.2 Mutation engine (Novice) |
-| 2026-10-31 | Anish (Claude Code) | Chore: `make contracts` runs as the host user (generated files no longer root-owned; checked, output unchanged); Speed rules section in CLAUDE.md | P2.6 DSA bank (waiting for the full block 11 prompt) |
+| 2026-10-31 | Anish (Claude Code) | Chore: `make contracts` runs as the host user (generated files no longer root-owned; checked, output unchanged); Speed rules section in CLAUDE.md | P2.6 DSA bank |
+| 2026-10-31 | Anish (Claude Code) | P2.6 DSA bank, JS harness, selection, domain rewriting, per-session hidden sampling; 2 real generator calls for the demo rewrite (~$0.0003) | P2.2 Mutation engine (Novice) |

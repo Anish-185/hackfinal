@@ -6,6 +6,10 @@ export type Kind = "domain" | "dsa";
  * Relative POSIX path inside the task repo. No leading slash, no . or .. segments.
  */
 export type RelPath = string;
+/**
+ * A name valid in both Python and JavaScript.
+ */
+export type Identifier = string;
 
 /**
  * Full specification of one assessment task. BACKEND ONLY: contains the reference solution pointer, hidden tests and certificate. The browser gets CandidateTaskView instead.
@@ -66,9 +70,13 @@ export interface TaskSpec {
    */
   hidden_test_ids: string[];
   /**
-   * Input/expected cases for DSA tasks. Null for domain tasks.
+   * Input/expected cases for DSA tasks. Null for domain tasks. For bank problems, hidden is the pool a session's hidden sample is drawn from (see SubmitPayload.hidden_sample).
    */
   dsa_cases: DsaCases | null;
+  /**
+   * DSA bank problems: how the bank's function and parameter names were renamed for this task (seed_id is the bank problem id). Case inputs use the renamed parameters. Absent or null for domain tasks and the P1.3 demo problem.
+   */
+  dsa_names?: DsaNames | null;
   /**
    * Performance constraint. Null when the task has none.
    */
@@ -123,6 +131,17 @@ export interface DsaCase {
 export interface Comparator {
   kind: "exact" | "unordered_list" | "float_tolerance";
   tolerance: number | null;
+}
+/**
+ * 1:1 renaming. parameters is in signature order (the JS harness passes arguments positionally in this order).
+ */
+export interface DsaNames {
+  function: NameMapping;
+  parameters: NameMapping[];
+}
+export interface NameMapping {
+  original: Identifier;
+  renamed: Identifier;
 }
 export interface Perf {
   budget_ms: number;

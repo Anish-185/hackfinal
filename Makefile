@@ -1,4 +1,4 @@
-.PHONY: up down migrate seed-demo e2e test test-docker lint contracts runtimes llm-smoke llm-usage
+.PHONY: up down migrate seed-demo e2e test test-docker lint contracts runtimes llm-smoke llm-usage dsa-import
 
 up:
 	docker compose up -d --build
@@ -32,6 +32,7 @@ test-docker:
 	docker compose run --rm worker pytest -m docker --durations=0
 
 lint:
+	@test -z "$$(git ls-files dsa/raw)" || { echo "dsa/raw/ holds LeetCode's text and must never be committed:"; git ls-files dsa/raw; exit 1; }
 	docker compose run --rm --no-deps api ruff check . /seeds
 	docker compose run --rm --no-deps api ruff format --check . /seeds
 	docker compose run --rm --no-deps frontend npm run lint
@@ -54,3 +55,8 @@ llm-smoke:
 # Tokens and estimated spend per slot.
 llm-usage:
 	docker compose run --rm api python -m llm.usage
+
+# Import LeetCodeDataset (pinned revision) into the DSA bank: filters, runs every reference in
+# the sandbox, writes dsa/<id>/. Original descriptions go to the git-ignored dsa/raw/. ~5 min.
+dsa-import:
+	docker compose run --rm -v "$$PWD/dsa:/dsa-out" -e PYTHONPATH=/app worker python /dsa-out/tools/import_leetcode.py --out /dsa-out

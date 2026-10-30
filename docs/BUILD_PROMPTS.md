@@ -377,11 +377,7 @@ Acceptance checks:
   candidate's project (re-run all tests after renaming), extra hidden tests
   kept only if the reference passes them. Token policy: one call per task,
   only the changed files and test names as context, cached.
-- **P2.6 DSA:** filter LeetCodeDataset into the bank with taxonomy tags;
-  JSON cases; JS runner; selection rule (every tag claimed, thresholds);
-  domain rewriting with signature mapping and re-run tests; fresh hidden
-  inputs at submit with the reference as oracle. Never serve problem text
-  verbatim.
+- **P2.6 DSA:** written in full below ("P2.6 DSA bank, runners, rewriting").
 - **P2.7 Validation gate + certificate:** reference passes ×3, starter fails,
   Novice starter passes non-target tests, scope diff by tier, size limits,
   brute-force agreement on 500 random inputs (DSA), perf calibration, topic
@@ -392,6 +388,83 @@ Acceptance checks:
 - **P2.9 Builder pipeline + recruiter page:** Celery job orchestrating
   P2.1–P2.8; repair loop (≤2 tries); fallback bank; recruiter page to upload
   a portfolio, choose a tier, preview tasks and certificates, get the link.
+
+### P2.6 DSA bank, runners, rewriting
+
+Follow the session protocol and speed rules in CLAUDE.md, especially the
+token policy. Branch: p2-6-dsa.
+
+Goal: a tagged DSA problem bank, tier- and topic-bounded selection, problems
+rewritten into the candidate's domain, and Python + JS grading through the
+existing input-only harness from P1.3.
+
+1. Ingestion (no LLM):
+   - Script dsa/tools/import_leetcode.py + `make dsa-import`, downloading
+     LeetCodeDataset (github.com/newfacade/LeetCodeDataset or its Hugging
+     Face copy) at a pinned commit/revision. Attribute it in ATTRIBUTIONS.md.
+   - Never exec or eval dataset content outside the sandbox. Parse case
+     input strings with the ast module (keyword-argument parsing only);
+     drop anything that doesn't parse cleanly.
+   - Keep only problems whose parameters and return values are JSON types
+     (int, float, bool, str, lists/dicts of those; no ListNode, TreeNode, or
+     class-design problems) and whose tags ALL map to dsa/taxonomy.yaml.
+   - Target 80–120 problems spread across tiers. Difficulty → tier:
+     Easy → novice, Medium → adept, Medium + Hard → master.
+   - Recompute every expected value by running the dataset's reference
+     solution in the sandbox; drop problems where they disagree or time out.
+   - Licensing: original problem descriptions are LeetCode's text. Store
+     them only in a git-ignored local cache (dsa/raw/), used as rewrite
+     input; never commit them, never serve them.
+
+2. Bank format: follow the existing dsa/longest_unique_substring/ layout
+   from P1.3 so the current harness and builder work unchanged, and move
+   that problem into the bank as well. Each problem: id, tags, tier(s),
+   entry point, typed signature, reference solution, cases
+   ({id, input, expected}), comparator (unordered_list if the description
+   says "any order", float_tolerance for float returns, else null).
+   Committed: everything except the original description.
+
+3. Selection: select_problem(profile, tier, rng_seed) returns only problems
+   whose EVERY tag is in profile.allowed_topics for that tier. If none
+   qualify, fall back to the easiest problem whose tags are all allowed at
+   any lower tier, and record why.
+
+4. Rewriting (one generator call per (problem, domain), cached by input
+   hash, max_tokens 600, temperature 0.2, structured output): a story
+   statement in the candidate's domain, a new function name, and new
+   parameter names (1:1 mapping, valid identifiers in both Python and JS).
+   Input: the cached original description, the signature, and the domain
+   plus the candidate's project names. Code, not the LLM, inserts two worked
+   examples from the visible cases. Validate: the reference wrapped with the
+   new names gives identical outputs on all cases; otherwise retry once,
+   then use a template statement built by code. If dsa/raw/ is missing,
+   use the template statement and log it.
+
+5. Visible and hidden cases: 5 fixed visible cases. At submit, sample the
+   hidden cases from the problem's hidden pool (up to 30), seeded per
+   session; store the seed AND the selected case ids so re-grading is
+   byte-identical. Expected values never enter the sandbox (as in P1.3).
+
+6. JS harness: a Node harness mirroring the Python one (inputs only,
+   per-case timeout, outputs to the random report path). Candidates
+   export the function with module.exports. Same case ids, same
+   comparator, same test_set_mismatch rules.
+
+7. Contracts: add only what's needed and regenerate: the problem id, the
+   name mapping, and the hidden-case seed and selected ids for a session.
+
+Tests (LLM mocked):
+- Selection never returns a problem with an unclaimed or disallowed tag
+- Rewritten names map 1:1; validation catches a broken mapping and falls
+  back to the template
+- Python and JS harnesses give identical results for the same correct and
+  wrong solutions on 3 problems
+- Re-grade after a sampled submit is byte-identical
+- Nothing from dsa/raw/ is ever committed (a check in make lint)
+
+Acceptance checks: run make test, make test-docker, and make e2e once at the
+end. Show: bank counts per tag and per tier, one rewritten problem for a
+backend profile, and the tokens spent (make llm-usage).
 
 ## Phase 3: Assistant + scoring
 

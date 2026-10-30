@@ -9,7 +9,9 @@ import uuid
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
+from app import dsa
 from app.models import Assessment, AssessmentSession, Event, Run, Task
+from contracts_gen.event import HiddenSample
 from contracts_gen.run_result import RunResult
 from contracts_gen.score_breakdown import ScoreBreakdown, TaskScore, TestCounts
 from contracts_gen.task_spec import TaskSpec
@@ -34,6 +36,7 @@ def score_session(db: Session, session_id: uuid.UUID) -> ScoreBreakdown:
     scores = [
         _task_score(
             TaskSpec.model_validate(task.spec),
+            str(session_id),
             _latest_submit(db, session_id, task.task_id),
             first_focus.get(task.task_id),
             last_edit.get(task.task_id),
@@ -57,23 +60,32 @@ def score_session(db: Session, session_id: uuid.UUID) -> ScoreBreakdown:
 
 def _task_score(
     spec: TaskSpec,
+    session_id: str,
     submit: Run | None,
     first_focus: int | None,
     last_edit: int | None,
     runs: int,
 ) -> TaskScore:
-    """Counts come from the submit run; a task without one (never graded) passes nothing."""
+    """Counts come from the submit run; a task without one (never graded) passes nothing.
+
+    DSA hidden cases are the sample stored on the submit run (never re-sampled), or the
+    session's sample when there is no submit run.
+    """
     visible_passed = hidden_passed = 0
     perf_ms = None
+    sample = dsa.hidden_sample(spec, session_id)
+    if submit is not None and "hidden_sample" in submit.result:
+        sample = HiddenSample.model_validate(submit.result["hidden_sample"])
+    hidden_expected = sample.case_ids if sample is not None else spec.hidden_test_ids
     if submit is not None:
         visible = RunResult.model_validate(submit.result["visible"])
         hidden = RunResult.model_validate(submit.result["hidden"])
         visible_passed = len(c.passed_ids(visible, spec.visible_test_ids))
-        hidden_passed = len(c.passed_ids(hidden, spec.hidden_test_ids))
+        hidden_passed = len(c.passed_ids(hidden, hidden_expected))
         # Written by the submit job once perf is measured (Master tasks, P2.4).
         perf_ms = submit.result.get("perf_ms")
     visible_rate = c.rate(visible_passed, len(spec.visible_test_ids))
-    hidden_rate = c.rate(hidden_passed, len(spec.hidden_test_ids))
+    hidden_rate = c.rate(hidden_passed, len(hidden_expected))
     budget_ms = spec.perf.budget_ms if spec.perf else None
     factor = c.perf_factor(budget_ms, perf_ms)
     time_ms = None
@@ -83,7 +95,7 @@ def _task_score(
         task_id=spec.task_id,
         kind=spec.kind,
         visible=TestCounts(passed=visible_passed, total=len(spec.visible_test_ids)),
-        hidden=TestCounts(passed=hidden_passed, total=len(spec.hidden_test_ids)),
+        hidden=TestCounts(passed=hidden_passed, total=len(hidden_expected)),
         visible_rate=_round(visible_rate, 4),
         hidden_rate=_round(hidden_rate, 4),
         perf_budget_ms=budget_ms,

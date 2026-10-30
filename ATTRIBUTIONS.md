@@ -72,6 +72,12 @@ pytest, FastAPI, SQLAlchemy and Pydantic are also installed in the Python image 
 | :--- | :--- | :--- |
 | [Playwright](https://github.com/microsoft/playwright) 1.64.1 (npm package and `mcr.microsoft.com/playwright:v1.64.1-noble` image with Chromium) | Apache-2.0 | `make e2e`: headless-browser run of the demo flow |
 
+### Datasets
+
+| Dataset | License | Use |
+| :--- | :--- | :--- |
+| [LeetCodeDataset](https://github.com/newfacade/LeetCodeDataset) ([Hugging Face copy](https://huggingface.co/datasets/newfacade/LeetCodeDataset), revision `215604aeed660029df7de2fea5a4d7b6ed476a08`) | Apache-2.0 | `make dsa-import` (P2.6): tags, signatures, test inputs and reference solutions for the ~100 problems in `dsa/`. Expected values recomputed in our sandbox. The original problem descriptions are LeetCode's text: kept only in the git-ignored `dsa/raw/` as rewrite input, never committed or served |
+
 ### Models and services (via Featherless)
 
 | Model / service | License | Use |
@@ -97,7 +103,6 @@ From docs/BLUEPRINT.md section 7. Move a row up to "Used as dependencies" or
 | :--- | :--- | :--- |
 | [SWE-smith](https://github.com/SWE-bench/SWE-smith) (method) | MIT | Bug mutation and issue text (P2.2) |
 | [LibCST](https://github.com/Instagram/LibCST) | MIT | Formatting-preserving code edits (P2.2, P2.3) |
-| [LeetCodeDataset](https://github.com/newfacade/LeetCodeDataset) | Apache-2.0 | Tagged DSA problems and tests, never served verbatim (P2.6) |
 | [EvalPlus](https://github.com/evalplus/evalplus) (method) | Apache-2.0 | Test strengthening, differential testing (P2.7) |
 | [mutmut](https://github.com/boxed/mutmut) | BSD-3-Clause | Mutation score, Python (P2.7) |
 | [StrykerJS](https://github.com/stryker-mutator/stryker-js) | Apache-2.0 | Mutation score, JavaScript (P2.7) |

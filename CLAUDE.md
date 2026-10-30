@@ -108,9 +108,16 @@ backend/     app/            FastAPI app and plumbing:
                              workspace.py (editable allowlist), integrity.py
                              (suspicious-code scan), candidate_view.py, config.py
              builder/        task builders: manual.py (P1.3 demo tasks: AST bug,
-                             AST test split, validation), seeds.py, seed_demo.py
+                             AST test split, validation), seeds.py, seed_demo.py,
+                             dsa_bank.py (P2.6: bank loading, select_problem,
+                             stubs, statement, renamed-reference check, task
+                             build), dsa_rewrite.py (one generator call per
+                             problem+domain, validation, template fallback),
+                             dsa_demo.py (build one DSA task for a portfolio)
              app/dsa.py      DSA grading: harness gets inputs only, outputs
-                             compared on the backend (runner/harness/)
+                             compared on the backend (runner/harness/:
+                             python_cases.py, node_cases.js); hidden_sample()
+                             picks a session's ≤30 hidden cases from the pool
              profiler/       portfolio -> Profile (P2.1): keywords.py (keyword maps),
                              taxonomy.py (dsa/taxonomy.yaml, seed concept
                              vocabulary), profile.py (rules; one generator call
@@ -126,11 +133,13 @@ backend/     app/            FastAPI app and plumbing:
              A new top-level package must be added to `packages` in
              backend/pyproject.toml and to the mkdir line in backend/Dockerfile.
 seeds/       hand-written seed repos, each with tests + concepts.yaml
-dsa/         DSA bank: one folder per problem (problem.md, stub.py,
-             reference.py, cases.json, make_cases.py) and taxonomy.yaml
-             (canonical topics, synonyms, tiers, solved-count thresholds,
-             tier rules). Backend only (mounted read-only at /dsa); expected
-             answers never reach a sandbox
+dsa/         DSA bank: one folder per problem (problem.json, problem.md,
+             stub.py, reference.py, cases.json; make_cases.py for hand-written
+             ones), taxonomy.yaml (canonical topics, synonyms, tiers,
+             solved-count thresholds, tier rules), tools/import_leetcode.py
+             (`make dsa-import`), raw/ (git-ignored: dataset + LeetCode's
+             original descriptions; never commit). Backend only (mounted
+             read-only at /dsa); expected answers never reach a sandbox
 runtimes/    Dockerfiles per runtime
 sim/         simulated candidate scripts
 e2e/         `make e2e`: headless Chromium (Playwright image) drives the demo flow;
@@ -145,7 +154,7 @@ docs/        blueprint, prompts, progress, interviewer spec
 ## Commands
 make up | make down | make migrate | make seed-demo | make e2e | make test |
 make test-docker | make lint | make contracts | make runtimes | make llm-smoke |
-make llm-usage
+make llm-usage | make dsa-import
 (Keep this list in sync with the Makefile.)
 
 - `make seed-demo`: builds and validates the P1.3 demo tasks in the sandbox
@@ -174,6 +183,9 @@ make llm-usage
 - `make contracts`: regenerate Pydantic and TS types; commit the output.
 - `make llm-smoke`: one real request per slot; spends credits on a cache miss.
 - `make llm-usage`: tokens and estimated spend per slot.
+- `make dsa-import`: downloads LeetCodeDataset (pinned revision) into dsa/raw/,
+  rebuilds the imported dsa/<id>/ folders, running every reference in the
+  sandbox (~3 min). No LLM. `make lint` fails if anything under dsa/raw/ is tracked.
 
 First-time setup: `cp .env.example .env` (fill FEATHERLESS_API_KEY), then
 `make runtimes`, `make up` and `make migrate`.

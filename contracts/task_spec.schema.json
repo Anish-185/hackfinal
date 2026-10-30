@@ -103,7 +103,11 @@
     },
     "dsa_cases": {
       "oneOf": [{ "$ref": "#/$defs/DsaCases" }, { "type": "null" }],
-      "description": "Input/expected cases for DSA tasks. Null for domain tasks."
+      "description": "Input/expected cases for DSA tasks. Null for domain tasks. For bank problems, hidden is the pool a session's hidden sample is drawn from (see SubmitPayload.hidden_sample)."
+    },
+    "dsa_names": {
+      "oneOf": [{ "$ref": "#/$defs/DsaNames" }, { "type": "null" }],
+      "description": "DSA bank problems: how the bank's function and parameter names were renamed for this task (seed_id is the bank problem id). Case inputs use the renamed parameters. Absent or null for domain tasks and the P1.3 demo problem."
     },
     "perf": {
       "oneOf": [{ "$ref": "#/$defs/Perf" }, { "type": "null" }],
@@ -177,6 +181,30 @@
           "oneOf": [{ "$ref": "#/$defs/Comparator" }, { "type": "null" }],
           "description": "How the backend compares an output with the expected value. Null means exact JSON equality."
         }
+      },
+      "additionalProperties": false
+    },
+    "NameMapping": {
+      "type": "object",
+      "required": ["original", "renamed"],
+      "properties": {
+        "original": { "$ref": "#/$defs/Identifier" },
+        "renamed": { "$ref": "#/$defs/Identifier" }
+      },
+      "additionalProperties": false
+    },
+    "Identifier": {
+      "type": "string",
+      "description": "A name valid in both Python and JavaScript.",
+      "pattern": "^[A-Za-z_][A-Za-z0-9_]*$"
+    },
+    "DsaNames": {
+      "type": "object",
+      "description": "1:1 renaming. parameters is in signature order (the JS harness passes arguments positionally in this order).",
+      "required": ["function", "parameters"],
+      "properties": {
+        "function": { "$ref": "#/$defs/NameMapping" },
+        "parameters": { "type": "array", "items": { "$ref": "#/$defs/NameMapping" } }
       },
       "additionalProperties": false
     },
