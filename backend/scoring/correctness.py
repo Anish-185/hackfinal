@@ -38,11 +38,23 @@ def perf_factor(budget_ms: int | None, perf_ms: float | None) -> float:
     return max(PERF_FLOOR, 1.0 - (1.0 - PERF_FLOOR) * over)
 
 
-def correctness(visible_rate: float | None, hidden_rate: float | None, factor: float) -> float:
-    """100 × (0.3 × visible_rate + 0.7 × hidden_rate) × perf_factor.
+def regression_factor(still_passing: int, pass_to_pass: int) -> float:
+    """Share of the tests that passed on the starter (pass_to_pass) that still pass.
+    1.0 when there are none."""
+    return 1.0 if pass_to_pass == 0 else still_passing / pass_to_pass
 
-    A missing rate (no tests of that kind) gives its weight to the other one; a task with
-    no tests at all scores 0.
+
+def correctness(
+    visible_rate: float | None,
+    hidden_rate: float | None,
+    factor: float,
+    regression: float = 1.0,
+) -> float:
+    """100 × (0.3 × visible_rate + 0.7 × hidden_rate) × regression_factor × perf_factor.
+
+    The rates are fail_to_pass rates (share of the tests failing on the starter that now
+    pass) when the task records them, else shares of all tests. A missing rate (no tests of
+    that kind) gives its weight to the other one; a task with no tests at all scores 0.
     """
     if visible_rate is None and hidden_rate is None:
         return 0.0
@@ -52,7 +64,7 @@ def correctness(visible_rate: float | None, hidden_rate: float | None, factor: f
         combined = visible_rate
     else:
         combined = VISIBLE_WEIGHT * visible_rate + HIDDEN_WEIGHT * hidden_rate
-    return 100.0 * combined * factor
+    return 100.0 * combined * regression * factor
 
 
 def mean(values: list[float]) -> float:

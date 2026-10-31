@@ -93,8 +93,18 @@ schemas are added there first (e.g. profile, interview_plan).
 ## 5. Scoring
 
 ```text
-correctness(task) = 100 × (0.3 × visible_rate + 0.7 × hidden_rate) × perf_factor
-    perf_factor = 1.0 within budget, linear down to 0.5 at 3× budget (Master)
+correctness(task) = 100 × (0.3 × visible_f2p_rate + 0.7 × hidden_f2p_rate)
+                        × regression_factor × perf_factor
+    f2p_rate          = share of the fail_to_pass tests (fail on the starter, recorded by
+                        the gate) that now pass; an untouched starter scores 0
+    regression_factor = share of the pass_to_pass tests (pass on the starter) that still
+                        pass; 1.0 if there are none
+    a split with no fail_to_pass tests gives its weight to the other one
+    DSA: every case counts as fail_to_pass (rates over all cases), regression_factor 1.0
+    tasks stored without the ids: rates over all tests, regression_factor 1.0 (logged;
+        the breakdown says rates_over = all_tests)
+    perf_factor = 1.0 within budget, linear down to 0.5 at 3× budget (Master); 0.5 with a
+        budget but no measurement
 
 AI efficiency E (Adept/Master):
     PPH  = mean over hints: tests fixed within 5 min / tests failing at hint time

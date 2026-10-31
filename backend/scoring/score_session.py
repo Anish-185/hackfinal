@@ -4,6 +4,7 @@ No LLM and no sandbox: the same records always give the same breakdown, so a re-
 reproduces the score exactly. Floats are rounded so the stored JSON is stable.
 """
 
+import logging
 import uuid
 
 from sqlalchemy import func, select
@@ -17,8 +18,10 @@ from contracts_gen.score_breakdown import ScoreBreakdown, TaskScore, TestCounts
 from contracts_gen.task_spec import TaskSpec
 from scoring import correctness as c
 
-SCORING_VERSION = "1"
+SCORING_VERSION = "2"  # 2: fail_to_pass rates and regression_factor (P2.7b)
 HINT_EVENT_TYPES = ("hint_request", "hint_response")
+
+logger = logging.getLogger(__name__)
 
 
 def score_session(db: Session, session_id: uuid.UUID) -> ScoreBreakdown:
@@ -71,7 +74,8 @@ def _task_score(
     DSA hidden cases are the sample stored on the submit run (never re-sampled), or the
     session's sample when there is no submit run.
     """
-    visible_passed = hidden_passed = 0
+    visible_passed: set[str] = set()
+    hidden_passed: set[str] = set()
     perf_ms = None
     sample = dsa.hidden_sample(spec, session_id)
     if submit is not None and "hidden_sample" in submit.result:
@@ -80,12 +84,35 @@ def _task_score(
     if submit is not None:
         visible = RunResult.model_validate(submit.result["visible"])
         hidden = RunResult.model_validate(submit.result["hidden"])
-        visible_passed = len(c.passed_ids(visible, spec.visible_test_ids))
-        hidden_passed = len(c.passed_ids(hidden, hidden_expected))
+        visible_passed = c.passed_ids(visible, spec.visible_test_ids)
+        hidden_passed = c.passed_ids(hidden, hidden_expected)
         # Measured by the submit job for tasks with a perf budget (grading.measure_perf).
         perf_ms = submit.result.get("perf_ms")
-    visible_rate = c.rate(visible_passed, len(spec.visible_test_ids))
-    hidden_rate = c.rate(hidden_passed, len(hidden_expected))
+
+    # Domain tasks with gate-recorded ids: SWE-bench style, only the tests the starter
+    # fails count, and pass_to_pass tests broken by the candidate cost points. DSA tasks:
+    # every case is something to solve (all of them count as fail_to_pass).
+    f2p, p2p = spec.fail_to_pass, spec.pass_to_pass
+    by_f2p = spec.kind == "domain" and f2p is not None and p2p is not None
+    if spec.kind == "domain" and not by_f2p:
+        logger.info("task %s has no fail_to_pass ids: scoring all tests", spec.task_id)
+    visible_f2p = hidden_f2p = still_passing = None
+    regression = 1.0
+    if by_f2p:
+        visible_f2p = TestCounts(
+            passed=len(visible_passed & set(f2p.visible)), total=len(f2p.visible)
+        )
+        hidden_f2p = TestCounts(passed=len(hidden_passed & set(f2p.hidden)), total=len(f2p.hidden))
+        p2p_ids = set(p2p.visible) | set(p2p.hidden)
+        still_passing = TestCounts(
+            passed=len((visible_passed | hidden_passed) & p2p_ids), total=len(p2p_ids)
+        )
+        regression = c.regression_factor(still_passing.passed, still_passing.total)
+        visible_rate = c.rate(visible_f2p.passed, visible_f2p.total)
+        hidden_rate = c.rate(hidden_f2p.passed, hidden_f2p.total)
+    else:
+        visible_rate = c.rate(len(visible_passed), len(spec.visible_test_ids))
+        hidden_rate = c.rate(len(hidden_passed), len(hidden_expected))
     budget_ms = spec.perf.budget_ms if spec.perf else None
     factor = c.perf_factor(budget_ms, perf_ms)
     time_ms = None
@@ -94,16 +121,21 @@ def _task_score(
     return TaskScore(
         task_id=spec.task_id,
         kind=spec.kind,
-        visible=TestCounts(passed=visible_passed, total=len(spec.visible_test_ids)),
-        hidden=TestCounts(passed=hidden_passed, total=len(hidden_expected)),
+        visible=TestCounts(passed=len(visible_passed), total=len(spec.visible_test_ids)),
+        hidden=TestCounts(passed=len(hidden_passed), total=len(hidden_expected)),
         visible_rate=_round(visible_rate, 4),
         hidden_rate=_round(hidden_rate, 4),
         perf_budget_ms=budget_ms,
         perf_ms=perf_ms,
         perf_factor=round(factor, 4),
-        correctness=round(c.correctness(visible_rate, hidden_rate, factor), 2),
+        correctness=round(c.correctness(visible_rate, hidden_rate, factor, regression), 2),
         time_ms=time_ms,
         runs=runs,
+        rates_over="fail_to_pass" if by_f2p else "all_tests",
+        visible_f2p=visible_f2p,
+        hidden_f2p=hidden_f2p,
+        pass_to_pass=still_passing,
+        regression_factor=round(regression, 4),
         mutation_score=_mutation_score(spec),
     )
 

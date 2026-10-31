@@ -33,11 +33,11 @@ export interface TaskScore {
   visible: TestCounts;
   hidden: TestCounts1;
   /**
-   * Null when the task has no visible tests; its weight then goes to the hidden rate.
+   * Share of the counted visible tests that pass: the fail_to_pass ones when rates_over is fail_to_pass, else all. Null when there are none; its weight then goes to the hidden rate.
    */
   visible_rate: number | null;
   /**
-   * Null when the task has no hidden tests; its weight then goes to the visible rate.
+   * Same as visible_rate, for the hidden tests.
    */
   hidden_rate: number | null;
   /**
@@ -53,7 +53,7 @@ export interface TaskScore {
    */
   perf_factor: number;
   /**
-   * 100 × (0.3 × visible_rate + 0.7 × hidden_rate) × perf_factor.
+   * 100 × (0.3 × visible_rate + 0.7 × hidden_rate) × regression_factor × perf_factor.
    */
   correctness: number;
   /**
@@ -64,6 +64,26 @@ export interface TaskScore {
    * Runs of this task during the session.
    */
   runs: number;
+  /**
+   * fail_to_pass: the rates count only the tests that fail on the starter (TaskSpec.fail_to_pass), SWE-bench style. all_tests: every test counts; DSA tasks (every case is something to solve) and domain tasks stored without fail_to_pass ids. Absent in breakdowns stored before scoring v2.
+   */
+  rates_over?: "fail_to_pass" | "all_tests";
+  /**
+   * Visible fail_to_pass tests passed in the submission. Null unless rates_over is fail_to_pass.
+   */
+  visible_f2p?: TestCounts2 | null;
+  /**
+   * Same as visible_f2p, for the hidden tests.
+   */
+  hidden_f2p?: TestCounts2 | null;
+  /**
+   * pass_to_pass tests (visible + hidden) still passing in the submission. Null unless rates_over is fail_to_pass.
+   */
+  pass_to_pass?: TestCounts2 | null;
+  /**
+   * Share of pass_to_pass tests that still pass: breaking working code costs points. 1.0 without pass_to_pass tests or when rates_over is all_tests.
+   */
+  regression_factor?: number;
   /**
    * The task certificate's mutation score: how well the task's tests catch bugs. Shown on the report, never affects the score. Null when not measured; absent in breakdowns stored before P2.7.
    */
@@ -80,6 +100,10 @@ export interface TestCounts {
  * Hidden tests passed in the submission.
  */
 export interface TestCounts1 {
+  passed: number;
+  total: number;
+}
+export interface TestCounts2 {
   passed: number;
   total: number;
 }

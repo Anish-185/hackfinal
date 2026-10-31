@@ -32,11 +32,11 @@ class TaskScore(BaseModel):
     """
     visible_rate: float | None = Field(..., ge=0.0, le=1.0)
     """
-    Null when the task has no visible tests; its weight then goes to the hidden rate.
+    Share of the counted visible tests that pass: the fail_to_pass ones when rates_over is fail_to_pass, else all. Null when there are none; its weight then goes to the hidden rate.
     """
     hidden_rate: float | None = Field(..., ge=0.0, le=1.0)
     """
-    Null when the task has no hidden tests; its weight then goes to the visible rate.
+    Same as visible_rate, for the hidden tests.
     """
     perf_budget_ms: int | None = Field(..., ge=1)
     """
@@ -52,7 +52,7 @@ class TaskScore(BaseModel):
     """
     correctness: float = Field(..., ge=0.0, le=100.0)
     """
-    100 × (0.3 × visible_rate + 0.7 × hidden_rate) × perf_factor.
+    100 × (0.3 × visible_rate + 0.7 × hidden_rate) × regression_factor × perf_factor.
     """
     time_ms: int | None = Field(..., ge=0)
     """
@@ -61,6 +61,26 @@ class TaskScore(BaseModel):
     runs: int = Field(..., ge=0)
     """
     Runs of this task during the session.
+    """
+    rates_over: Literal["fail_to_pass", "all_tests"] | None = None
+    """
+    fail_to_pass: the rates count only the tests that fail on the starter (TaskSpec.fail_to_pass), SWE-bench style. all_tests: every test counts; DSA tasks (every case is something to solve) and domain tasks stored without fail_to_pass ids. Absent in breakdowns stored before scoring v2.
+    """
+    visible_f2p: TestCounts | None = None
+    """
+    Visible fail_to_pass tests passed in the submission. Null unless rates_over is fail_to_pass.
+    """
+    hidden_f2p: TestCounts | None = None
+    """
+    Same as visible_f2p, for the hidden tests.
+    """
+    pass_to_pass: TestCounts | None = None
+    """
+    pass_to_pass tests (visible + hidden) still passing in the submission. Null unless rates_over is fail_to_pass.
+    """
+    regression_factor: float | None = Field(None, ge=0.0, le=1.0)
+    """
+    Share of pass_to_pass tests that still pass: breaking working code costs points. 1.0 without pass_to_pass tests or when rates_over is all_tests.
     """
     mutation_score: float | None = Field(None, ge=0.0, le=1.0)
     """

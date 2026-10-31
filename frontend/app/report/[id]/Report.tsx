@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { api, ApiError, type ScoreOut } from "@/lib/api";
-import type { ScoreBreakdown, TaskScore } from "@/lib/types";
+import type { ScoreBreakdown, TaskScore, TestCounts } from "@/lib/types";
 
 const POLL_MS = 2000;
 
@@ -23,6 +23,12 @@ function duration(ms: number | null): string {
   return s >= 60 ? `${Math.floor(s / 60)}m ${String(s % 60).padStart(2, "0")}s` : `${s}s`;
 }
 
+// fail_to_pass tasks count only the tests the starter failed ("fixed k/n"); others all tests.
+function counted(f2p: TestCounts | null | undefined, rate: number | null): string {
+  if (!f2p) return pct(rate);
+  return f2p.total === 0 ? "nothing to fix" : `fixed ${f2p.passed}/${f2p.total}`;
+}
+
 function mutation(score: number | null | undefined): string {
   return score === null || score === undefined ? "not measured" : `${Math.round(score * 100)}%`;
 }
@@ -37,13 +43,21 @@ function TaskRow({ task, index }: { task: TaskScore; index: number }) {
         <div className="text-xs text-gray-500">{task.task_id}</div>
       </td>
       <td className="py-2 pr-4 tabular-nums" data-field="visible">
-        {task.visible.passed}/{task.visible.total} <span className="text-gray-500">({pct(task.visible_rate)})</span>
+        {task.visible.passed}/{task.visible.total}{" "}
+        <span className="text-gray-500">({counted(task.visible_f2p, task.visible_rate)})</span>
       </td>
       <td className="py-2 pr-4 tabular-nums" data-field="hidden">
-        {task.hidden.passed}/{task.hidden.total} <span className="text-gray-500">({pct(task.hidden_rate)})</span>
+        {task.hidden.passed}/{task.hidden.total}{" "}
+        <span className="text-gray-500">({counted(task.hidden_f2p, task.hidden_rate)})</span>
       </td>
       <td className="py-2 pr-4 tabular-nums" data-field="correctness">
         {task.correctness.toFixed(2)}
+        {task.pass_to_pass && task.pass_to_pass.total > 0 && (
+          <div className="text-xs text-gray-500" data-field="regression">
+            regression ×{(task.regression_factor ?? 1).toFixed(2)} ({task.pass_to_pass.passed}/{task.pass_to_pass.total}{" "}
+            still pass)
+          </div>
+        )}
         {task.perf_budget_ms !== null && (
           <div className="text-xs text-gray-500">
             perf ×{task.perf_factor.toFixed(2)} ({task.perf_ms ?? "—"} / {task.perf_budget_ms} ms)
@@ -180,7 +194,9 @@ export default function Report({ sessionId }: { sessionId: string }) {
         </tbody>
       </table>
       <p className="mt-4 text-xs text-gray-500">
-        Correctness = 100 × (0.3 × visible rate + 0.7 × hidden rate) × perf factor. Time: first focus to last edit.
+        Correctness = 100 × (0.3 × visible rate + 0.7 × hidden rate) × regression × perf factor. Rates count the
+        tests that failed on the starter (&quot;fixed&quot;); regression = share of already-passing tests still passing.
+        DSA: every case counts. Time: first focus to last edit.
         Bands: Strong ≥ 80, Pass ≥ 60, Borderline ≥ 45. Mutation score: how well the task&apos;s tests catch
         bugs (task quality, not part of the score).
       </p>

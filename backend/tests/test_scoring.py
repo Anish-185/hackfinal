@@ -79,3 +79,13 @@ def test_bands(score, band) -> None:
 
 def test_mean_of_nothing_is_zero() -> None:
     assert c.mean([]) == 0.0
+
+
+def test_regression_factor_is_the_share_of_pass_to_pass_still_passing() -> None:
+    assert c.regression_factor(3, 4) == 0.75
+    assert c.regression_factor(0, 0) == 1.0  # nothing passed on the starter
+
+
+def test_regression_factor_scales_correctness() -> None:
+    assert c.correctness(1.0, 1.0, 1.0, regression=0.75) == 75.0
+    assert c.correctness(1.0, 1.0, 0.5, regression=0.5) == 25.0

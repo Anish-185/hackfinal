@@ -12,7 +12,7 @@ from app import grading
 from app.assessments import create_assessment
 from app.models import AssessmentSession, Event, FileSnapshot, Run, Score
 from scoring.score_session import score_session
-from tests.api_support import LEAK_MARKER, portfolio
+from tests.api_support import LEAK_MARKER, dsa_spec, portfolio
 from tests.grading_support import FIXED, FakeRunner, tiny_spec
 
 TASK = "tiny-add"
@@ -27,8 +27,8 @@ def runner(monkeypatch) -> FakeRunner:
     return fake
 
 
-def start_session(db: Session, tier: str = "novice") -> uuid.UUID:
-    assessment = create_assessment(db, portfolio(), tier, [tiny_spec()])
+def start_session(db: Session, tier: str = "novice", spec: dict | None = None) -> uuid.UUID:
+    assessment = create_assessment(db, portfolio(), tier, [spec or tiny_spec()])
     now = datetime.now(UTC)
     session = AssessmentSession(
         assessment_id=assessment.id,
@@ -104,7 +104,7 @@ def test_full_marks_with_time_and_run_count(db, runner) -> None:
 
     [score] = db.scalars(select(Score).where(Score.session_id == session_id)).all()
     assert score.breakdown == {
-        "scoring_version": "1",
+        "scoring_version": "2",
         "tier": "novice",
         "final_score": 100.0,
         "band": "strong",
@@ -124,6 +124,11 @@ def test_full_marks_with_time_and_run_count(db, runner) -> None:
                 "correctness": 100.0,
                 "time_ms": 8_000,  # first focus to last edit
                 "runs": 2,
+                "rates_over": "all_tests",  # tiny_spec has no fail_to_pass ids
+                "visible_f2p": None,
+                "hidden_f2p": None,
+                "pass_to_pass": None,
+                "regression_factor": 1.0,
                 "mutation_score": 0.86,  # from the fixture's certificate, not scored
             }
         ],
@@ -169,6 +174,112 @@ def test_adept_without_hints_uses_mean_correctness_as_efficiency(db) -> None:
 
     assert breakdown.ai_efficiency == 0.15
     assert breakdown.final_score == 15.0  # 0.8 × 15 + 20 × 0.15
+
+
+# --- fail_to_pass scoring (P2.7b) ---
+
+F2P_VISIBLE, P2P_VISIBLE = "tests/test_visible.py::test_adds", "tests/test_visible.py::test_zero"
+F2P_HIDDEN = "tests/test_hidden.py::test_fixed"
+P2P_HIDDEN = [f"tests/test_hidden.py::test_works_{i}" for i in range(3)]
+
+
+def f2p_spec() -> dict:
+    """A gate-certified task: 1 visible + 1 hidden test fail on the starter, 4 already pass."""
+    return tiny_spec() | {
+        "visible_test_ids": [F2P_VISIBLE, P2P_VISIBLE],
+        "hidden_test_ids": [F2P_HIDDEN, *P2P_HIDDEN],
+        "fail_to_pass": {"visible": [F2P_VISIBLE], "hidden": [F2P_HIDDEN]},
+        "pass_to_pass": {"visible": [P2P_VISIBLE], "hidden": P2P_HIDDEN},
+    }
+
+
+def f2p_score(db, visible_passed, visible_failed, hidden_passed, hidden_failed):
+    session_id = start_session(db, spec=f2p_spec())
+    add_submit_run(
+        db,
+        session_id,
+        result(visible_passed, visible_failed),
+        result(hidden_passed, hidden_failed),
+    )
+    return session_id, score_session(db, session_id)
+
+
+def test_an_untouched_starter_scores_zero(db) -> None:
+    _, breakdown = f2p_score(db, [P2P_VISIBLE], [F2P_VISIBLE], P2P_HIDDEN, [F2P_HIDDEN])
+
+    [task] = breakdown.tasks
+    assert task.rates_over == "fail_to_pass"
+    assert (task.visible_f2p.passed, task.hidden_f2p.passed) == (0, 0)
+    assert task.regression_factor == 1.0
+    assert task.correctness == 0.0  # the old formula gave 100 × (0.3 × 1/2 + 0.7 × 3/4) = 67.5
+    assert breakdown.final_score == 0.0
+
+
+def test_a_full_fix_scores_100(db) -> None:
+    _, breakdown = f2p_score(db, [F2P_VISIBLE, P2P_VISIBLE], [], [F2P_HIDDEN, *P2P_HIDDEN], [])
+
+    [task] = breakdown.tasks
+    assert (task.visible_rate, task.hidden_rate, task.regression_factor) == (1.0, 1.0, 1.0)
+    assert task.pass_to_pass.model_dump() == {"passed": 4, "total": 4}
+    assert task.correctness == 100.0
+
+
+def test_a_fix_that_breaks_a_passing_test_loses_points(db) -> None:
+    hidden = [F2P_HIDDEN, *P2P_HIDDEN[1:]]
+    _, breakdown = f2p_score(db, [F2P_VISIBLE, P2P_VISIBLE], [], hidden, P2P_HIDDEN[:1])
+
+    [task] = breakdown.tasks
+    assert task.pass_to_pass.model_dump() == {"passed": 3, "total": 4}
+    assert task.regression_factor == 0.75
+    assert task.correctness == 75.0
+
+
+def test_a_partial_fix_counts_only_fail_to_pass_tests(db) -> None:
+    passed = [F2P_HIDDEN, *P2P_HIDDEN]
+    _, breakdown = f2p_score(db, [P2P_VISIBLE], [F2P_VISIBLE], passed, [])
+
+    [task] = breakdown.tasks
+    assert (task.visible_rate, task.hidden_rate) == (0.0, 1.0)
+    assert task.correctness == 70.0
+
+
+def test_dsa_scoring_is_unchanged_every_case_counts(db) -> None:
+    spec = dsa_spec()  # gate-certified: carries fail_to_pass and pass_to_pass
+    session_id = start_session(db, spec=spec)
+    visible, hidden = spec["visible_test_ids"], spec["hidden_test_ids"]
+    db.add(
+        Run(
+            session_id=session_id,
+            task_id=spec["task_id"],
+            kind="submit",
+            result={"visible": result(visible[:2], visible[2:]), "hidden": result(hidden, [])},
+            ts=datetime.now(UTC),
+        )
+    )
+    db.flush()
+
+    [task] = score_session(db, session_id).tasks
+
+    assert task.rates_over == "all_tests"
+    assert task.visible_rate == round(2 / len(visible), 4) and task.hidden_rate == 1.0
+    assert task.correctness == round(100 * (0.3 * 2 / len(visible) + 0.7), 2)
+
+
+def test_tasks_without_fail_to_pass_ids_use_all_tests_and_log_it(db, caplog) -> None:
+    session_id = start_session(db)
+    add_submit_run(db, session_id, result(VISIBLE_IDS[:1], VISIBLE_IDS[1:]), result([], HIDDEN_IDS))
+
+    with caplog.at_level("INFO", logger="scoring.score_session"):
+        [task] = score_session(db, session_id).tasks
+
+    assert task.rates_over == "all_tests" and task.correctness == 15.0
+    assert "has no fail_to_pass ids" in caplog.text
+
+
+def test_f2p_rescoring_is_byte_identical(db) -> None:
+    session_id, first = f2p_score(db, [F2P_VISIBLE], [P2P_VISIBLE], P2P_HIDDEN, [F2P_HIDDEN])
+
+    assert score_session(db, session_id).model_dump_json() == first.model_dump_json()
 
 
 # --- API ---

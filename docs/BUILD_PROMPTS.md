@@ -654,6 +654,30 @@ Amendments (decided during the session):
   renamed references (`seeds/<seed>?rename=old:new,...`), renaming the
   target concept's symbols and tests for the Novice rule.
 
+### P2.7b fail_to_pass scoring
+
+Follow the session protocol and speed rules in CLAUDE.md. Branch: p2-7b-f2p-scoring.
+
+Scoring currently gives credit for tests that already pass on the starter, so an
+untouched starter scores about 76. Switch to SWE-bench-style scoring using the
+fail_to_pass and pass_to_pass IDs the gate now records:
+
+correctness = 100 × (0.3 × visible_f2p_rate + 0.7 × hidden_f2p_rate) × regression_factor × perf_factor
+- f2p_rate = share of fail_to_pass tests that now pass.
+- regression_factor = share of pass_to_pass tests that still pass (breaking working code
+  costs points).
+- If one set has no fail_to_pass tests, the other carries the full weight.
+- DSA: every case fails on the stub, so all cases are fail_to_pass; behavior is unchanged.
+- Tasks stored before this change, without the IDs: derive them from the stored starter
+  run, or fall back to the old formula and log it.
+
+Update docs/BLUEPRINT.md section 5. Tests: an untouched starter scores 0; a full fix
+scores 100; a fix that breaks one passing test loses points; DSA unchanged; re-grade stays
+byte-identical.
+
+Acceptance checks: make test, then make e2e once at the end (expected scores may change;
+update e2e/demo.mjs if so).
+
 ## Phase 3: Assistant + scoring
 
 - **P3.1 Hint endpoint + ladder:** L1 conceptual, L2 names a function, L3

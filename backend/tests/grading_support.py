@@ -40,6 +40,9 @@ def tiny_spec() -> dict[str, Any]:
         entry_symbols=["app/calc.py::add"],
         perf=None,
         dsa_cases=None,
+        # Not gate-certified: scored over all tests (tests/test_scores_api.py covers f2p).
+        fail_to_pass=None,
+        pass_to_pass=None,
     )
     return spec
 

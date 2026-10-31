@@ -174,6 +174,9 @@ async function main(page, external) {
     assert.equal(t.hidden.passed, t.hidden.total, `${t.task_id}: hidden tests`);
     assert.equal(t.correctness, EXPECTED.correctness, `${t.task_id}: correctness`);
     assert.equal(t.runs, EXPECTED.runs[t.kind], `${t.task_id}: runs`);
+    // Scoring v2: the gate-certified domain task counts only its fail_to_pass tests; DSA all cases.
+    assert.equal(t.rates_over, t.kind === "domain" ? "fail_to_pass" : "all_tests", `${t.task_id}: rates_over`);
+    assert.equal(t.regression_factor, 1, `${t.task_id}: regression factor`);
     assert.ok(t.time_ms !== null && t.time_ms > 0, `${t.task_id}: time on task not recorded`);
     step(
       `${t.task_id}: visible ${t.visible.passed}/${t.visible.total}, hidden ${t.hidden.passed}/${t.hidden.total}, ` +
@@ -187,6 +190,10 @@ async function main(page, external) {
     const row = page.locator(`[data-testid="task-row"][data-task-id="${t.task_id}"]`);
     const cell = (field) => row.locator(`[data-field="${field}"]`).textContent();
     assert.ok((await cell("visible")).startsWith(`${t.visible.passed}/${t.visible.total}`), `report: ${t.task_id} visible`);
+    if (t.visible_f2p) {
+      const fixed = `fixed ${t.visible_f2p.passed}/${t.visible_f2p.total}`;
+      assert.ok((await cell("visible")).includes(fixed), `report: ${t.task_id} visible fail_to_pass`);
+    }
     assert.ok((await cell("hidden")).startsWith(`${t.hidden.passed}/${t.hidden.total}`), `report: ${t.task_id} hidden`);
     assert.ok((await cell("correctness")).startsWith(t.correctness.toFixed(2)), `report: ${t.task_id} correctness`);
     assert.equal(await cell("runs"), String(t.runs), `report: ${t.task_id} runs`);
