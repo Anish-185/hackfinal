@@ -18,7 +18,7 @@ from contracts_gen.profile import Profile
 from contracts_gen.task_spec import Certificate, TaskSpec, TestIdSplit
 from gate import leak, limits
 from gate.diff import diff
-from gate.reference import reference_files
+from gate.reference import reference_files, seed_renames
 from gate.stubs import stub_fail_rates
 from profiler.profile import build_profile
 
@@ -243,14 +243,23 @@ def _concept_ref(test_id: str) -> str:
 
 
 def _target_concept_tests(task: TaskSpec) -> set[str] | None:
-    kind, _, seed_id = task.reference_ref.partition("/")
-    if kind != "seeds":
+    """The tests of the seed concept owning the target symbols, renamed like the task."""
+    if not task.reference_ref.startswith("seeds/"):
         return None
+    seed_id, renames = seed_renames(task.reference_ref)
     _, concepts = load_seed(seed_id)
+
+    def renamed(text: str) -> str:
+        if not renames:
+            return text
+        from builder.enrich import rename_text  # enrich imports gate.leak
+
+        return rename_text(text, renames)
+
     for entry in concepts["concepts"].values():
-        symbols = entry.get("symbols", [])
+        symbols = [renamed(s) for s in entry.get("symbols", [])]
         if any(t == s or t.startswith(s + ".") for s in symbols for t in task.target_symbols):
-            return set(entry.get("tests", []))
+            return {renamed(t) for t in entry.get("tests", [])}
     return None
 
 

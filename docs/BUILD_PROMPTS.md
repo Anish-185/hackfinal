@@ -481,6 +481,9 @@ enrich(draft_spec, profile, project_names): project names come from the portfoli
 Profile has none). The model gets the starter side of the diff only (context and `+`
 lines; reference code never enters a model's context, CLAUDE.md rule 2) plus the repo
 tour's first paragraph; the leak check compares against the full reference side in code.
+Since P2.7 the leak check lives in backend/gate/leak.py (fix_evidence, leaks); enrich.py
+imports it and adds only the 200-word limit, so enrichment and the gate judge statements
+the same way.
 Renamed tasks record the map in reference_ref (`seeds/<seed>?rename=old:new,...`), which
 enrich.reference_files() resolves. Real runs: Novice pagination → expense→inventory,
 category→department; Adept reporting → expense→item, category→group; both renamings
@@ -645,6 +648,11 @@ Amendments (decided during the session):
 - The gate records the test ids that fail on the starter ("fail_to_pass",
   visible and hidden) and those that pass on it ("pass_to_pass") in the
   spec (gate.certify). The next prompt changes scoring to use them.
+- P2.5 merged with its own leak check in enrich.py: it moved to
+  backend/gate/leak.py (one implementation: token matching, both builds'
+  fragment rules) and enrich.py imports it. The gate also resolves P2.5's
+  renamed references (`seeds/<seed>?rename=old:new,...`), renaming the
+  target concept's symbols and tests for the Novice rule.
 
 ## Phase 3: Assistant + scoring
 

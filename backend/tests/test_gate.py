@@ -10,6 +10,7 @@ import pytest
 
 from app.grading import TaskGrade
 from builder.dsa_bank import task_spec as bank_task_spec
+from builder.enrich import rename_source, renamed_spec
 from builder.manual import PAGINATION_STATEMENT, dsa_task_spec, inject_offset_bug
 from builder.seeds import SEEDS_DIR, seed_files
 from builder.tasks import draft_certificate, starter_base
@@ -327,6 +328,17 @@ def test_an_unknown_reference_is_rejected() -> None:
     assert codes(reasons) == ["reference_missing"]
 
 
+def test_a_renamed_task_is_checked_against_the_renamed_reference() -> None:
+    spec = renamed_spec(domain_spec(), {"expense": "order"})
+    spec |= {"visible_test_ids": VISIBLE, "hidden_test_ids": HIDDEN}
+    grade = FakeGrade()
+    certificate, reasons = run_gate(spec, grade)
+
+    assert reasons == [] and certificate.changed_lines == 1
+    utils = grade.graded_files[0]["app/utils.py"]
+    assert utils == rename_source("app/utils.py", FILES["app/utils.py"], {"expense": "order"})
+
+
 def test_mutation_score_is_filled_only_when_asked() -> None:
     def fake_mutmut(spec, reference, scope_files):
         assert scope_files == ["app/utils.py"]
@@ -352,7 +364,9 @@ def test_a_multi_token_fix_leaks_without_its_context() -> None:
     starter = {"u.py": "offset = page * page_size\n"}
     reference = {"u.py": "offset = (page - 1) * page_size\n"}
 
-    assert leak.domain_leaks("Use `(page - 1)` for it.", starter, reference) == ["( page - 1 )"]
+    assert "contains the fix `( page - 1 )`" in leak.domain_leaks(
+        "Use `(page - 1)` for it.", starter, reference
+    )
 
 
 def test_fix_fragments_cover_an_operator_flip() -> None:
@@ -360,7 +374,9 @@ def test_fix_fragments_cover_an_operator_flip() -> None:
 
     assert ["a", "<=", "b"] in fragments
     starter, reference = {"m.py": "return a < b\n"}, {"m.py": "return a <= b\n"}
-    assert leak.domain_leaks("make it `a <= b`", starter, reference) == ["a <= b"]
+    assert leak.domain_leaks("make it `a <= b`", starter, reference) == [
+        "contains the fix `a <= b`"
+    ]
 
 
 def test_name_leaks_check_only_renamed_names_of_three_or_more_chars() -> None:

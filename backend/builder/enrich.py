@@ -35,6 +35,7 @@ from builder.manual import DEMO_TASK_IDS
 from builder.master import perf_budget_sentence
 from builder.tasks import load_seed, split_test_module, starter_base
 from contracts_gen.task_spec import TaskSpec
+from gate import leak
 from llm import complete_structured
 from llm.client import summarize_error
 from runner import run_tests
@@ -44,8 +45,6 @@ STATEMENT_TEMPERATURE = 0.2
 EXTRA_TESTS_MAX_TOKENS = 1200
 MAX_WORDS = 200
 MESSAGE_LINES = 20
-MIN_LEAK_CHARS = 8
-MIN_FRAGMENT_CHARS = 3
 EXTRA_TESTS_PATH = "tests/test_extra_hidden.py"
 RENAMED_WORD = re.compile(r"^[a-z]{3,20}$")
 
@@ -94,61 +93,24 @@ class FixInfo:
     fragments: list[str]
 
 
-_TOKEN = re.compile(r"\w+|==|!=|<=|>=|\*\*|//|->|[^\w\s]")
-
-
-def _normalize(text: str) -> str:
-    return re.sub(r"[\s`]", "", text)
-
-
 def fix_info(reference: dict[str, str], starter: dict[str, str]) -> FixInfo:
-    """What the model may see (starter side) and what the statement must not contain."""
-    diff_parts, reference_lines, fragments = [], [], []
+    """What the model may see (starter side) and what the statement must not contain.
+
+    The leak evidence comes from backend/gate/leak.py, the check the gate certifies with.
+    """
+    diff_parts = []
     for path in sorted(reference):
         before = reference[path].splitlines()
         after = starter[path].splitlines()
         diff = difflib.unified_diff(before, after, f"a/{path}", f"b/{path}", n=2, lineterm="")
         diff_parts += [line for line in diff if not line.startswith("-") or line.startswith("---")]
-        matcher = difflib.SequenceMatcher(a=before, b=after, autojunk=False)
-        for op, i1, i2, j1, j2 in matcher.get_opcodes():
-            if op in ("replace", "delete"):
-                reference_lines += [line.strip() for line in before[i1:i2] if line.strip()]
-            if op == "replace":
-                for ref, bug in zip(before[i1:i2], after[j1:j2], strict=False):
-                    fragments += _fix_fragments(ref, bug)
+    reference_lines, fragments = leak.fix_evidence(reference, starter)
     return FixInfo("\n".join(diff_parts), reference_lines, fragments)
-
-
-def _fix_fragments(reference_line: str, starter_line: str) -> list[str]:
-    """Reference-side tokens that differ from the starter: each edit alone and with one token
-    of context, and the whole span from the first edit to the last (e.g. `(page-1)`)."""
-    ref, bug = _TOKEN.findall(reference_line), _TOKEN.findall(starter_line)
-    spans = [
-        (i1, i2)
-        for op, i1, i2, _, _ in difflib.SequenceMatcher(a=ref, b=bug, autojunk=False).get_opcodes()
-        if op in ("replace", "delete")
-    ]
-    candidates = [ref[i1:i2] for i1, i2 in spans]
-    candidates += [ref[max(0, i1 - 1) : i2 + 1] for i1, i2 in spans]
-    if len(spans) > 1:
-        candidates.append(ref[spans[0][0] : spans[-1][1]])
-    fragments = ["".join(tokens) for tokens in candidates]
-    return [f for f in dict.fromkeys(fragments) if len(f) >= MIN_FRAGMENT_CHARS]
 
 
 def leak_reasons(text: str, info: FixInfo) -> list[str]:
     """Why `text` gives the fix away (empty when it doesn't), plus the word limit."""
-    normalized = _normalize(text)
-    reasons = [
-        f"contains reference line `{line}`"
-        for line in info.reference_lines
-        if len(_normalize(line)) >= MIN_LEAK_CHARS and _normalize(line) in normalized
-    ]
-    reasons += [
-        f"contains the fix `{fragment}`"
-        for fragment in info.fragments
-        if _normalize(fragment) in normalized
-    ]
+    reasons = leak.leaks(text, info.reference_lines, info.fragments)
     if len(text.split()) > MAX_WORDS:
         reasons.append(f"longer than {MAX_WORDS} words")
     return reasons

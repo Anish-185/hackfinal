@@ -31,6 +31,8 @@ STUB_MIN_FAIL_RATE = 0.9
 # at least this many tokens and one of them is an operator or punctuation (so prose like
 # "return total" never counts as a leak).
 LEAK_MIN_LINE_TOKENS = 3
+# A single edit counts as a fix fragment on its own only with this many characters.
+LEAK_MIN_EDIT_CHARS = 3
 # DSA original names shorter than this are not checked (s, n, k say nothing).
 LEAK_MIN_NAME_CHARS = 3
 
