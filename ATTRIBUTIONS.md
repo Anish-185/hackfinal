@@ -43,6 +43,9 @@ Add every new one here in the same change that introduces it (CLAUDE.md).
 | [json-schema-to-typescript](https://github.com/bcherny/json-schema-to-typescript) | MIT | Generating TypeScript types from contracts/ |
 | [Monaco Editor](https://github.com/microsoft/monaco-editor) / [@monaco-editor/react](https://github.com/suren-atoyan/monaco-react) | MIT | Candidate IDE editor (P1.4). monaco-editor 0.55.1 is bundled from npm (core editor + a few syntax highlighters, lib/monaco.ts), no CDN (P1.4b) |
 | [react-markdown](https://github.com/remarkjs/react-markdown) | MIT | Rendering task statements and repo tours (P1.4) |
+| [GSAP](https://github.com/greensock/GSAP) 3.15.0 (ScrollTrigger, SplitText) | GSAP Standard License (free, no-charge) | Scroll, text and page-transition animation in the themed journey (`components/olympus`) |
+| [Lenis](https://github.com/darkroomengineering/lenis) 1.3.27 | MIT | Smooth scrolling on the landing, Offering and Verdict pages |
+| [Fontsource](https://github.com/fontsource/fontsource): Cormorant Garamond, Inter Tight, JetBrains Mono (variable) 5.3.0 | Fonts: SIL OFL 1.1; packaging: MIT | Self-hosted fonts for the themed pages (no font CDN) |
 
 ### Showcase site (`showcase/package.json`)
 
@@ -147,3 +150,10 @@ From docs/BLUEPRINT.md section 7. Move a row up to "Used as dependencies" or
 | [Semgrep CE](https://github.com/semgrep/semgrep) (own rules) | LGPL-2.1 | Static checks for security tasks |
 | [catsim](https://github.com/douglasrizzo/catsim) | See repo | Stretch: adaptive mode (IRT) |
 | [Dolos](https://github.com/dodona-edu/dolos) | MIT | Stretch: collusion detection |
+
+## Borrowed methods and artwork (frontend theme)
+
+| Source | License | Use |
+| :--- | :--- | :--- |
+| [webgl-noise](https://github.com/ashima/webgl-noise) 3D simplex noise (Ashima Arts, Stefan Gustavson) | MIT | GLSL noise in the Oracle's orb shader (`components/olympus/OracleOrb.tsx`) |
+| Greek engraving sheets supplied by the team | Team-provided | Cut into `frontend/public/engravings/*.webp` masks by `frontend/scripts/extract-engravings.py` |

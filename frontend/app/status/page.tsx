@@ -43,7 +43,7 @@ async function HealthStatus() {
   );
 }
 
-export default function Home() {
+export default function Status() {
   return (
     <main className="mx-auto max-w-md p-8">
       <h1 className="mb-4 text-2xl font-semibold">System health</h1>
