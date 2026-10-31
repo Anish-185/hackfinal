@@ -7,30 +7,14 @@ import { Background, Controls, MarkerType, Position, ReactFlow, type Edge, type 
 import "@xyflow/react/dist/style.css";
 import { useEffect, useMemo, useState } from "react";
 import { api, ApiError, type TaskTrail } from "@/lib/api";
+import { KeyForm, readKey, saveKey } from "./RecruiterKey";
 
-const KEY_STORAGE = "recruiter-key";
 const COLUMNS = 4;
 const COL_WIDTH = 280;
 const ROW_HEIGHT = 46;
 const GROUP_PAD = 36;
 const PLAY_STEPS = 300; // a replay takes PLAY_STEPS ticks
 const TICK_MS = 50;
-
-function readKey(): string {
-  try {
-    return sessionStorage.getItem(KEY_STORAGE) ?? "";
-  } catch {
-    return "";
-  }
-}
-
-function saveKey(key: string): void {
-  try {
-    sessionStorage.setItem(KEY_STORAGE, key);
-  } catch {
-    // Private mode: the key is asked for again next time.
-  }
-}
 
 function clock(ms: number): string {
   const s = Math.max(0, Math.round(ms / 1000));
@@ -251,7 +235,6 @@ function TaskMap({ trail }: { trail: TaskTrail }) {
 
 export default function TrailTab({ sessionId }: { sessionId: string }) {
   const [key, setKey] = useState(readKey);
-  const [draft, setDraft] = useState("");
   const [tasks, setTasks] = useState<TaskTrail[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [active, setActive] = useState(0);
@@ -270,6 +253,7 @@ export default function TrailTab({ sessionId }: { sessionId: string }) {
       .catch((err) => {
         if (cancelled) return;
         if (err instanceof ApiError && err.status === 401) {
+          saveKey("");
           setKey("");
           setError("That recruiter key was not accepted.");
         } else if (err instanceof ApiError && err.status === 503) {
@@ -285,31 +269,13 @@ export default function TrailTab({ sessionId }: { sessionId: string }) {
 
   if (!key) {
     return (
-      <form
-        className="flex max-w-md flex-col gap-2"
-        onSubmit={(e) => {
-          e.preventDefault();
-          saveKey(draft);
+      <KeyForm
+        error={error}
+        onKey={(next) => {
           setError(null);
-          setKey(draft);
+          setKey(next);
         }}
-      >
-        <label className="text-sm text-gray-700" htmlFor="recruiter-key">
-          Recruiter key
-        </label>
-        <div className="flex gap-2">
-          <input
-            id="recruiter-key"
-            type="password"
-            value={draft}
-            onChange={(e) => setDraft(e.target.value)}
-            className="flex-1 rounded border border-gray-300 px-2 py-1.5 text-sm"
-            data-testid="recruiter-key"
-          />
-          <button className="rounded bg-blue-600 px-4 py-1.5 text-sm font-medium text-white">Show</button>
-        </div>
-        {error && <p className="text-sm text-red-700">{error}</p>}
-      </form>
+      />
     );
   }
   if (error) return <p className="text-sm text-red-700">{error}</p>;

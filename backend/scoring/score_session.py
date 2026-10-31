@@ -52,7 +52,7 @@ def score_session(db: Session, session_id: uuid.UUID) -> ScoreBreakdown:
     mean_correctness = c.mean([s.correctness for s in scores])
     efficiency = None
     if tier != "novice":
-        efficiency = _ai_efficiency(db, session, specs, mean_correctness).value
+        efficiency = ai_efficiency(db, session, specs, mean_correctness).value
     final = round(c.final_score(tier, mean_correctness, efficiency), 2)
     return ScoreBreakdown(
         scoring_version=SCORING_VERSION,
@@ -151,7 +151,7 @@ def _mutation_score(spec: TaskSpec) -> float | None:
     return None if isinstance(certificate.reference_pass, bool) else certificate.mutation_score
 
 
-def _ai_efficiency(
+def ai_efficiency(
     db: Session, session: AssessmentSession, specs: list[TaskSpec], mean_correctness: float
 ) -> eff.Efficiency:
     """E (BLUEPRINT section 5) from the stored hint events and visible runs."""

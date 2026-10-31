@@ -3,6 +3,8 @@
 import { useCallback, useEffect, useState } from "react";
 import { api, ApiError, type ScoreOut } from "@/lib/api";
 import type { ScoreBreakdown, TaskScore, TestCounts } from "@/lib/types";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import InsightsTab from "./InsightsTab";
 import TrailTab from "./TrailTab";
 
 const POLL_MS = 2000;
@@ -82,7 +84,7 @@ export default function Report({ sessionId }: { sessionId: string }) {
   const [score, setScore] = useState<ScoreOut | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [regrade, setRegrade] = useState<"idle" | "running" | "same" | "changed" | "failed">("idle");
-  const [tab, setTab] = useState<"score" | "trail">("score");
+  const [tab, setTab] = useState("score");
 
   const load = useCallback(async () => {
     try {
@@ -136,7 +138,7 @@ export default function Report({ sessionId }: { sessionId: string }) {
   const b = score.breakdown;
   const band = BAND[b.band];
   return (
-    <main className={`mx-auto p-8 text-gray-900 ${tab === "trail" ? "max-w-6xl" : "max-w-4xl"}`}>
+    <main className={`mx-auto p-8 text-gray-900 ${tab === "score" ? "max-w-4xl" : "max-w-6xl"}`}>
       <header className="mb-6 flex flex-wrap items-baseline gap-3">
         <h1 className="text-2xl font-semibold">Assessment report</h1>
         <span className="rounded bg-gray-100 px-2 py-0.5 text-xs uppercase text-gray-600">{b.tier}</span>
@@ -145,23 +147,25 @@ export default function Report({ sessionId }: { sessionId: string }) {
         </span>
       </header>
 
-      <nav className="mb-6 flex gap-4 border-b border-gray-200 text-sm">
-        {(["score", "trail"] as const).map((name) => (
-          <button
-            key={name}
-            onClick={() => setTab(name)}
-            data-testid={`tab-${name}`}
-            className={`-mb-px border-b-2 pb-2 ${tab === name ? "border-blue-600 font-semibold" : "border-transparent text-gray-600"}`}
-          >
-            {name === "score" ? "Score" : "Trail Map"}
-          </button>
-        ))}
-      </nav>
-
-      {tab === "trail" ? (
-        <TrailTab sessionId={sessionId} />
-      ) : (
-        <>
+      <Tabs value={tab} onValueChange={setTab}>
+        <TabsList>
+          <TabsTrigger value="score" data-testid="tab-score">
+            Score
+          </TabsTrigger>
+          <TabsTrigger value="insights" data-testid="tab-insights">
+            Insights
+          </TabsTrigger>
+          <TabsTrigger value="trail" data-testid="tab-trail">
+            Trail Map
+          </TabsTrigger>
+        </TabsList>
+        <TabsContent value="insights">
+          <InsightsTab sessionId={sessionId} />
+        </TabsContent>
+        <TabsContent value="trail">
+          <TrailTab sessionId={sessionId} />
+        </TabsContent>
+        <TabsContent value="score">
 
       <section className="mb-8 flex flex-wrap items-center gap-6 rounded-lg border border-gray-200 p-6">
         <div>
@@ -220,8 +224,8 @@ export default function Report({ sessionId }: { sessionId: string }) {
         Bands: Strong ≥ 80, Pass ≥ 60, Borderline ≥ 45. Mutation score: how well the task&apos;s tests catch
         bugs (task quality, not part of the score).
       </p>
-        </>
-      )}
+        </TabsContent>
+      </Tabs>
     </main>
   );
 }

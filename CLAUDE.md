@@ -99,8 +99,11 @@ frontend/    Next.js app: app/practice (LeetCode-style problem list and
              app/practice/[id] editor; lib/practice.ts, no session),
              app/recruiter, app/session/[id] (IDE; AssistantPanel.tsx: assistant-ui
              hint chat, Adept/Master only), app/report/[id]
-             (score, band, per-task table, Re-grade; Trail Map tab: TrailTab.tsx,
-             React Flow, recruiter key kept in sessionStorage), app/interview/[id].
+             (tabs: Score = per-task table, Re-grade; Insights = InsightsTab.tsx: AI
+             summary, certificates, claim map, Recharts timeline, efficiency parts,
+             integrity notes; Trail Map = TrailTab.tsx, React Flow; recruiter key in
+             sessionStorage via RecruiterKey.tsx), app/interview/[id].
+             components/ui/ (shadcn/ui Card, Badge, Tabs; lib/utils.ts cn),
              lib/api.ts (browser client, calls /api,
              rewritten to API_URL in next.config.ts), lib/telemetry.ts,
              lib/workspace.ts (mirror of backend/app/workspace.py: keep in sync),
@@ -151,6 +154,12 @@ backend/     app/            FastAPI app and plumbing:
                              score_session.py (ScoreBreakdown from stored submit
                              runs + events; used by submit and POST .../regrade),
                              efficiency.py (AI efficiency E from hint events and runs)
+             report/         report details (F3, recruiter key): claims.py (portfolio
+                             claims vs tested tasks), build.py (certificates, hidden-test
+                             timeline, integrity notes, AI efficiency parts, from stored
+                             records), summary.py (one cached generator call, max_tokens
+                             300, numbers only: "AI summary, not scored");
+                             app/routes/report.py GET /sessions/{id}/report[/summary]
              trail/          Trail Map (F4, report-only): graph.py (ast function spans,
                              name-based call graph), replay.py (focus/edit events ->
                              functions using the snapshot of the moment; visits, dwell,

@@ -39,13 +39,14 @@ Roles: A Execution · B Generation + AI and scoring · C Frontend + interviewer 
 | P3.4 | AI efficiency score | B | Done (F2) | |
 | P3.5 | Simulated candidates | B | Replaced by F2, not built | Weights in BLUEPRINT section 5 are untuned |
 | P3.6 | promptfoo attack run | B | Replaced by F2, not built | Extraction rules are unit-tested instead |
-| P4.1 | Certificate view | C | Not started | |
-| P4.2 | Claim verification map | C | Not started | |
-| P4.3 | Progress timeline and hint ROI | C | Not started | |
+| F3 | Report details (replaces P4.1-P4.3, P4.6) | B, C | Done | 2026-10-31: backend/report (claim map from the stored or rules profile vs the tasks' concept / DSA tags / runtime, verdict from task correctness; hidden-test timeline from run/submit events with hint markers; integrity notes: pastes incl. large (300+) and within 2 min of a hint, tab blurs, code flags, refused writes, extraction attempts; AI efficiency parts as scored), GET /sessions/{id}/report and /report/summary (recruiter key), summary = one generator call over the numbers only (cached, max_tokens 300, trimmed to 4 sentences, "AI summary, not scored"). Report Insights tab with shadcn/ui (Card, Badge, Tabs) and Recharts. Rendered for the Novice e2e session and the Adept demo session (2 real summary calls + 1 after a prompt fix) |
+| P4.1 | Certificate view | C | Done (F3) | |
+| P4.2 | Claim verification map | C | Done (F3) | |
+| P4.3 | Progress timeline and hint ROI | C | Done (F3) | Hint ROI = the efficiency breakdown's progress per hint |
 | F4 | Trail Map (replaces P4.4-P4.5) | B, C | Done | 2026-10-31: backend/trail (ast spans + name-based call graph; focus samples mapped with the snapshot of the moment; visits, dwell, edits under the cursor), metrics time to target, off-path time before it, found independently / within 2 min of a hint / not reached, edit precision (changed lines inside target symbols), GET /sessions/{id}/trail with X-Recruiter-Key (RECRUITER_API_KEY, fails closed). Report tab with React Flow: functions grouped by file, target outlined, dwell heat up to the scrubber, animated trail (orange after a hint), play/scrub, metric cards. Rendered for the seed-demo (e2e) session, npm run build passes |
 | P4.4 | Trail Map builder and metrics | B | Done (F4) | Python ast instead of tree-sitter |
 | P4.5 | Trail Map replay UI | C | Done (F4) | |
-| P4.6 | Integrity flags | A | Not started | |
+| P4.6 | Integrity flags | A | Done (F3) | Notes on the report, not scored |
 | P4.7 | Interview plan generator | B | Not started | |
 | P4.8 | Interview turn endpoint | B | Not started | |
 | P4.9 | Voice I/O (TTS proxy, model selection, speech recognition) | A, C | Not started | |
@@ -153,6 +154,10 @@ Roles: A Execution · B Generation + AI and scoring · C Frontend + interviewer 
 | 2026-10-31 | A focus sample (1/s from telemetry) is 1 s of dwell and is mapped with the latest saved snapshot at that moment (else the starter); blank lines right after a function belong to it; edits (no line in the event) go to the function under that file's latest cursor; a pause over 5 s on one node starts a new visit | Lines added above a function don't shift the trail; Monaco leaves the cursor after the final newline after a paste |
 | 2026-10-31 | Trail metrics: time to target from the task's first focus; off-path time = dwell outside the targets before the first target visit; "after_hint" when that visit is within 2 min after a hint on the task; edit precision = share of lines changed from the starter to the final files inside a target symbol | Report-only (rule 8); targets = target_symbols, else entry_symbols (DSA) |
 | 2026-10-31 | RECRUITER_API_KEY added now (X-Recruiter-Key, constant-time compare, 503 when unset) and used only by the trail route; F1 extends it to the recruiter and report routes | The Trail Map exposes the candidate's behaviour and code positions |
+| 2026-10-31 | Claims = the profile's concepts, DSA topics (with solved counts) and runtime; a domain task's concept comes from its task id (builder ids name it), else from target-symbol overlap with concepts.yaml; verdict from the testing tasks' mean correctness (Verified >= 80, Partly >= 45) | The profile is what the portfolio was read as; concepts the tasks test but the portfolio doesn't claim show only under the runtime claim |
+| 2026-10-31 | Integrity notes: large paste = 300+ chars; a paste within 2 min after a hint on the task is called out (paste contents aren't stored, so this stands in for code-compr's verbatim-paste check); code flags deduplicated across runs; all labelled not scored | Rule 8 |
+| 2026-10-31 | The recruiter report details sit in an Insights tab behind the recruiter key; the Score tab stays open and unchanged | make e2e asserts the Score tab; F1 puts the key on the remaining report routes |
+| 2026-10-31 | AI summary: generator slot, temperature 0.2, max_tokens 300, input = the report's numbers and claim names only (no code, tests or statements), trimmed to 4 sentences; the prompt requires naming every non-zero integrity count | The first real summary said "no integrity concerns" despite an extraction attempt |
 
 ## Reuse from Faiz
 
@@ -215,3 +220,4 @@ Not covered by anything from Faiz: charts (P4.3 progress timeline, hint ROI), th
 | 2026-10-31 | Sriram (Claude Code) | G1: merged faiz/main, archived coding-assessment/, practice-only DSA split + counts-only Submit, Reuse from Faiz inventory, CLAUDE.md token policy | F1 builder pipeline + recruiter page |
 | 2026-10-31 | Sriram (Claude Code) | F2 hint assistant: assistant/ (hints, guards), hints routes, assistant-ui panel, scoring/efficiency.py (v3), seed-demo TIER=adept; real Adept run: 2 hints + 1 refused extraction | F1 builder pipeline + recruiter page |
 | 2026-10-31 | Sriram (Claude Code) | F4 Trail Map: backend/trail, GET /sessions/{id}/trail (recruiter key), report Trail Map tab (React Flow), RECRUITER_API_KEY in .env.example; rendered for the e2e seed-demo session | F1 builder pipeline + recruiter page |
+| 2026-10-31 | Sriram (Claude Code) | F3 report: backend/report (claims, timeline, integrity, efficiency parts, AI summary), report Insights tab (shadcn/ui, Recharts); rendered for Novice and Adept sessions | F1 builder pipeline + recruiter page |

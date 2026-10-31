@@ -74,6 +74,51 @@ export type TaskTrail = {
 };
 export type TrailOut = { session_id: string; tasks: TaskTrail[] };
 
+// GET /sessions/{id}/report and /report/summary (recruiter key). Shown on the report;
+// only the score breakdown is the score.
+export type Verdict = "verified" | "partly" | "not_verified" | "not_tested";
+export type ReportClaim = {
+  claim: string;
+  kind: "concept" | "dsa_topic" | "runtime";
+  evidence: string;
+  tested_by: string[];
+  correctness: number | null;
+  verdict: Verdict;
+};
+export type ReportPoint = {
+  ts: number;
+  minute: number;
+  kind: "run" | "submit";
+  visible_rate: number | null;
+  hidden_rate: number | null;
+  hidden_passed: number;
+  hidden_total: number;
+};
+export type ReportDetails = {
+  candidate_name: string;
+  tier: string;
+  breakdown: ScoreBreakdown;
+  certificates: { task_id: string; kind: string; certified: boolean; fields: Record<string, unknown> }[];
+  claims: ReportClaim[];
+  timelines: { task_id: string; points: ReportPoint[]; hints: { ts: number; minute: number; level: number; blocked: boolean }[] }[];
+  integrity: {
+    pastes: { task_id: string; minute: number; chars: number; large: boolean; after_hint: boolean }[];
+    paste_chars: number;
+    blurs: number;
+    flags: { task_id: string; path: string; line: number; rule: string; excerpt: string }[];
+    refused_writes: string[];
+    extraction_attempts: number;
+  };
+  efficiency: {
+    value: number;
+    parts: { name: string; weight: number; value: number | null; evidence: string }[];
+    extraction_attempts: number;
+    hints: number;
+    scale: number;
+  } | null;
+};
+export type SummaryOut = { summary: string; label: string };
+
 export type ScoreOut = {
   status: "in_progress" | "grading" | "graded"; // in_progress: not submitted yet
   computed_at: string | null;
@@ -116,6 +161,10 @@ export const api = {
   postEvents: (id: string, events: Event[]) => request<{ accepted: number }>("POST", `/sessions/${id}/events`, events),
   getScore: (id: string) => request<ScoreOut>("GET", `/sessions/${id}/score`),
   regrade: (id: string) => request<ScoreBreakdown>("POST", `/sessions/${id}/regrade`),
+  getReport: (id: string, recruiterKey: string) =>
+    request<ReportDetails>("GET", `/sessions/${id}/report`, undefined, { "X-Recruiter-Key": recruiterKey }),
+  getSummary: (id: string, recruiterKey: string) =>
+    request<SummaryOut>("GET", `/sessions/${id}/report/summary`, undefined, { "X-Recruiter-Key": recruiterKey }),
   getTrail: (id: string, recruiterKey: string) =>
     request<TrailOut>("GET", `/sessions/${id}/trail`, undefined, { "X-Recruiter-Key": recruiterKey }),
   hintStatus: (id: string, taskId: string) => request<HintStatus>("GET", `/sessions/${id}/tasks/${taskId}/hints`),

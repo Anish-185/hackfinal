@@ -716,6 +716,14 @@ P3.5 (simulated candidates) and P3.6 (promptfoo) were not built.
 
 ## Phase 4: Report, Trail Map, interviewer
 
+F3 (2026-10-31) replaces P4.1-P4.3 and P4.6: report page with shadcn/ui and Recharts:
+certificate card per task, claim verification map (each portfolio claim vs what was tested
+and the result), hidden-test progress timeline with Run and hint markers, integrity notes
+(pastes, blurs, flags) labelled "not scored", AI efficiency breakdown, and a 4-sentence
+recruiter summary from one cached generator call (max_tokens 300) over the computed
+numbers only, labelled "AI summary, not scored". Code: backend/report/,
+app/routes/report.py, frontend/app/report/[id]/InsightsTab.tsx, components/ui/.
+
 F4 (2026-10-31) replaces P4.4-P4.5: backend/trail/ (Python ast -> function spans and a
 name-based call graph per task; focus/edit events mapped to functions), report-only
 metrics (time to first target visit, off-path time before it, found independently vs

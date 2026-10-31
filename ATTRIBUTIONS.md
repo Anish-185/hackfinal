@@ -44,6 +44,10 @@ Add every new one here in the same change that introduces it (CLAUDE.md).
 | [json-schema-to-typescript](https://github.com/bcherny/json-schema-to-typescript) | MIT | Generating TypeScript types from contracts/ |
 | [Monaco Editor](https://github.com/microsoft/monaco-editor) / [@monaco-editor/react](https://github.com/suren-atoyan/monaco-react) | MIT | Candidate IDE editor (P1.4). monaco-editor 0.55.1 is bundled from npm (core editor + a few syntax highlighters, lib/monaco.ts), no CDN (P1.4b) |
 | [react-markdown](https://github.com/remarkjs/react-markdown) | MIT | Rendering task statements and repo tours (P1.4) |
+| [Recharts](https://github.com/recharts/recharts) 3.10.1 | MIT | Report charts: hidden-test progress timeline, AI efficiency parts (F3) |
+| [shadcn/ui](https://github.com/shadcn-ui/ui) (Card, Badge, Tabs copied into `components/ui/`, recoloured with plain Tailwind) | MIT | Report layout (F3) |
+| [Radix UI Tabs](https://github.com/radix-ui/primitives) (@radix-ui/react-tabs 1.2.1) | MIT | Tabs primitive under the shadcn/ui Tabs |
+| [class-variance-authority](https://github.com/joe-bell/cva) 0.7.1, [clsx](https://github.com/lukeed/clsx) 2.1.1, [tailwind-merge](https://github.com/dcastil/tailwind-merge) 3.7.0 | Apache-2.0 / MIT / MIT | shadcn/ui's variants and `cn` class helper (`lib/utils.ts`) |
 | [React Flow](https://github.com/xyflow/xyflow) (@xyflow/react 12.12.0) | MIT | Trail Map tab on the report: function graph grouped by file, animated trail (F4) |
 | [assistant-ui](https://github.com/assistant-ui/assistant-ui) (@assistant-ui/react 0.15.29) | MIT | Hint assistant chat panel in the IDE: thread, messages and composer primitives over our hint API (F2) |
 | [GSAP](https://github.com/greensock/GSAP) 3.15.0 (ScrollTrigger, SplitText) | GSAP Standard License (free, no-charge) | Scroll, text and page-transition animation in the themed journey (`components/olympus`) |

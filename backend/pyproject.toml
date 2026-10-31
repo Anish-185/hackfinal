@@ -50,6 +50,7 @@ packages = [
     "gate",
     "llm",
     "profiler",
+    "report",
     "runner",
     "scoring",
     "trail",
