@@ -5,6 +5,7 @@ import { motion, useMotionValueEvent, useScroll, useSpring } from "motion/react"
 import Link from "next/link";
 import { NAME } from "@/lib/site";
 import { Star } from "./fx";
+import ThemeToggle from "./ThemeToggle";
 
 const LINKS = [
   ["#how", "Voyage"],
@@ -47,6 +48,7 @@ export default function Header() {
               </a>
             ))}
           </nav>
+          <ThemeToggle />
           <Link href="/comprehension" className="hdr-cc">
             Code reading
           </Link>
