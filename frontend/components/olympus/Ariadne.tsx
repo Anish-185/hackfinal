@@ -69,7 +69,7 @@ export default function Ariadne({ onAsk }: { onAsk?: () => void }) {
                 <span className="pulse-dot !h-1.5 !w-1.5 text-[#8fd6b0]" /> Repository guide · guarded
               </p>
             </div>
-            <button className="icon-btn !text-[var(--parchment)] !shadow-[inset_0_0_0_1px_rgba(243,239,228,0.25)]" onClick={() => setOpen(false)} aria-label="Close chat">
+            <button className="icon-btn !text-[var(--parchment)] !shadow-[inset_0_0_0_1px_rgba(7,11,38,0.25)]" onClick={() => setOpen(false)} aria-label="Close chat">
               <IconX size={16} />
             </button>
             <IconThread size={90} className="pointer-events-none absolute -right-4 -bottom-8 opacity-10" />
@@ -83,7 +83,7 @@ export default function Ariadne({ onAsk }: { onAsk?: () => void }) {
                   style={
                     m.from === "you"
                       ? { background: "var(--ink)", color: "var(--parchment)", borderBottomRightRadius: 6 }
-                      : { background: "rgba(255,253,247,0.9)", boxShadow: "inset 0 0 0 1px var(--line)", borderBottomLeftRadius: 6 }
+                      : { background: "rgba(13,19,56,0.9)", boxShadow: "inset 0 0 0 1px var(--line)", borderBottomLeftRadius: 6 }
                   }
                 >
                   {m.text ? <InlineCode text={m.text} /> : <TypingDots />}
@@ -103,7 +103,7 @@ export default function Ariadne({ onAsk }: { onAsk?: () => void }) {
               </div>
             )}
             <form
-              className="flex items-center gap-2 rounded-full bg-[rgba(255,253,247,0.9)] p-1.5 pl-4 shadow-[inset_0_0_0_1px_var(--line-strong)]"
+              className="flex items-center gap-2 rounded-full bg-[rgba(13,19,56,0.9)] p-1.5 pl-4 shadow-[inset_0_0_0_1px_var(--line-strong)]"
               onSubmit={(e) => {
                 e.preventDefault();
                 ask(draft);
