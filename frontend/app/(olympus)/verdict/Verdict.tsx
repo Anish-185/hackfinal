@@ -28,7 +28,7 @@ export default function Verdict() {
   return (
     <div className="min-h-screen">
       <SmoothScroll />
-      <div className="sticky top-0 z-40 bg-[rgba(243,239,228,0.8)] backdrop-blur-md">
+      <div className="sticky top-0 z-40 bg-[rgba(7,11,38,0.8)] backdrop-blur-md">
         <JourneyBar />
       </div>
       {!hydrated ? null : journey.reportAt && journey.trials && journey.labyrinth && journey.oracle ? (
@@ -309,7 +309,7 @@ function Report({ journey }: { journey: Journey }) {
           </div>
           <div className="mt-5 space-y-2">
             {oracle.transcript.slice(0, 3).map((x, i) => (
-              <details key={i} className="group rounded-[14px] bg-[rgba(255,253,247,0.8)] p-3 shadow-[inset_0_0_0_1px_var(--line)]">
+              <details key={i} className="group rounded-[14px] bg-[rgba(13,19,56,0.8)] p-3 shadow-[inset_0_0_0_1px_var(--line)]">
                 <summary className="cursor-pointer list-none text-[13.5px] font-medium marker:hidden">
                   <span className="numeral mr-2 text-[var(--ink)]">{["i", "ii", "iii"][i]}.</span>
                   {x.q}
@@ -359,7 +359,7 @@ function Card({ eyebrow, title, art, children }: { eyebrow: string; title: strin
 
 function Stat({ n, label }: { n: ReactNode; label: string }) {
   return (
-    <div className="rounded-[16px] bg-[rgba(255,253,247,0.7)] p-4 shadow-[inset_0_0_0_1px_var(--line)]">
+    <div className="rounded-[16px] bg-[rgba(13,19,56,0.7)] p-4 shadow-[inset_0_0_0_1px_var(--line)]">
       <p className="display text-[36px] leading-none text-[var(--ink)]">{n}</p>
       <p className="mt-1.5 text-[12.5px] text-[var(--text-2)]">{label}</p>
     </div>

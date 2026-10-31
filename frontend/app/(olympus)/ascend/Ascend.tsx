@@ -130,11 +130,11 @@ export default function Ascend() {
             <div className="relative mt-8 hidden min-h-[260px] flex-1 lg:block">
               <div className="asc-hermes absolute bottom-0 left-[-2%] top-0">
                 <div className="asc-hermes-float h-full">
-                  <Engraving name="hermes-flight" className="h-full max-w-[min(30vw,400px)]" style={{ width: "auto" }} label="Hermes in flight" />
+                  <Engraving name="hermes-flight" fade className="h-full max-w-[min(30vw,400px)] opacity-50" style={{ width: "auto" }} label="Hermes in flight" />
                 </div>
               </div>
               <div className="absolute bottom-[4%] right-[6%] h-[38%]">
-                <Engraving name="scroll" className="h-full opacity-80" style={{ width: "auto" }} />
+                <Engraving name="scroll" fade className="h-full opacity-35" style={{ width: "auto" }} />
               </div>
             </div>
           </div>
@@ -294,7 +294,7 @@ export default function Ascend() {
 
 function Section({ n, title, note, children }: { n: string; title: string; note?: string; children: ReactNode }) {
   return (
-    <section className="asc-in rounded-[24px] bg-[rgba(255,253,247,0.55)] p-6 shadow-[inset_0_0_0_1px_var(--line)] md:p-8">
+    <section className="asc-in rounded-[24px] bg-[rgba(13,19,56,0.55)] p-6 shadow-[inset_0_0_0_1px_var(--line)] md:p-8">
       <div className="mb-5 flex items-baseline justify-between gap-4">
         <h2 className="flex items-baseline gap-3 text-[18px] font-medium">
           <span className="numeral text-[20px] text-[var(--ink)]">{n}.</span>

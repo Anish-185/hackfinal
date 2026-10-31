@@ -36,7 +36,7 @@ export function SiteNav() {
       className="no-print fixed inset-x-0 top-0 z-50 transition-[padding,background,backdrop-filter] duration-500"
       style={{
         padding: scrolled ? "12px var(--gutter)" : "26px var(--gutter)",
-        background: scrolled ? "rgba(243,239,228,0.72)" : "transparent",
+        background: scrolled ? "rgba(7,11,38,0.78)" : "transparent",
         backdropFilter: scrolled ? "blur(14px) saturate(1.2)" : "none",
         borderBottom: scrolled ? "1px solid var(--line)" : "1px solid transparent",
       }}
@@ -45,10 +45,10 @@ export function SiteNav() {
         <Logo />
         <ul className="hidden items-center gap-9 text-[14px] text-[var(--text-2)] md:flex">
           {[
-            ["#trials", "The five trials"],
-            ["#forge", "How it's forged"],
-            ["#laws", "The laws"],
-            ["#pantheon", "Pantheon"],
+            ["#how", "How it works"],
+            ["#features", "Features"],
+            ["#rules", "Scoring rules"],
+            ["/practice", "Practice"],
           ].map(([href, label]) => (
             <li key={href}>
               <a href={href} className="group relative py-1 transition-colors hover:text-[var(--text)]">
@@ -59,7 +59,7 @@ export function SiteNav() {
           ))}
         </ul>
         <Btn href="/ascend" size="sm">
-          Begin the ascent
+          Start with a portfolio
         </Btn>
       </nav>
     </header>

@@ -155,7 +155,7 @@ export default function Labyrinth() {
                 {LABYRINTH_ISSUES.map((iss) => {
                   const isOpen = expanded === iss.id;
                   return (
-                    <article key={iss.id} className="overflow-hidden rounded-[16px] bg-[rgba(255,253,247,0.8)] shadow-[inset_0_0_0_1px_var(--line)]">
+                    <article key={iss.id} className="overflow-hidden rounded-[16px] bg-[rgba(13,19,56,0.8)] shadow-[inset_0_0_0_1px_var(--line)]">
                       <button className="flex w-full items-start gap-3 p-4 text-left" onClick={() => setExpanded(isOpen ? null : iss.id)} aria-expanded={isOpen}>
                         <span
                           className="mt-0.5 grid h-6 w-6 shrink-0 place-items-center rounded-full"
@@ -308,7 +308,7 @@ function TextArea({ label, value, onChange, rows }: { label: string; value: stri
         rows={rows}
         placeholder={`${label}…`}
         onChange={(e) => onChange(e.target.value)}
-        className="w-full resize-y rounded-[14px] bg-[rgba(255,253,247,0.95)] p-3 text-[14px] leading-relaxed shadow-[inset_0_0_0_1px_var(--line-strong)] outline-none transition-shadow placeholder:text-[var(--text-3)] focus:shadow-[inset_0_0_0_1.5px_var(--ink)]"
+        className="w-full resize-y rounded-[14px] bg-[rgba(13,19,56,0.95)] p-3 text-[14px] leading-relaxed shadow-[inset_0_0_0_1px_var(--line-strong)] outline-none transition-shadow placeholder:text-[var(--text-3)] focus:shadow-[inset_0_0_0_1.5px_var(--ink)]"
       />
     </label>
   );
@@ -338,7 +338,7 @@ function EntryList<T extends Record<string, string>>({
   const blank = Object.fromEntries(fields.map((f) => [f.key, f.options?.[0] ?? ""]));
   const [entry, setEntry] = useState<Record<string, string>>(blank);
   const last = fields[fields.length - 1].key;
-  const input = "w-full rounded-[12px] bg-[rgba(255,253,247,0.95)] px-3 py-2 text-[13.5px] shadow-[inset_0_0_0_1px_var(--line-strong)] outline-none focus:shadow-[inset_0_0_0_1.5px_var(--ink)]";
+  const input = "w-full rounded-[12px] bg-[rgba(13,19,56,0.95)] px-3 py-2 text-[13.5px] shadow-[inset_0_0_0_1px_var(--line-strong)] outline-none focus:shadow-[inset_0_0_0_1.5px_var(--ink)]";
   return (
     <div>
       <p className="text-[13.5px] leading-relaxed text-[var(--text-2)]">{intro}</p>
@@ -387,7 +387,7 @@ function EntryList<T extends Record<string, string>>({
       <ul className="mt-4 space-y-2">
         {items.length === 0 && <li className="py-6 text-center text-[13px] text-[var(--text-3)]">{empty}</li>}
         {items.map((it, i) => (
-          <li key={i} className="rise group relative rounded-[14px] bg-[rgba(255,253,247,0.85)] p-3 pr-10 shadow-[inset_0_0_0_1px_var(--line)]">
+          <li key={i} className="rise group relative rounded-[14px] bg-[rgba(13,19,56,0.85)] p-3 pr-10 shadow-[inset_0_0_0_1px_var(--line)]">
             {render(it)}
             <button onClick={() => onRemove(i)} className="absolute right-2 top-2 grid h-7 w-7 place-items-center rounded-full text-[var(--text-3)] opacity-0 transition-opacity hover:bg-[rgba(181,71,58,0.1)] hover:text-[var(--fail)] group-hover:opacity-100 focus:opacity-100" aria-label="Remove">
               <IconX size={13} />
