@@ -410,7 +410,7 @@ function Consent({ name, consent, setConsent, onEnter }: { name: string; consent
     <main ref={root} className="relative z-10 mx-auto grid w-full max-w-[1300px] flex-1 items-center gap-12 px-[var(--gutter)] py-12 lg:grid-cols-[1fr_1fr]">
       <div className="relative hidden justify-center lg:flex">
         <div className="oc-sun w-[min(34vw,440px)]">
-          <Engraving name="sun" className="w-full" style={{ color: "var(--gold-bright)" }} label="The sun of Delphi" />
+          <Engraving name="sun" fade className="w-full" style={{ color: "var(--gold-bright)" }} label="The sun of Delphi" />
         </div>
       </div>
       <div>

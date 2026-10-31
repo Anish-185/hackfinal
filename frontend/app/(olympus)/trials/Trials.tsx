@@ -154,7 +154,7 @@ export default function Trials() {
               </div>
             </div>
             {profile.suggested_tier === "novice" && (
-              <label className="mt-4 flex cursor-pointer items-center justify-between gap-3 border-t border-[rgba(243,239,228,0.18)] pt-3 text-[12.5px]">
+              <label className="mt-4 flex cursor-pointer items-center justify-between gap-3 border-t border-[rgba(7,11,38,0.18)] pt-3 text-[12.5px]">
                 <span className="opacity-80">Preview the Adept assistant</span>
                 <input type="checkbox" role="switch" checked={preview} onChange={(e) => setPreview(e.target.checked)} className="h-4 w-4 accent-[var(--gold-bright)]" />
               </label>
@@ -387,7 +387,7 @@ function QuizView({
                   onClick={() => choose(k)}
                   className="group flex items-center gap-4 rounded-[16px] p-4 text-left transition-all duration-300 hover:-translate-y-0.5"
                   style={{
-                    background: right ? "rgba(47,125,91,0.1)" : wrong ? "rgba(181,71,58,0.08)" : picked ? "rgba(35,55,165,0.08)" : "rgba(255,253,247,0.7)",
+                    background: right ? "rgba(47,125,91,0.1)" : wrong ? "rgba(181,71,58,0.08)" : picked ? "rgba(35,55,165,0.08)" : "rgba(13,19,56,0.7)",
                     boxShadow: `inset 0 0 0 1px ${right ? "rgba(47,125,91,0.5)" : wrong ? "rgba(181,71,58,0.5)" : picked ? "var(--ink)" : "var(--line)"}`,
                   }}
                 >

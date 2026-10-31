@@ -31,7 +31,7 @@ const NavContext = createContext<Nav>({ navigate: () => {} });
 export const useNav = () => useContext(NavContext);
 
 /**
- * Chrome shared by every themed page: paper grain, the custom cursor and the curtain
+ * Chrome shared by every themed page: grain and the curtain
  * transition between routes (cobalt panel rises, names the destination, then lifts).
  */
 export default function Shell({ children }: { children: ReactNode }) {
@@ -89,7 +89,6 @@ export default function Shell({ children }: { children: ReactNode }) {
             <Meander height={16} />
           </div>
         </div>
-        <Cursor />
       </div>
     </NavContext.Provider>
   );
@@ -111,58 +110,5 @@ export function TLink({ href, onClick, children, ...rest }: AnchorHTMLAttributes
     >
       {children}
     </Link>
-  );
-}
-
-/** Dot + lagging ring; grows over links and shows data-cursor labels. Fine pointers only. */
-function Cursor() {
-  const root = useRef<HTMLDivElement>(null);
-  const dot = useRef<HTMLDivElement>(null);
-  const ring = useRef<HTMLDivElement>(null);
-  const [label, setLabel] = useState("");
-
-  useEffect(() => {
-    if (!window.matchMedia("(pointer: fine)").matches || prefersReducedMotion()) {
-      root.current?.classList.add("is-hidden");
-      return;
-    }
-    const dx = gsap.quickTo(dot.current, "x", { duration: 0.08 });
-    const dy = gsap.quickTo(dot.current, "y", { duration: 0.08 });
-    const rx = gsap.quickTo(ring.current, "x", { duration: 0.5, ease: "power3.out" });
-    const ry = gsap.quickTo(ring.current, "y", { duration: 0.5, ease: "power3.out" });
-    const move = (e: PointerEvent) => {
-      dx(e.clientX);
-      dy(e.clientY);
-      rx(e.clientX);
-      ry(e.clientY);
-    };
-    const over = (e: PointerEvent) => {
-      const el = (e.target as HTMLElement).closest<HTMLElement>("a, button, [data-cursor], input, textarea, label");
-      const text = el?.dataset.cursor ?? "";
-      root.current?.classList.toggle("is-hover", !!el && !text);
-      root.current?.classList.toggle("has-label", !!text);
-      setLabel(text);
-    };
-    const leave = () => root.current?.classList.add("is-hidden");
-    const enter = () => root.current?.classList.remove("is-hidden");
-    window.addEventListener("pointermove", move);
-    window.addEventListener("pointerover", over);
-    document.documentElement.addEventListener("pointerleave", leave);
-    document.documentElement.addEventListener("pointerenter", enter);
-    return () => {
-      window.removeEventListener("pointermove", move);
-      window.removeEventListener("pointerover", over);
-      document.documentElement.removeEventListener("pointerleave", leave);
-      document.documentElement.removeEventListener("pointerenter", enter);
-    };
-  }, []);
-
-  return (
-    <div ref={root} className="cursor" aria-hidden="true">
-      <div ref={ring} className="cursor-ring">
-        <span>{label}</span>
-      </div>
-      <div ref={dot} className="cursor-dot" />
-    </div>
   );
 }
