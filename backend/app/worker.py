@@ -1,8 +1,12 @@
 """Celery tasks. The app object lives in app.celery_app; the work itself in app.grading."""
 
-from app import grading, jobs
+import logging
+
+from app import grading, jobs, practice, practice_jobs
 from app.celery_app import celery_app
 from app.db import SessionLocal
+
+logger = logging.getLogger(__name__)
 
 __all__ = ["celery_app"]
 
@@ -42,3 +46,30 @@ def submit_job(session_id: str) -> None:
 def auto_submit_expired() -> list[str]:
     with SessionLocal() as db:
         return grading.auto_submit_expired(db)
+
+
+@celery_app.task(name="practice_job")
+def practice_job(
+    job_id: str,
+    client_id: str,
+    kind: str,
+    problem_id: str,
+    language: str,
+    code: str,
+    custom_input: dict | None,
+) -> None:
+    """Practice Run / Submit; the result goes into the job record that GET /practice/jobs shows."""
+    practice_jobs.write(job_id, {"status": "running", "result": None, "error": None})
+    try:
+        if kind == "submit":
+            result = practice.submit(problem_id, language, code)
+        elif custom_input is not None:
+            result = practice.run_custom(problem_id, language, code, custom_input)
+        else:
+            result = practice.run_visible(problem_id, language, code)
+        practice_jobs.write(job_id, {"status": "done", "result": result, "error": None})
+    except Exception:
+        logger.exception("practice job %s failed", job_id)
+        practice_jobs.write(job_id, {"status": "failed", "result": None, "error": "job failed"})
+    finally:
+        practice_jobs.release(client_id, job_id)

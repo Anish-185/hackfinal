@@ -21,6 +21,10 @@ seed-demo:
 e2e:
 	./e2e/run.sh
 
+# Practice mode (/practice): list, Run, custom input, Submit in Python and JavaScript. ~30 s.
+e2e-practice:
+	./e2e/practice.sh
+
 # Starts postgres/redis if needed; the health test hits the real services. API tests
 # build their own <db>_test database from the migrations, never touching dev data.
 test:
