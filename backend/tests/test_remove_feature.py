@@ -55,13 +55,15 @@ def undocumented(x: int) -> int:
 def test_eligible_concepts_span_two_or_three_files() -> None:
     spans = concept_spans(FILES, CONCEPTS)
 
-    assert eligible(spans) == ["auth", "reporting"]
+    assert eligible(spans) == ["auth", "importing", "reporting"]
     assert spans["reporting"] == ["app/routes.py", "app/services.py", "app/utils.py"]
     assert spans["pagination"] == ["app/utils.py"]
 
 
 def test_ineligible_concept_error_lists_the_eligible_ones() -> None:
-    with pytest.raises(FeatureRemovalError, match="Eligible concepts in .*: auth, reporting"):
+    with pytest.raises(
+        FeatureRemovalError, match="Eligible concepts in .*: auth, importing, reporting"
+    ):
         remove_feature(EXPENSES_SEED, "pagination")
 
 
@@ -118,7 +120,7 @@ def test_concepts_that_call_the_removed_code_are_dependents() -> None:
     reporting = concept_targets(FILES, CONCEPTS["concepts"]["reporting"]["symbols"])
     auth = concept_targets(FILES, CONCEPTS["concepts"]["auth"]["symbols"])
 
-    assert dependent_concepts(FILES, CONCEPTS, "reporting", reporting) == ["caching"]
+    assert dependent_concepts(FILES, CONCEPTS, "reporting", reporting) == ["caching", "importing"]
     assert dependent_concepts(FILES, CONCEPTS, "auth", auth) == []
 
 

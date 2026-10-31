@@ -82,4 +82,8 @@ CONCEPTS: dict[str, list[str]] = {
     "validation": ["validat*", "pydantic", "zod", "joi", "marshmallow", "sanitiz*"],
     "caching": ["cach*", "redis", "memcached", "memoiz*"],
     "reporting": ["report*", "analytics", "dashboard*", "aggregat*", "csv export*"],
+    "importing": [
+        "bulk import*", "batch import*", "csv import*", "data import*", "ingest*", "dedup*",
+        "de-dup*", "etl",
+    ],
 }  # fmt: skip

@@ -112,7 +112,13 @@ backend/     app/            FastAPI app and plumbing:
                              (P2.2 mutation engine, LibCST operators, sandbox
                              pre-filter, draft Novice spec), remove_feature.py
                              (P2.3: stub a concept across 2-3 files, runner
-                             checks, draft Adept spec), tasks.py (shared:
+                             checks, draft Adept spec), master.py (P2.4: bug +
+                             LibCST perf regression in another file, budget
+                             calibrated in the sandbox), perf.py (perf_ms from
+                             perf tests; also used by submit), enrich.py (P2.5:
+                             one generator call for statement + rename map, leak
+                             check, LibCST renaming re-checked in the sandbox),
+                             tasks.py (shared:
                              concepts.yaml, starter files, visible/hidden split,
                              validation), seeds.py, seed_demo.py,
                              dsa_bank.py (P2.6: bank loading, select_problem,
@@ -142,7 +148,8 @@ backend/     app/            FastAPI app and plumbing:
              planned packages: assistant/ trail/ interviewer/
              A new top-level package must be added to `packages` in
              backend/pyproject.toml and to the mkdir line in backend/Dockerfile.
-seeds/       hand-written seed repos, each with tests + concepts.yaml
+seeds/       hand-written seed repos, each with tests + concepts.yaml; tests/perf/
+             (perf tests + input generator) is used only by Master tasks, as hidden tests
 dsa/         DSA bank: one folder per problem (problem.json, problem.md,
              stub.py, reference.py, cases.json; make_cases.py for hand-written
              ones), taxonomy.yaml (canonical topics, synonyms, tiers,
@@ -164,7 +171,8 @@ docs/        blueprint, prompts, progress, interviewer spec
 ## Commands
 make up | make down | make migrate | make seed-demo | make e2e | make test |
 make test-docker | make lint | make contracts | make runtimes | make mutate |
-make remove-feature | make gate | make llm-smoke | make llm-usage | make dsa-import
+make remove-feature | make build-master | make enrich | make gate | make llm-smoke |
+make llm-usage | make dsa-import
 (Keep this list in sync with the Makefile.)
 
 - `make seed-demo`: builds and validates the P1.3 demo tasks in the sandbox,
@@ -198,6 +206,16 @@ make remove-feature | make gate | make llm-smoke | make llm-usage | make dsa-imp
 - `make remove-feature SEED=... [CONCEPT=...]`: without CONCEPT, list which
   concepts span 2–3 files; with it, stub that concept, check it in the sandbox
   and print a validated draft Adept task. Runs in the worker; no LLM calls.
+- `make build-master SEED=... [CONCEPTS="a b"] [RNG_SEED=0]`: list the seed's perf
+  regressions, calibrate the budget (5 reference runs of the perf test, 3 × median),
+  keep the first regression that exceeds it and keeps functional tests green, add a
+  bug from CONCEPTS in another file, and print the validated draft Master task.
+  ~1.5 min in the worker; no LLM calls.
+- `make enrich SEED=... TIER=novice|adept [CONCEPT=...] [PORTFOLIO=...]`: build a draft
+  task, then enrich it: one generator call (cached) writes the statement and a rename
+  map, the leak check rejects a statement that gives the fix away (one retry, then a
+  template), renaming is applied only if the sandbox re-run matches. Spends credits on a
+  cache miss; the demo tasks are never enriched.
 - `make gate TASK=<task_id> [MUTATION=1]`: run the validation gate on the
   newest stored task with that id; prints the certificate (exit 0) or the
   rejection reasons (exit 1). MUTATION=1 adds mutmut (1-3 min). Runs in the

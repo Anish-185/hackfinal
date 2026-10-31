@@ -9,6 +9,7 @@ from typing import Any
 import yaml
 
 from app import grading
+from builder.perf import PERF_DIR
 from builder.seeds import SEEDS_DIR, seed_files
 from contracts_gen.run_result import RunResult
 from contracts_gen.task_spec import TaskSpec
@@ -52,7 +53,11 @@ def is_test_module(path: str) -> bool:
 
 def starter_base(files: dict[str, str]) -> dict[str, str]:
     """The seed as a candidate sees it before any change: app code and config, no test modules."""
-    return {p: c for p, c in files.items() if not is_test_module(p) and p not in NOT_IN_STARTER}
+    return {
+        p: c
+        for p, c in files.items()
+        if not is_test_module(p) and p not in NOT_IN_STARTER and not p.startswith(PERF_DIR)
+    }
 
 
 def test_modules(files: dict[str, str]) -> list[str]:

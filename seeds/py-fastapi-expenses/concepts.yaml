@@ -2,6 +2,9 @@
 # Symbols: "path::name" or "path::Class.method". Tests: "path::test_function".
 seed: py-fastapi-expenses
 runtime: python311
+# Domain terms LLM enrichment (P2.5) may rename to fit the candidate's projects
+# (e.g. expense -> order). Renaming covers code, tests, routes and strings.
+renamable: [expense, category]
 
 concepts:
   pagination:
@@ -96,3 +99,30 @@ concepts:
       - tests/test_reports.py::test_december_ends_at_new_year
       - tests/test_reports.py::test_out_of_range_month_or_year_is_rejected
       - tests/test_reports.py::test_year_and_month_are_required
+
+  importing:
+    symbols:
+      - app/services.py::import_expenses
+      - app/routes.py::import_expenses
+      - app/schemas.py::ImportResult
+    tests:
+      - tests/test_import.py::test_import_creates_every_new_expense
+      - tests/test_import.py::test_duplicates_of_stored_expenses_are_skipped
+      - tests/test_import.py::test_repeated_items_in_one_import_are_created_once
+      - tests/test_import.py::test_another_users_expense_is_not_a_duplicate
+      - tests/test_import.py::test_import_invalidates_cached_reports_of_its_months
+      - tests/test_import.py::test_empty_or_oversized_import_is_rejected
+      - tests/test_import.py::test_one_invalid_item_rejects_the_whole_import
+
+# Perf-sensitive symbols (Master tasks): `perf: true` marks code whose speed is timed by
+# `test` on the large dataset of `input_gen`. Perf tests live in tests/perf/ and are
+# never part of Novice/Adept tasks.
+perf_symbols:
+  - symbol: app/services.py::import_expenses
+    perf: true
+    test: tests/perf/test_import_perf.py::test_import_into_a_large_history_is_fast
+    input_gen: tests/perf/gen_large.py
+  - symbol: app/services.py::monthly_report
+    perf: true
+    test: tests/perf/test_report_perf.py::test_repeated_monthly_reports_are_fast
+    input_gen: tests/perf/gen_large.py

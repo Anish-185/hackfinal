@@ -1,4 +1,4 @@
-.PHONY: up down migrate seed-demo e2e test test-docker lint contracts runtimes mutate remove-feature gate llm-smoke llm-usage dsa-import
+.PHONY: up down migrate seed-demo e2e test test-docker lint contracts runtimes mutate remove-feature build-master enrich gate llm-smoke llm-usage dsa-import
 
 up:
 	docker compose up -d --build
@@ -60,6 +60,19 @@ mutate:
 # Usage: make remove-feature SEED=py-fastapi-expenses [CONCEPT=reporting]
 remove-feature:
 	docker compose run --rm worker python -m builder.remove_feature $(SEED) $(CONCEPT)
+
+# Master builder (P2.4): one bug + one perf regression in different files, perf budget calibrated
+# in the sandbox (3 x the reference's median over 5 runs). Prints the task and calibration.
+# Usage: make build-master SEED=py-fastapi-expenses [CONCEPTS="pagination validation"] [RNG_SEED=0]
+build-master:
+	docker compose run --rm worker python -m builder.master $(SEED) $(CONCEPTS) --rng-seed $(RNG_SEED)
+
+# LLM enrichment (P2.5): build a draft Novice or Adept task, then write its statement (one
+# generator call, cached), copy the repo tour and rename domain entities when the re-run in the
+# sandbox matches. Spends Featherless credits on a cache miss.
+# Usage: make enrich SEED=py-fastapi-expenses TIER=novice|adept [CONCEPT=...] [PORTFOLIO=...]
+enrich:
+	docker compose run --rm worker python -m builder.enrich $(SEED) --tier $(TIER) $(if $(CONCEPT),--concept $(CONCEPT)) $(if $(PORTFOLIO),--portfolio $(PORTFOLIO))
 
 # Validation gate (P2.7): re-check the newest stored task with this id in the sandbox and print
 # its certificate, or the reasons it is rejected (exit 1). MUTATION=1 adds mutmut (1-3 min).

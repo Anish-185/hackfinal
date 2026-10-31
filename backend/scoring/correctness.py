@@ -26,8 +26,13 @@ def rate(passed: int, total: int) -> float | None:
 
 
 def perf_factor(budget_ms: int | None, perf_ms: float | None) -> float:
-    """1.0 without a perf constraint, within budget, or with nothing measured."""
-    if budget_ms is None or perf_ms is None or perf_ms <= budget_ms:
+    """1.0 without a perf constraint or within budget. A task with a budget but no
+    measurement (the perf test crashed before recording a time) gets PERF_FLOOR."""
+    if budget_ms is None:
+        return 1.0
+    if perf_ms is None:
+        return PERF_FLOOR
+    if perf_ms <= budget_ms:
         return 1.0
     over = (perf_ms - budget_ms) / ((PERF_FLOOR_AT - 1) * budget_ms)
     return max(PERF_FLOOR, 1.0 - (1.0 - PERF_FLOOR) * over)
