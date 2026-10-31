@@ -25,6 +25,8 @@ from builder.tasks import (
 from runner import run_tests
 
 EXPENSES_SEED = "py-fastapi-expenses"
+# The hand-built demo tasks below; LLM enrichment (enrich.py) leaves them untouched.
+DEMO_TASK_IDS = frozenset({"expenses-pagination", "dsa-longest-unique-substring"})
 PAGINATION_TESTS = "tests/test_pagination.py"
 HIDDEN_PAGINATION_TESTS = "tests/test_pagination_hidden.py"
 DSA_PROBLEM = "longest_unique_substring"

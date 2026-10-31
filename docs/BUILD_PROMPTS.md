@@ -431,12 +431,63 @@ services.import_expenses and services.monthly_report with their perf tests. All 
 operators find a site in the seed; with rng_seed 0 calibration rejects the quadratic
 de-dup (within budget) and keeps the list scan (~2.8× budget).
 
+### P2.5 LLM enrichment
+
+```text
+Follow the session protocol and speed rules in CLAUDE.md, especially the
+token policy. Branch: p2-5-enrich. Replace the P2.5 spec in
+docs/BUILD_PROMPTS.md with this prompt. A teammate owns DSA rewriting in
+P2.6: this prompt covers domain tasks only.
+
+backend/builder/enrich.py: enrich(draft_spec, profile) → the spec with a
+statement, repo tour, and (when safe) renamed entities.
+
+1. Statement: ONE generator-slot call per task, structured output, cached
+   by input hash, max_tokens 500, temperature 0.2. Input only: the unified
+   diff, target symbol names, visible failing test names with the last 20
+   lines of their messages, the tier, and the candidate's project names.
+   Output: an issue-style statement (symptoms and expected behavior, at most
+   200 words) that never states the fix. For Master, code (not the LLM)
+   appends the perf budget sentence.
+2. Leak check (plain code): reject the statement if it contains any changed
+   line from the reference side of the diff, or the exact operator/value
+   that fixes the bug. On rejection, retry once; then fall back to a
+   template statement built by code.
+3. Repo tour: copy the seed's README_TOUR.md. No LLM.
+4. Entity renaming, in the same LLM call: concepts.yaml lists renamable
+   domain terms per seed (e.g. expense, category). The model returns a
+   rename map limited to those terms, matching the candidate's projects
+   (e.g. expense → order). Apply it mechanically with LibCST to code and
+   tests (identifiers, strings, routes), update target_symbols and
+   entry_symbols, re-derive test IDs, and re-run reference and starter. If
+   any result differs from the un-renamed version, drop the renaming and
+   keep the original names.
+5. Extra LLM-written hidden tests: behind a flag, off by default (token
+   cost). When on, keep only tests the reference passes.
+6. The hand-built seed-demo task in backend/builder/manual.py is NOT
+   enriched, so make e2e keeps working unchanged.
+
+Tests (LLM mocked): the leak check catches a statement containing the fix;
+the template is used after two failures; renaming keeps all test results
+identical; a cache hit makes no second call; the demo task is untouched.
+
+Acceptance checks: make test and make test-docker once at the end. With the
+real key, enrich one Novice and one Adept task; show both statements, the
+rename maps, and the tokens spent (make llm-usage).
+```
+
+Implemented in backend/builder/enrich.py (`make enrich SEED=... TIER=novice|adept`).
+enrich(draft_spec, profile, project_names): project names come from the portfolio (the
+Profile has none). The model gets the starter side of the diff only (context and `+`
+lines; reference code never enters a model's context, CLAUDE.md rule 2) plus the repo
+tour's first paragraph; the leak check compares against the full reference side in code.
+Renamed tasks record the map in reference_ref (`seeds/<seed>?rename=old:new,...`), which
+enrich.reference_files() resolves. Real runs: Novice pagination → expense→inventory,
+category→department; Adept reporting → expense→item, category→group; both renamings
+re-verified in the sandbox. 4 generator calls, 2,590 tokens in / 549 out, $0.000516.
+
 ### Specs for the rest of Phase 2
 
-- **P2.5 LLM enrichment:** statement, repo tour, entity renaming to match the
-  candidate's project (re-run all tests after renaming), extra hidden tests
-  kept only if the reference passes them. Token policy: one call per task,
-  only the changed files and test names as context, cached.
 - **P2.6 DSA:** written in full below ("P2.6 DSA bank, runners, rewriting").
 - **P2.7 Validation gate + certificate:** reference passes ×3, starter fails,
   Novice starter passes non-target tests, scope diff by tier, size limits,
