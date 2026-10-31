@@ -24,5 +24,6 @@
   "revision": "215604aeed660029df7de2fea5a4d7b6ed476a08",
   "task_id": "max-consecutive-ones",
   "question_id": 485
- }
+ },
+ "practice_only": true
 }

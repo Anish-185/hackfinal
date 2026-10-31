@@ -129,6 +129,46 @@ def test_no_problem_at_all_raises_with_the_reason() -> None:
         select_problem(profile(), "master", 1)
 
 
+# --- Practice-only split ---
+
+
+def test_about_a_third_of_each_difficulty_is_practice_only() -> None:
+    practice = dsa_bank.practice_split(BANK)
+    assert dsa_bank.PRACTICE_PINNED <= practice
+    for difficulty in dsa_bank.DIFFICULTY_RANK:
+        group = [p for p in BANK if p.difficulty == difficulty]
+        assert sum(p.id in practice for p in group) == round(len(group) / 3), difficulty
+    assert not any(p.own_statement for p in BANK if p.id in practice)
+    assert dsa_bank.practice_split(BANK) == practice  # deterministic
+
+
+def test_committed_flags_match_the_split() -> None:
+    assert {p.id for p in BANK if p.practice_only} == dsa_bank.practice_split(BANK)
+
+
+def test_every_profile_that_fit_a_problem_still_gets_an_assessment_problem() -> None:
+    assert dsa_bank.assessment_covers(BANK, {p.id for p in BANK if p.practice_only})
+    for tier in TIERS:
+        assert sum(tier in p.tiers and not p.practice_only for p in BANK) >= 20, tier
+
+
+def test_selection_never_picks_a_practice_only_problem() -> None:
+    rng = random.Random(11)
+    picked = 0
+    for seed in range(400):
+        allowed = {tier: rng.sample(TOPICS, rng.randint(1, len(TOPICS))) for tier in TIERS}
+        try:
+            chosen = select_problem(profile(**allowed), rng.choice(TIERS), seed)
+        except NoProblemError:
+            continue
+        picked += 1
+        assert not chosen.problem.practice_only, chosen.problem.id
+    assert picked > 100
+    # A profile whose only fitting problem is practice-only falls through to the next rule.
+    only_two_sum = profile(novice=problem("two_sum").tags)
+    assert select_problem(only_two_sum, "novice", 0).problem.id != "two_sum"
+
+
 # --- Stubs and statements ---
 
 

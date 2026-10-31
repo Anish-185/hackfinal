@@ -29,5 +29,6 @@
   "revision": "215604aeed660029df7de2fea5a4d7b6ed476a08",
   "task_id": "distinct-subsequences",
   "question_id": 115
- }
+ },
+ "practice_only": true
 }

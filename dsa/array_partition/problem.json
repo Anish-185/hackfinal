@@ -26,5 +26,6 @@
   "revision": "215604aeed660029df7de2fea5a4d7b6ed476a08",
   "task_id": "array-partition",
   "question_id": 561
- }
+ },
+ "practice_only": true
 }

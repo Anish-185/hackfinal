@@ -61,6 +61,7 @@ End:
 - Log tokens per call; keep per-assessment and per-interview totals.
 - Reuse generated tasks when inputs are identical. Pre-generate demo data once.
 - AI solve-rate probe: 3 attempts. Repair loop: at most 2 tries.
+- LLM calls are allowed for UX features (assistant, interviewer, resume parsing, report summary) within LLM_BUDGET_USD; scores stay test-only.
 
 ## Stack
 - Backend: Python 3.11, FastAPI, Pydantic v2, SQLAlchemy 2 + Alembic,
@@ -131,7 +132,9 @@ backend/     app/            FastAPI app and plumbing:
              app/practice.py practice mode: bank problem -> TaskSpec, Run / custom
                              input / Submit through app.dsa; practice_jobs.py
                              (Redis job records, one job and 20 per minute per
-                             X-Client-Id); routes/practice.py; Celery practice_job
+                             X-Client-Id); routes/practice.py; Celery practice_job.
+                             Serves only practice-only problems; Submit returns
+                             pass counts and a status, never cases or output
              app/dsa.py      DSA grading: harness gets inputs only, outputs
                              compared on the backend (runner/harness/:
                              python_cases.py, node_cases.js); hidden_sample()
@@ -162,7 +165,13 @@ dsa/         DSA bank: one folder per problem (problem.json, problem.md,
              solved-count thresholds, tier rules), tools/import_leetcode.py
              (`make dsa-import`), raw/ (git-ignored: dataset + LeetCode's
              original descriptions; never commit). Backend only (mounted
-             read-only at /dsa); expected answers never reach a sandbox
+             read-only at /dsa); expected answers never reach a sandbox.
+             ~1/3 of problems are `"practice_only": true` (dsa_bank.practice_split,
+             re-applied by the importer): practice mode shows only those,
+             select_problem never picks them
+code-compr/  Faiz's code-reading app (Next.js + Prisma, port 3002); showcase/ is the
+             landing site (port 3001). coding-assessment/ is archived on the
+             archive/coding-assessment branch
 runtimes/    Dockerfiles per runtime
 sim/         simulated candidate scripts
 e2e/         `make e2e`: headless Chromium (Playwright image) drives the demo flow;

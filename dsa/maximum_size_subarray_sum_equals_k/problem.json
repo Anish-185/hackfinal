@@ -30,5 +30,6 @@
   "revision": "215604aeed660029df7de2fea5a4d7b6ed476a08",
   "task_id": "maximum-size-subarray-sum-equals-k",
   "question_id": 325
- }
+ },
+ "practice_only": true
 }

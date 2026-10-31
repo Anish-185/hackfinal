@@ -39,7 +39,6 @@ export default function ResultPanel({ job, examples }: { job: JobState; examples
         {result.failed_stage === "examples" && (
           <p className="mt-1 text-gray-600">An example case failed, so the hidden cases were not run. Use Run to see which.</p>
         )}
-        <Output text={result.stderr} />
       </div>
     );
   }

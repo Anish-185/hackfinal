@@ -40,7 +40,6 @@ export type PracticeResult =
       total: number;
       duration_ms: number;
       failed_stage: "examples" | "hidden" | null;
-      stderr: string;
     };
 
 export type PracticeJob = {

@@ -4,7 +4,9 @@ A visitor picks a bank problem, writes a solution in Python or JavaScript, then 
 the visible examples (or on one custom input) or Submits it for the hidden cases. All
 code runs through app.dsa in the same sandbox as assessments; this module only builds the
 task spec for a problem and shapes results. Hidden cases never leave the backend: a
-Submit result is pass counts and a status, never a case, an input or an expected value.
+Submit result is pass counts and a status, never a case, an input, an expected value or
+program output. Only practice-only bank problems exist here (BankProblem.practice_only),
+so practice never shows a problem an assessment can pick.
 """
 
 import json
@@ -30,11 +32,12 @@ _STORY_END = "## Your function"
 
 @lru_cache
 def _by_id() -> dict[str, BankProblem]:
-    return {p.id: p for p in load_bank()}
+    return {p.id: p for p in load_problems()}
 
 
 def load_problems() -> tuple[BankProblem, ...]:
-    return load_bank()
+    """The practice-only bank problems."""
+    return tuple(p for p in load_bank() if p.practice_only)
 
 
 def get_problem(problem_id: str) -> BankProblem | None:
@@ -152,18 +155,18 @@ def submit(problem_id: str, language: str, code: str) -> dict[str, Any]:
 
     first = dsa.run_cases(spec, files, visible, [c.id for c in visible])
     if first.status != "ok":
-        return _submit_out(first.status, 0, total, first.duration_ms, "examples", first.stderr_tail)
+        return _submit_out(first.status, 0, total, first.duration_ms, "examples")
     if first.summary.failed:
         # Like LeetCode, stop at the first failing stage; hidden cases are not run.
-        return _submit_out("ok", first.summary.passed, total, first.duration_ms, "examples", "")
+        return _submit_out("ok", first.summary.passed, total, first.duration_ms, "examples")
     second = dsa.run_cases(spec, files, hidden, [c.id for c in hidden])
     duration = first.duration_ms + second.duration_ms
     if second.status != "ok":
         # The hidden run's output stays on the backend; only its status is reported.
-        return _submit_out(second.status, first.summary.passed, total, duration, "hidden", "")
+        return _submit_out(second.status, first.summary.passed, total, duration, "hidden")
     passed = first.summary.passed + second.summary.passed
     stage = None if passed == total else "hidden"
-    return _submit_out("ok", passed, total, duration, stage, "")
+    return _submit_out("ok", passed, total, duration, stage)
 
 
 def _submit_out(
@@ -172,8 +175,8 @@ def _submit_out(
     total: int,
     duration_ms: int,
     failed_stage: str | None,
-    stderr: str,
 ) -> dict[str, Any]:
+    """Pass counts and a status only: no case, no expected value, no program output."""
     return {
         "kind": "submit",
         "status": status,
@@ -182,5 +185,4 @@ def _submit_out(
         "total": total,
         "duration_ms": duration_ms,
         "failed_stage": failed_stage,
-        "stderr": stderr,
     }

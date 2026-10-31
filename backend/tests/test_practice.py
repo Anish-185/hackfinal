@@ -11,6 +11,7 @@ import pytest
 from app import dsa, practice, practice_jobs
 from app.cache import redis_client
 from app.routes import practice as routes
+from builder.dsa_bank import load_bank
 from runner import ProgramRun
 
 CLIENT = "client-" + uuid.uuid4().hex[:12]
@@ -43,6 +44,18 @@ def test_list_is_sorted_by_difficulty(client) -> None:
     ranks = [{"easy": 0, "medium": 1, "hard": 2}[p["difficulty"]] for p in problems]
     assert ranks == sorted(ranks)
     assert {"id", "title", "difficulty", "tags"} == set(problems[0])
+
+
+def test_only_practice_only_problems_are_listed_or_served(client, sent) -> None:
+    listed = {p["id"] for p in client.get("/practice/problems").json()}
+    assert listed == {p.id for p in load_bank() if p.practice_only}
+    assessment = next(p.id for p in load_bank() if not p.practice_only)
+    body = {"language": "python", "code": CODE}
+    assert client.get(f"/practice/problems/{assessment}").status_code == 404
+    for action in ("run", "submit"):
+        url = f"/practice/problems/{assessment}/{action}"
+        assert client.post(url, json=body, headers=headers()).status_code == 404
+    assert sent == []
 
 
 def test_problem_view_has_both_languages_and_no_hidden_data(client) -> None:
@@ -212,7 +225,6 @@ def test_submit_accepts_when_every_case_passes(monkeypatch) -> None:
         "total": 35,
         "duration_ms": 10,
         "failed_stage": None,
-        "stderr": "",
     }
 
 
@@ -229,7 +241,6 @@ def test_submit_reports_counts_only_when_hidden_cases_fail(monkeypatch) -> None:
         "total",
         "duration_ms",
         "failed_stage",
-        "stderr",
     }
 
 
@@ -246,6 +257,7 @@ def test_submit_stops_before_the_hidden_cases_when_an_example_fails(monkeypatch)
     assert out["accepted"] is False and out["failed_stage"] == "examples"
     assert (out["passed"], out["total"]) == (3, 35)
     assert all(not case_id.startswith("h") for case_id in ran)
+    assert "stderr" not in out  # counts only, even for the visible stage
 
 
 def test_submit_reports_a_hidden_timeout_as_status_only(monkeypatch) -> None:

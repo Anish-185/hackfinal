@@ -4,8 +4,13 @@ Each bank folder holds problem.json (BankProblem), reference.py, cases.json, stu
 problem.md. Original descriptions (rewrite input only) live in the git-ignored dsa/raw/.
 A task is built by renaming the problem into the candidate's domain (builder.dsa_rewrite),
 writing the starter for the runtime, and checking the renamed reference in the sandbox.
+
+About a third of the bank is practice-only (practice_split, `"practice_only": true` in
+problem.json): practice mode shows only those, and select_problem never picks them, so a
+candidate can't rehearse their assessment problem in practice.
 """
 
+import hashlib
 import json
 import random
 from dataclasses import dataclass
@@ -26,6 +31,10 @@ DIFFICULTY_RANK = {"easy": 0, "medium": 1, "hard": 2}
 SOLUTION_FILE = {"python311": "solution.py", "node20": "solution.js"}
 TIME_BUDGET_MIN = 25
 EXAMPLES_SHOWN = 2
+# Practice-only share of each difficulty, and problems that are always practice-only:
+# `make e2e-practice` solves two_sum, tests/test_practice.py uses 3sum.
+PRACTICE_SHARE = 1 / 3
+PRACTICE_PINNED = frozenset({"two_sum", "3sum"})
 
 
 class Param(BaseModel):
@@ -63,6 +72,8 @@ class BankProblem(BaseModel):
     own_statement: bool
     """problem.md is our own text (sent to the rewriter); else the description is in dsa/raw/."""
     source: dict[str, Any]
+    practice_only: bool = False
+    """Shown in practice mode only; never selected for an assessment (practice_split)."""
 
     @property
     def dir(self) -> Path:
@@ -80,6 +91,60 @@ def load_bank(dsa_dir: Path = DSA_DIR) -> tuple[BankProblem, ...]:
 
 def load_cases(problem: BankProblem) -> dict[str, list[dict[str, Any]]]:
     return json.loads((problem.dir / "cases.json").read_text(encoding="utf-8"))
+
+
+# --- Practice-only split --------------------------------------------------------------
+
+
+def assessment_covers(bank: tuple[BankProblem, ...], practice: set[str]) -> bool:
+    """Every (tier, problem) still has an assessment problem at that tier whose tags are a
+    subset of the problem's, so no profile that fit a problem before loses all of them."""
+    pool = [q for q in bank if q.id not in practice]
+    return all(
+        any(tier in q.tiers and set(q.tags) <= set(p.tags) for q in pool)
+        for p in bank
+        for tier in p.tiers
+    )
+
+
+def practice_split(bank: tuple[BankProblem, ...]) -> frozenset[str]:
+    """The practice-only problem ids: PRACTICE_PINNED, then per difficulty, in sha256(id)
+    order, until PRACTICE_SHARE of it is practice-only, skipping our own (hand-written)
+    problems and any problem whose removal would break assessment_covers. Deterministic.
+    """
+    practice = {p.id for p in bank if p.id in PRACTICE_PINNED}
+    if not assessment_covers(bank, practice):
+        raise ValueError(f"pinned practice problems leave a profile without a problem: {practice}")
+    for difficulty in DIFFICULTY_RANK:
+        group = [p for p in bank if p.difficulty == difficulty]
+        quota = round(len(group) * PRACTICE_SHARE)
+        taken = sum(p.id in practice for p in group)
+        for p in sorted(group, key=lambda p: hashlib.sha256(p.id.encode()).hexdigest()):
+            if taken >= quota:
+                break
+            if p.id in practice or p.own_statement:
+                continue
+            if assessment_covers(bank, practice | {p.id}):
+                practice.add(p.id)
+                taken += 1
+    return frozenset(practice)
+
+
+def mark_practice_only(dsa_dir: Path = DSA_DIR) -> frozenset[str]:
+    """Write practice_split into every dsa/<id>/problem.json (the key only where true)."""
+    paths = sorted(dsa_dir.glob("*/problem.json"))
+    bank = tuple(BankProblem.model_validate_json(p.read_text(encoding="utf-8")) for p in paths)
+    practice = practice_split(bank)
+    for path in paths:
+        meta = json.loads(path.read_text(encoding="utf-8"))
+        before = dict(meta)
+        if meta["id"] in practice:
+            meta["practice_only"] = True
+        else:
+            meta.pop("practice_only", None)
+        if meta != before:
+            path.write_bytes((json.dumps(meta, indent=1) + "\n").encode())
+    return practice
 
 
 # --- Selection ------------------------------------------------------------------------
@@ -104,8 +169,9 @@ def select_problem(
 
     If none qualify: the easiest problem whose tags are all allowed at some lower tier
     (and that is tagged for that tier). Raises NoProblemError when there is none either.
+    Practice-only problems are never picked.
     """
-    bank = load_bank() if bank is None else bank
+    bank = tuple(p for p in (load_bank() if bank is None else bank) if not p.practice_only)
     allowed = _allowed(profile, tier)
     fits = [p for p in bank if tier in p.tiers and set(p.tags) <= allowed]
     if fits:

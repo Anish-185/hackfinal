@@ -12,6 +12,7 @@
 4. Write dsa/<id>/ (problem.json, reference.py, stub.py, problem.md, cases.json). The
    original description goes to dsa/raw/descriptions/<id>.md only: it is LeetCode's text,
    used as rewrite input, never committed and never served.
+5. Re-apply the practice-only split (builder.dsa_bank.mark_practice_only) to the whole bank.
 
 Runs in the worker container (sandbox access) with the repo's dsa/ mounted at --out.
 """
@@ -31,7 +32,13 @@ from pathlib import Path
 from typing import Any
 
 from app.dsa import _HARNESS, CASE_TIMEOUT_S, RUN_OVERHEAD_S, matches
-from builder.dsa_bank import BankProblem, identity_names, python_stub, statement_md
+from builder.dsa_bank import (
+    BankProblem,
+    identity_names,
+    mark_practice_only,
+    python_stub,
+    statement_md,
+)
 from builder.dsa_rewrite import JS_RESERVED, PY_RESERVED, template_story
 from contracts_gen.task_spec import Comparator
 from profiler.taxonomy import TIERS, load_taxonomy
@@ -437,6 +444,8 @@ def main() -> int:
                         kept.append(write_problem(out, problem, outputs))
                         accepted += 1
             print(f"{difficulty}: {accepted} problems", flush=True)
+    practice = mark_practice_only(out)
+    print(f"practice-only: {len(practice)} problems", flush=True)
     chown_like(out)
 
     print(f"\nkept {len(kept)} problems; skipped: {dict(skipped.most_common(12))}")

@@ -31,5 +31,6 @@
   "revision": "215604aeed660029df7de2fea5a4d7b6ed476a08",
   "task_id": "group-anagrams",
   "question_id": 49
- }
+ },
+ "practice_only": true
 }
