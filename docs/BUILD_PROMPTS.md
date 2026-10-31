@@ -489,10 +489,8 @@ re-verified in the sandbox. 4 generator calls, 2,590 tokens in / 549 out, $0.000
 ### Specs for the rest of Phase 2
 
 - **P2.6 DSA:** written in full below ("P2.6 DSA bank, runners, rewriting").
-- **P2.7 Validation gate + certificate:** reference passes ×3, starter fails,
-  Novice starter passes non-target tests, scope diff by tier, size limits,
-  brute-force agreement on 500 random inputs (DSA), perf calibration, topic
-  check, optional mutation score (mutmut / Stryker). Writes the certificate.
+- **P2.7 Validation gate + certificate:** written in full below ("P2.7
+  Validation gate and certificate").
 - **P2.8 AI solve-rate probe:** probe slot attempts each task 3 times without
   hints, graded by tests; ai_solve_rate and difficulty_index; configurable
   rejection thresholds per tier; only for tasks that passed the gate.
@@ -576,6 +574,77 @@ Tests (LLM mocked):
 Acceptance checks: run make test, make test-docker, and make e2e once at the
 end. Show: bank counts per tag and per tier, one rewritten problem for a
 backend profile, and the tokens spent (make llm-usage).
+
+### P2.7 Validation gate and certificate
+
+Follow the session protocol and speed rules in CLAUDE.md. Branch:
+p2-7-gate. A teammate may be working on P2.4 (master builder) and P2.5
+(enrichment) in parallel: git pull first, and stay within backend/gate/,
+contracts, and tests. No LLM calls.
+
+backend/gate/: validate(spec, profile) → (certificate, []) on success, or
+(None, reasons) with machine-readable reasons the P2.9 repair loop can act
+on (e.g. {"code": "starter_passes", "detail": ...}).
+
+Domain tasks:
+- The reference passes visible + hidden 3 runs in a row (any difference =
+  flaky = reject).
+- The starter fails at least 1 visible test.
+- Novice: the starter passes every test outside the target concept.
+- Scope, from the starter-vs-reference diff: Novice exactly 1 file and
+  ≤10 changed lines; Adept 2–3 files; Master ≥2 files AND perf calibration
+  present. Limits configurable in one place.
+- Master (only when perf fields are present): budget_ms set, reference
+  within budget, starter over budget.
+- Test IDs derive cleanly and match the spec.
+- Statement leak check: backend/gate/leak.py owns it. Reject if the
+  statement contains any changed line from the reference side of the diff,
+  or the exact operator/value that fixes the bug. If P2.5 on main already
+  has a leak check, move it here and make enrich.py import it; if not,
+  write it here and note in docs/BUILD_PROMPTS.md (P2.5) that enrichment
+  must use backend/gate/leak.py.
+
+DSA tasks:
+- Every tag is in profile.allowed_topics for the task's tier.
+- The reference passes all cases using the rewritten names.
+- Test strength: trivial stubs (return the first argument, an empty value
+  of the return type, 0, None) each fail at least 90% of cases. Record the
+  weakest stub's failure rate in the certificate.
+- The statement contains no original parameter or function names.
+
+Certificate (contract update + make contracts):
+- reference_pass "n/n x3", starter_fail "k/n visible", scope_files,
+  changed_lines, perf_ref_ms / perf_naive_ms / budget_ms when present.
+- Replace bruteforce_agree with stub_fail_rate (DSA); keep old stored data
+  valid (optional field).
+- mutation_score: null when not measured (replacing the 0.0 placeholder),
+  and the report page shows "not measured" instead of a number.
+- Optional mutation testing (flag, default off): mutmut on the reference
+  with the task's tests; fill mutation_score when run.
+
+`make gate TASK=<task_id>` validates a stored task and prints the
+certificate or the reasons. Also validate the seed-demo tasks (they must
+pass).
+
+Tests: each check passes on a good task and fails on a purpose-built bad
+task (starter passes, flaky reference, wrong scope, leaked statement,
+disallowed tag, weak DSA tests, missing perf for master).
+
+Acceptance checks: make test, make test-docker, and make e2e once at the
+end (the report page changed). Show one accepted certificate per task kind
+and one rejected task with its reasons.
+
+Amendments (decided during the session):
+- The demo bug `offset = page * page_size` also failed 10 filtering,
+  sorting and auth tests, so it could not pass the Novice rule. The demo
+  now uses the engine's candidate `offset = (page - 2) * page_size`: 3
+  failing tests, all pagination ones (1 visible, 2 hidden). builder/manual.py
+  and e2e/demo.mjs updated; the fix is the same line.
+- Novice and Adept: the starter must fail at least 1 visible AND at least 1
+  hidden test.
+- The gate records the test ids that fail on the starter ("fail_to_pass",
+  visible and hidden) and those that pass on it ("pass_to_pass") in the
+  spec (gate.certify). The next prompt changes scoring to use them.
 
 ## Phase 3: Assistant + scoring
 

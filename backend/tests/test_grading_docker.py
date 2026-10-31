@@ -19,7 +19,7 @@ from tests.api_support import portfolio
 pytestmark = pytest.mark.docker
 
 FIX = "offset = (page - 1) * page_size"
-BUG = "offset = page * page_size"
+BUG = "offset = (page - 2) * page_size"
 FORCE_PASS = (
     "import pytest\n\n\n"
     "@pytest.hookimpl(hookwrapper=True)\n"

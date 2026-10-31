@@ -70,6 +70,14 @@ export interface TaskSpec {
    */
   hidden_test_ids: string[];
   /**
+   * Test ids that fail on the starter (the reference passes every test), recorded by the validation gate (backend/gate). Absent or null before the gate ran.
+   */
+  fail_to_pass?: TestIdSplit | null;
+  /**
+   * Test ids that already pass on the starter, recorded by the validation gate. Absent or null before the gate ran.
+   */
+  pass_to_pass?: TestIdSplit | null;
+  /**
    * Input/expected cases for DSA tasks. Null for domain tasks. For bank problems, hidden is the pool a session's hidden sample is drawn from (see SubmitPayload.hidden_sample).
    */
   dsa_cases: DsaCases | null;
@@ -108,6 +116,10 @@ export interface FileMap {
 export interface TestFile {
   path: RelPath;
   content: string;
+}
+export interface TestIdSplit {
+  visible: string[];
+  hidden: string[];
 }
 export interface DsaCases {
   visible: DsaCase[];
@@ -151,25 +163,37 @@ export interface Perf {
   input_gen: string;
 }
 /**
- * Evidence from the validation gate that the task is sound.
+ * Evidence from the validation gate (backend/gate) that the task is sound. Builders store a draft (booleans); the gate replaces it with counts.
  */
 export interface Certificate {
   /**
-   * Reference solution passes all tests.
+   * Gate: 'n/n xR', tests (visible + hidden) the reference passed out of the total, the same in each of R runs. Boolean: a builder's draft, or a task stored before P2.7.
    */
-  reference_pass: boolean;
+  reference_pass: string | boolean;
   /**
-   * Starter code fails at least one hidden test.
+   * Gate: 'k/n visible', k of the n visible tests fail on the starter. Boolean: a builder's draft, or a task stored before P2.7.
    */
-  starter_fail: boolean;
+  starter_fail: string | boolean;
   /**
-   * Fraction of reference mutants killed by the hidden tests.
+   * Fraction of reference mutants killed by the hidden tests (gate with mutation testing on). Null when not measured; tasks stored before P2.7 hold a 0.0 placeholder.
    */
-  mutation_score: number;
+  mutation_score: number | null;
   /**
-   * Reference agrees with a brute-force solution on generated inputs. Null for domain tasks.
+   * DSA: share of cases the weakest trivial stub (first argument, empty value of the return type, 0, None) fails. Null or absent for domain tasks.
    */
-  bruteforce_agree: boolean | null;
+  stub_fail_rate?: number | null;
+  /**
+   * Deprecated, replaced by stub_fail_rate. Kept so tasks stored before P2.7 stay valid.
+   */
+  bruteforce_agree?: boolean | null;
+  /**
+   * The task's perf budget (perf.budget_ms). Null or absent when perf is null.
+   */
+  budget_ms?: number | null;
+  /**
+   * Domain: lines that differ between the starter and the reference (a replaced line counts once). Null or absent for DSA tasks.
+   */
+  changed_lines?: number | null;
   /**
    * Reference runtime on the perf input. Null when perf is null.
    */

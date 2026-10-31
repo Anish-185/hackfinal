@@ -70,29 +70,63 @@ class Perf(BaseModel):
     """
 
 
+class TestIdSplit(BaseModel):
+    model_config = ConfigDict(
+        extra="forbid",
+    )
+    visible: list[str]
+    hidden: list[str]
+
+
+class ReferencePass(RootModel[str]):
+    root: str = Field(..., pattern="^[0-9]+/[0-9]+ x[0-9]+$")
+    """
+    Gate: 'n/n xR', tests (visible + hidden) the reference passed out of the total, the same in each of R runs. Boolean: a builder's draft, or a task stored before P2.7.
+    """
+
+
+class StarterFail(RootModel[str]):
+    root: str = Field(..., pattern="^[0-9]+/[0-9]+ visible$")
+    """
+    Gate: 'k/n visible', k of the n visible tests fail on the starter. Boolean: a builder's draft, or a task stored before P2.7.
+    """
+
+
 class Certificate(BaseModel):
     """
-    Evidence from the validation gate that the task is sound.
+    Evidence from the validation gate (backend/gate) that the task is sound. Builders store a draft (booleans); the gate replaces it with counts.
     """
 
     model_config = ConfigDict(
         extra="forbid",
     )
-    reference_pass: bool
+    reference_pass: ReferencePass | bool
     """
-    Reference solution passes all tests.
+    Gate: 'n/n xR', tests (visible + hidden) the reference passed out of the total, the same in each of R runs. Boolean: a builder's draft, or a task stored before P2.7.
     """
-    starter_fail: bool
+    starter_fail: StarterFail | bool
     """
-    Starter code fails at least one hidden test.
+    Gate: 'k/n visible', k of the n visible tests fail on the starter. Boolean: a builder's draft, or a task stored before P2.7.
     """
-    mutation_score: float = Field(..., ge=0.0, le=1.0)
+    mutation_score: float | None = Field(..., ge=0.0, le=1.0)
     """
-    Fraction of reference mutants killed by the hidden tests.
+    Fraction of reference mutants killed by the hidden tests (gate with mutation testing on). Null when not measured; tasks stored before P2.7 hold a 0.0 placeholder.
     """
-    bruteforce_agree: bool | None
+    stub_fail_rate: float | None = Field(None, ge=0.0, le=1.0)
     """
-    Reference agrees with a brute-force solution on generated inputs. Null for domain tasks.
+    DSA: share of cases the weakest trivial stub (first argument, empty value of the return type, 0, None) fails. Null or absent for domain tasks.
+    """
+    bruteforce_agree: bool | None = None
+    """
+    Deprecated, replaced by stub_fail_rate. Kept so tasks stored before P2.7 stay valid.
+    """
+    budget_ms: int | None = Field(None, ge=1)
+    """
+    The task's perf budget (perf.budget_ms). Null or absent when perf is null.
+    """
+    changed_lines: int | None = Field(None, ge=0)
+    """
+    Domain: lines that differ between the starter and the reference (a replaced line counts once). Null or absent for DSA tasks.
     """
     perf_ref_ms: float | None = Field(..., ge=0.0)
     """
@@ -210,6 +244,14 @@ class TaskSpec(BaseModel):
     hidden_test_ids: list[str]
     """
     Same as visible_test_ids, for hidden_tests.
+    """
+    fail_to_pass: TestIdSplit | None = None
+    """
+    Test ids that fail on the starter (the reference passes every test), recorded by the validation gate (backend/gate). Absent or null before the gate ran.
+    """
+    pass_to_pass: TestIdSplit | None = None
+    """
+    Test ids that already pass on the starter, recorded by the validation gate. Absent or null before the gate ran.
     """
     dsa_cases: DsaCases | None
     """

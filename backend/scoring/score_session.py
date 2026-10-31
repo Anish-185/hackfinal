@@ -104,7 +104,15 @@ def _task_score(
         correctness=round(c.correctness(visible_rate, hidden_rate, factor), 2),
         time_ms=time_ms,
         runs=runs,
+        mutation_score=_mutation_score(spec),
     )
+
+
+def _mutation_score(spec: TaskSpec) -> float | None:
+    """Shown on the report, never scored. Certificates from before the gate hold a 0.0
+    placeholder (their reference_pass is a boolean), which means "not measured"."""
+    certificate = spec.certificate
+    return None if isinstance(certificate.reference_pass, bool) else certificate.mutation_score
 
 
 def _ai_efficiency(db: Session, session_id: uuid.UUID, mean_correctness: float) -> float:

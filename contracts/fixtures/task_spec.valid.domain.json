@@ -48,6 +48,21 @@
     "tests/test_low_stock_hidden.py::test_product_without_stock_rows_is_low_stock",
     "tests/test_low_stock_hidden.py::test_route_passes_threshold_through"
   ],
+  "fail_to_pass": {
+    "visible": [
+      "tests/test_low_stock_visible.py::test_low_stock_lists_products_below_threshold"
+    ],
+    "hidden": [
+      "tests/test_low_stock_hidden.py::test_threshold_is_exclusive",
+      "tests/test_low_stock_hidden.py::test_product_without_stock_rows_is_low_stock"
+    ]
+  },
+  "pass_to_pass": {
+    "visible": [],
+    "hidden": [
+      "tests/test_low_stock_hidden.py::test_route_passes_threshold_through"
+    ]
+  },
   "dsa_cases": null,
   "perf": {
     "budget_ms": 200,
@@ -59,16 +74,17 @@
     4242
   ],
   "certificate": {
-    "reference_pass": true,
-    "starter_fail": true,
+    "reference_pass": "4/4 x3",
+    "starter_fail": "1/1 visible",
     "mutation_score": 0.86,
-    "bruteforce_agree": null,
     "perf_ref_ms": 41.7,
     "perf_naive_ms": 9310.0,
+    "budget_ms": 200,
     "scope_files": [
       "app/services/stock.py",
       "app/routes/products.py"
-    ]
+    ],
+    "changed_lines": 14
   },
   "ai_solve_rate": 0.25,
   "difficulty_index": 0.72

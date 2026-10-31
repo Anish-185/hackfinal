@@ -107,7 +107,13 @@
           "minimum": 0,
           "description": "First focus to last edit on this task. Null without a focus or an edit event."
         },
-        "runs": { "type": "integer", "minimum": 0, "description": "Runs of this task during the session." }
+        "runs": { "type": "integer", "minimum": 0, "description": "Runs of this task during the session." },
+        "mutation_score": {
+          "type": ["number", "null"],
+          "minimum": 0,
+          "maximum": 1,
+          "description": "The task certificate's mutation score: how well the task's tests catch bugs. Shown on the report, never affects the score. Null when not measured; absent in breakdowns stored before P2.7."
+        }
       },
       "additionalProperties": false
     }

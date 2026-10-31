@@ -1,4 +1,4 @@
-.PHONY: up down migrate seed-demo e2e test test-docker lint contracts runtimes mutate remove-feature build-master enrich llm-smoke llm-usage dsa-import
+.PHONY: up down migrate seed-demo e2e test test-docker lint contracts runtimes mutate remove-feature build-master enrich gate llm-smoke llm-usage dsa-import
 
 up:
 	docker compose up -d --build
@@ -73,6 +73,12 @@ build-master:
 # Usage: make enrich SEED=py-fastapi-expenses TIER=novice|adept [CONCEPT=...] [PORTFOLIO=...]
 enrich:
 	docker compose run --rm worker python -m builder.enrich $(SEED) --tier $(TIER) $(if $(CONCEPT),--concept $(CONCEPT)) $(if $(PORTFOLIO),--portfolio $(PORTFOLIO))
+
+# Validation gate (P2.7): re-check the newest stored task with this id in the sandbox and print
+# its certificate, or the reasons it is rejected (exit 1). MUTATION=1 adds mutmut (1-3 min).
+# Usage: make gate TASK=expenses-pagination [MUTATION=1]
+gate:
+	docker compose run --rm worker python -m gate $(TASK) $(if $(MUTATION),--mutation)
 
 # One small real request per model slot. Spends Featherless credits on a cache miss.
 llm-smoke:
