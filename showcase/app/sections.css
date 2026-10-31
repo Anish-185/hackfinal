@@ -54,6 +54,67 @@
   transform-origin: 0 50%;
 }
 
+.hdr-right {
+  display: flex;
+  align-items: center;
+  gap: 28px;
+}
+
+/* The one header link that leaves the page: a pill with a small morphing blob. */
+.hdr-ai {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  font-size: 15px;
+  line-height: 1;
+  padding: 7px 14px 7px 8px;
+  border-radius: 999px;
+  background: var(--sandbox);
+  color: var(--sandbox-ink);
+  text-decoration: none;
+  transition: background 0.2s;
+}
+
+.hdr-ai:hover {
+  color: var(--sandbox-ink);
+  background: #22302a;
+}
+
+.hdr-blob {
+  width: 18px;
+  height: 18px;
+  display: block;
+  background: radial-gradient(circle at 35% 30%, #c9f5e3, var(--accent-hi) 45%, #0e5c46);
+  box-shadow: 0 0 10px rgba(63, 211, 160, 0.55);
+  animation: hdr-morph 6s ease-in-out infinite, hdr-spin 14s linear infinite;
+}
+
+.hdr-ai:hover .hdr-blob {
+  animation-duration: 2.4s, 6s;
+}
+
+@keyframes hdr-morph {
+  0%,
+  100% {
+    border-radius: 58% 42% 51% 49% / 45% 56% 44% 55%;
+    transform: scale(1);
+  }
+  33% {
+    border-radius: 41% 59% 38% 62% / 60% 39% 61% 40%;
+    transform: scale(1.08);
+  }
+  66% {
+    border-radius: 63% 37% 57% 43% / 38% 63% 37% 62%;
+    transform: scale(0.94);
+  }
+}
+
+@keyframes hdr-spin {
+  to {
+    rotate: 360deg;
+  }
+}
+
 @media (max-width: 760px) {
   .hdr nav {
     display: none;
@@ -1335,6 +1396,14 @@
   width: 10px;
   height: 1px;
   background: var(--accent);
+}
+
+.voice-try {
+  margin-top: 24px;
+}
+
+.voice-try a {
+  color: var(--accent);
 }
 
 .orb {

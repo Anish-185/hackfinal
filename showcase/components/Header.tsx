@@ -1,6 +1,7 @@
 "use client";
 
 import { motion, useScroll, useSpring } from "motion/react";
+import Link from "next/link";
 import { NAME } from "@/lib/site";
 
 const LINKS = [
@@ -18,11 +19,17 @@ export default function Header() {
     <header className="hdr">
       <div className="wrap hdr-in">
         <a href="#top" className="hdr-mark">{NAME}</a>
-        <nav aria-label="Sections">
-          {LINKS.map(([href, label]) => (
-            <a key={href} href={href}>{label}</a>
-          ))}
-        </nav>
+        <div className="hdr-right">
+          <nav aria-label="Sections">
+            {LINKS.map(([href, label]) => (
+              <a key={href} href={href}>{label}</a>
+            ))}
+          </nav>
+          <Link href="/interview" className="hdr-ai">
+            <span className="hdr-blob" aria-hidden />
+            AI interview
+          </Link>
+        </div>
       </div>
       <motion.div className="hdr-bar" style={{ scaleX }} />
     </header>

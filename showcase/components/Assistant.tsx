@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion, useInView, useReducedMotion } from "motion/react";
 import Chip from "./Chip";
+import Link from "next/link";
 import Orb from "./Orb";
 
 // A scripted mock of the planned assistant (P3.1–P3.3). Nothing here calls a model.
@@ -102,6 +103,10 @@ export default function Assistant() {
               <li>Speaks with Kokoro-82M through Featherless. Transcripts are stored, audio isn&apos;t.</li>
               <li>At most 10 small LLM calls and 4,000 tokens per interview; scripted lines need none.</li>
             </ul>
+            <p className="small voice-try">
+              <Link href="/interview">Try the browser demo</Link>: the same flow with a scripted plan, running entirely
+              in this tab.
+            </p>
           </div>
         </div>
       </div>
