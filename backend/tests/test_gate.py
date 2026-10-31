@@ -16,7 +16,7 @@ from builder.tasks import draft_certificate, starter_base
 from contracts_gen.run_result import RunResult, Summary
 from contracts_gen.run_result import TestResult as Result
 from contracts_gen.task_spec import DsaNames, NameMapping, TaskSpec
-from gate import certify, check, leak, validate
+from gate import certify, check, validate
 from gate.stubs import stub_fail_rates
 from scoring.score_session import _mutation_score
 from tests.test_dsa_bank import problem, profile
@@ -336,46 +336,6 @@ def test_mutation_score_is_filled_only_when_asked() -> None:
     on, _ = run_gate(domain_spec(), mutation=True, mutation_score=fake_mutmut)
 
     assert (off.mutation_score, on.mutation_score) == (None, 0.85)
-
-
-# --- Leak checks (gate/leak.py) -------------------------------------------------------
-
-
-def test_leak_checks_ignore_prose_and_short_lines() -> None:
-    starter = {"a.py": "def f(xs):\n    return xs\n"}
-    reference = {"a.py": "def f(xs):\n    return total\n"}
-
-    assert leak.domain_leaks("It should return total spend.", starter, reference) == []
-
-
-def test_a_multi_token_fix_leaks_without_its_context() -> None:
-    starter = {"u.py": "offset = page * page_size\n"}
-    reference = {"u.py": "offset = (page - 1) * page_size\n"}
-
-    assert leak.domain_leaks("Use `(page - 1)` for it.", starter, reference) == ["( page - 1 )"]
-
-
-def test_fix_fragments_cover_an_operator_flip() -> None:
-    fragments = leak.fix_fragments("return a < b", "return a <= b")
-
-    assert ["a", "<=", "b"] in fragments
-    starter, reference = {"m.py": "return a < b\n"}, {"m.py": "return a <= b\n"}
-    assert leak.domain_leaks("make it `a <= b`", starter, reference) == ["a <= b"]
-
-
-def test_name_leaks_check_only_renamed_names_of_three_or_more_chars() -> None:
-    names = DsaNames(
-        function=NameMapping(original="two_sum", renamed="find_pair"),
-        parameters=[
-            NameMapping(original="nums", renamed="amounts"),
-            NameMapping(original="k", renamed="goal"),
-            NameMapping(original="target", renamed="target"),
-        ],
-    )
-
-    assert leak.name_leaks("Given nums and k, find a target pair.", names) == ["nums"]
-    assert leak.name_leaks("Use two_sum_cache here", names) == []
-    assert leak.name_leaks("anything", None) == []
 
 
 # --- DSA ------------------------------------------------------------------------------

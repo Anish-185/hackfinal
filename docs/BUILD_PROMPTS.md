@@ -486,6 +486,14 @@ enrich.reference_files() resolves. Real runs: Novice pagination → expense→in
 category→department; Adept reporting → expense→item, category→group; both renamings
 re-verified in the sandbox. 4 generator calls, 2,590 tokens in / 549 out, $0.000516.
 
+Leak check: lives in backend/gate/leak.py, shared with the P2.7 gate, so a statement is
+judged the same way when it is written and when it is certified. enrich.py calls
+leak.statement_problems() (domain_leaks + the 200-word limit) and keeps only the
+starter-side diff for the model (enrich.starter_side_diff). P2.5's own copy was merged
+into gate/leak.py: its per-edit fix fragments and word limit were kept; its
+character-based line rule was replaced by the gate's token rule (≥3 tokens with an
+operator), which catches the same leaks without flagging prose. Tests: tests/test_leak.py.
+
 ### Specs for the rest of Phase 2
 
 - **P2.6 DSA:** written in full below ("P2.6 DSA bank, runners, rewriting").
@@ -645,6 +653,13 @@ Amendments (decided during the session):
 - The gate records the test ids that fail on the starter ("fail_to_pass",
   visible and hidden) and those that pass on it ("pass_to_pass") in the
   spec (gate.certify). The next prompt changes scoring to use them.
+- The statement leak check lives in backend/gate/leak.py and is shared with P2.5
+  enrichment (builder/enrich.py imports it; no other copy). It combines both versions:
+  the gate's token rules (changed reference lines with ≥3 tokens incl. an operator; fix
+  spans with context; DSA name_leaks) plus P2.5's per-edit fix fragments (each edit of
+  a split fix, alone if ≥3 chars and with one token of context) and the 200-word limit
+  for LLM-written statements (statement_problems / too_long; the gate itself does not
+  apply the word limit). All leak tests are in tests/test_leak.py.
 
 ## Phase 3: Assistant + scoring
 

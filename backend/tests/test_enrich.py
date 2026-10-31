@@ -1,18 +1,19 @@
-"""LLM enrichment (P2.5) with the LLM mocked: leak check, template fallback, renaming,
-caching, extra tests, and the demo task left alone. No sandbox: test runs are faked."""
+"""LLM enrichment (P2.5) with the LLM mocked: retry and template fallback on a leaking
+statement, renaming, caching, extra tests, and the demo task left alone. No sandbox: test
+runs are faked. The leak check itself (gate/leak.py) is tested in tests/test_leak.py."""
 
 import ast
 import json
 
 import fakeredis
 import httpx2
-import pytest
 
 from builder import enrich as e
 from builder.manual import EXPENSES_SEED
 from builder.tasks import load_seed, starter_base
 from contracts_gen.run_result import RunResult, Summary
 from contracts_gen.run_result import TestResult as RunTest
+from gate import leak
 from llm.client import LLMClient
 from tests.test_llm_client import FakeFeatherless, make_settings, ok
 
@@ -83,37 +84,22 @@ def run_enrich(spec: dict, llm, **kwargs) -> e.Enriched:
     )
 
 
-# --- Leak check -----------------------------------------------------------------------
+# --- What the model sees (the leak check itself: tests/test_leak.py) ------------------
 
 
-def info() -> e.FixInfo:
-    return e.fix_info({"app/utils.py": FILES["app/utils.py"]}, draft()["starter_files"])
+def problems(statement: str) -> list[str]:
+    starter = {"app/utils.py": draft()["starter_files"]["app/utils.py"]}
+    return leak.statement_problems(statement, starter, {"app/utils.py": FILES["app/utils.py"]})
 
 
 def test_model_sees_the_starter_side_of_the_diff_only() -> None:
-    diff = info().starter_diff
+    diff = e.starter_side_diff(
+        {"app/utils.py": FILES["app/utils.py"]},
+        {"app/utils.py": draft()["starter_files"]["app/utils.py"]},
+    )
 
     assert "+" + BUG_LINE in diff
     assert "(page - 1)" not in diff  # the reference line never reaches the model
-
-
-@pytest.mark.parametrize(
-    "statement",
-    [
-        "Use offset = (page - 1) * page_size.",  # the reference line
-        "The offset should use `(page-1)`.",  # the fixing tokens
-    ],
-)
-def test_leak_check_catches_a_statement_containing_the_fix(statement) -> None:
-    assert e.leak_reasons(statement, info())
-
-
-def test_leak_check_passes_a_statement_of_symptoms() -> None:
-    assert e.leak_reasons(f"{SAFE.title}\n{SAFE.statement}", info()) == []
-
-
-def test_leak_check_enforces_the_word_limit() -> None:
-    assert e.leak_reasons("word " * 201, info()) == ["longer than 200 words"]
 
 
 # --- Statement ------------------------------------------------------------------------
@@ -153,7 +139,7 @@ def test_template_is_used_after_two_failures() -> None:
     assert result.rejections
     statement = result.spec["statement_md"]
     assert "test_first_page_reports_total_and_has_next" in statement
-    assert e.leak_reasons(statement, info()) == []
+    assert problems(statement) == []
 
 
 def test_master_budget_sentence_is_appended_by_code() -> None:

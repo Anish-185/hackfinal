@@ -35,6 +35,7 @@ from builder.manual import DEMO_TASK_IDS
 from builder.master import perf_budget_sentence
 from builder.tasks import load_seed, split_test_module, starter_base
 from contracts_gen.task_spec import TaskSpec
+from gate import leak
 from llm import complete_structured
 from llm.client import summarize_error
 from runner import run_tests
@@ -42,10 +43,7 @@ from runner import run_tests
 STATEMENT_MAX_TOKENS = 500
 STATEMENT_TEMPERATURE = 0.2
 EXTRA_TESTS_MAX_TOKENS = 1200
-MAX_WORDS = 200
 MESSAGE_LINES = 20
-MIN_LEAK_CHARS = 8
-MIN_FRAGMENT_CHARS = 3
 EXTRA_TESTS_PATH = "tests/test_extra_hidden.py"
 RENAMED_WORD = re.compile(r"^[a-z]{3,20}$")
 
@@ -83,75 +81,24 @@ class Enriched:
     """LLM failures (budget, API errors); each falls back to code."""
 
 
-# --- Diff and leak check --------------------------------------------------------------
+# --- What the model sees of the change ------------------------------------------------
+# The leak check itself lives in gate/leak.py (shared with the P2.7 gate).
 
 
-@dataclass(frozen=True)
-class FixInfo:
-    starter_diff: str
-    """Unified diff reference -> starter with the reference side (`-` lines) removed."""
-    reference_lines: list[str]
-    fragments: list[str]
-
-
-_TOKEN = re.compile(r"\w+|==|!=|<=|>=|\*\*|//|->|[^\w\s]")
-
-
-def _normalize(text: str) -> str:
-    return re.sub(r"[\s`]", "", text)
-
-
-def fix_info(reference: dict[str, str], starter: dict[str, str]) -> FixInfo:
-    """What the model may see (starter side) and what the statement must not contain."""
-    diff_parts, reference_lines, fragments = [], [], []
+def starter_side_diff(reference: dict[str, str], starter: dict[str, str]) -> str:
+    """Unified diff reference -> starter without the reference side (`-` lines)."""
+    lines = []
     for path in sorted(reference):
-        before = reference[path].splitlines()
-        after = starter[path].splitlines()
-        diff = difflib.unified_diff(before, after, f"a/{path}", f"b/{path}", n=2, lineterm="")
-        diff_parts += [line for line in diff if not line.startswith("-") or line.startswith("---")]
-        matcher = difflib.SequenceMatcher(a=before, b=after, autojunk=False)
-        for op, i1, i2, j1, j2 in matcher.get_opcodes():
-            if op in ("replace", "delete"):
-                reference_lines += [line.strip() for line in before[i1:i2] if line.strip()]
-            if op == "replace":
-                for ref, bug in zip(before[i1:i2], after[j1:j2], strict=False):
-                    fragments += _fix_fragments(ref, bug)
-    return FixInfo("\n".join(diff_parts), reference_lines, fragments)
-
-
-def _fix_fragments(reference_line: str, starter_line: str) -> list[str]:
-    """Reference-side tokens that differ from the starter: each edit alone and with one token
-    of context, and the whole span from the first edit to the last (e.g. `(page-1)`)."""
-    ref, bug = _TOKEN.findall(reference_line), _TOKEN.findall(starter_line)
-    spans = [
-        (i1, i2)
-        for op, i1, i2, _, _ in difflib.SequenceMatcher(a=ref, b=bug, autojunk=False).get_opcodes()
-        if op in ("replace", "delete")
-    ]
-    candidates = [ref[i1:i2] for i1, i2 in spans]
-    candidates += [ref[max(0, i1 - 1) : i2 + 1] for i1, i2 in spans]
-    if len(spans) > 1:
-        candidates.append(ref[spans[0][0] : spans[-1][1]])
-    fragments = ["".join(tokens) for tokens in candidates]
-    return [f for f in dict.fromkeys(fragments) if len(f) >= MIN_FRAGMENT_CHARS]
-
-
-def leak_reasons(text: str, info: FixInfo) -> list[str]:
-    """Why `text` gives the fix away (empty when it doesn't), plus the word limit."""
-    normalized = _normalize(text)
-    reasons = [
-        f"contains reference line `{line}`"
-        for line in info.reference_lines
-        if len(_normalize(line)) >= MIN_LEAK_CHARS and _normalize(line) in normalized
-    ]
-    reasons += [
-        f"contains the fix `{fragment}`"
-        for fragment in info.fragments
-        if _normalize(fragment) in normalized
-    ]
-    if len(text.split()) > MAX_WORDS:
-        reasons.append(f"longer than {MAX_WORDS} words")
-    return reasons
+        diff = difflib.unified_diff(
+            reference[path].splitlines(),
+            starter[path].splitlines(),
+            f"a/{path}",
+            f"b/{path}",
+            n=2,
+            lineterm="",
+        )
+        lines += [line for line in diff if not line.startswith("-") or line.startswith("---")]
+    return "\n".join(lines)
 
 
 # --- Statement ------------------------------------------------------------------------
@@ -180,7 +127,7 @@ def _kind(spec: dict[str, Any]) -> str:
 
 def statement_messages(
     spec: dict[str, Any],
-    info: FixInfo,
+    starter_diff: str,
     failing: list[dict[str, str]],
     project_names: list[str],
     renamable: list[str],
@@ -195,7 +142,7 @@ def statement_messages(
         "tier": spec["tier"],
         "task": _kind(spec),
         "target_symbols": spec["target_symbols"],
-        "starter_diff": info.starter_diff,
+        "starter_diff": starter_diff,
         "visible_failing_tests": failing,
         "candidate_projects": project_names,
         "renamable_terms": renamable,
@@ -481,11 +428,13 @@ def enrich(
     files, concepts = load_seed(draft_spec["seed_id"])
     renamable = list(concepts.get("renamable", []))
     scope = draft_spec["certificate"]["scope_files"]
-    info = fix_info({p: files[p] for p in scope}, draft_spec["starter_files"])
+    reference = {p: files[p] for p in scope}
+    starter = {p: draft_spec["starter_files"][p] for p in scope}
     failing = failing_visible(draft_spec)
     result = Enriched(spec=draft_spec)
 
-    messages = statement_messages(draft_spec, info, failing, project_names, renamable)
+    diff = starter_side_diff(reference, starter)
+    messages = statement_messages(draft_spec, diff, failing, project_names, renamable)
     answer = first = None
     for attempt in (1, 2):
         try:
@@ -499,7 +448,9 @@ def enrich(
         except Exception as exc:  # noqa: BLE001 - any LLM failure falls back to the template
             result.notes.append(f"statement attempt {attempt} failed: {summarize_error(exc)}")
             break
-        reasons = leak_reasons(f"{candidate.title}\n{candidate.statement}", info)
+        reasons = leak.statement_problems(
+            f"{candidate.title}\n{candidate.statement}", starter, reference
+        )
         if not reasons:
             answer = candidate
             result.statement_source = "llm" if attempt == 1 else "llm_retry"

@@ -33,6 +33,11 @@ STUB_MIN_FAIL_RATE = 0.9
 LEAK_MIN_LINE_TOKENS = 3
 # DSA original names shorter than this are not checked (s, n, k say nothing).
 LEAK_MIN_NAME_CHARS = 3
+# A single edit's fragment (from P2.5) counts only with at least this many characters, so a
+# lone `1` or `-` can't match any statement.
+LEAK_MIN_EDIT_CHARS = 3
+# Statements written by LLM enrichment (P2.5) are at most this many words.
+STATEMENT_MAX_WORDS = 200
 
 # Mutation testing (optional): sandbox timeout for the whole mutmut run.
 MUTATION_TIMEOUT_S = 600
