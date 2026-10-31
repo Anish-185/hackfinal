@@ -2,6 +2,9 @@
 # Symbols: "path::name" or "path::Class.method". Tests: "path::test_function".
 seed: py-fastapi-expenses
 runtime: python311
+# Domain terms LLM enrichment (P2.5) may rename to fit the candidate's projects
+# (e.g. expense -> order). Renaming covers code, tests, routes and strings.
+renamable: [expense, category]
 
 concepts:
   pagination:

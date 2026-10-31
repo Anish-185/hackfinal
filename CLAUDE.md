@@ -115,7 +115,10 @@ backend/     app/            FastAPI app and plumbing:
                              checks, draft Adept spec), master.py (P2.4: bug +
                              LibCST perf regression in another file, budget
                              calibrated in the sandbox), perf.py (perf_ms from
-                             perf tests; also used by submit), tasks.py (shared:
+                             perf tests; also used by submit), enrich.py (P2.5:
+                             one generator call for statement + rename map, leak
+                             check, LibCST renaming re-checked in the sandbox),
+                             tasks.py (shared:
                              concepts.yaml, starter files, visible/hidden split,
                              validation), seeds.py, seed_demo.py,
                              dsa_bank.py (P2.6: bank loading, select_problem,
@@ -164,7 +167,7 @@ docs/        blueprint, prompts, progress, interviewer spec
 ## Commands
 make up | make down | make migrate | make seed-demo | make e2e | make test |
 make test-docker | make lint | make contracts | make runtimes | make mutate |
-make remove-feature | make build-master | make llm-smoke | make llm-usage | make dsa-import
+make remove-feature | make build-master | make enrich | make llm-smoke | make llm-usage | make dsa-import
 (Keep this list in sync with the Makefile.)
 
 - `make seed-demo`: builds and validates the P1.3 demo tasks in the sandbox
@@ -202,6 +205,11 @@ make remove-feature | make build-master | make llm-smoke | make llm-usage | make
   keep the first regression that exceeds it and keeps functional tests green, add a
   bug from CONCEPTS in another file, and print the validated draft Master task.
   ~1.5 min in the worker; no LLM calls.
+- `make enrich SEED=... TIER=novice|adept [CONCEPT=...] [PORTFOLIO=...]`: build a draft
+  task, then enrich it: one generator call (cached) writes the statement and a rename
+  map, the leak check rejects a statement that gives the fix away (one retry, then a
+  template), renaming is applied only if the sandbox re-run matches. Spends credits on a
+  cache miss; the demo tasks are never enriched.
 - `make llm-smoke`: one real request per slot; spends credits on a cache miss.
 - `make llm-usage`: tokens and estimated spend per slot.
 - `make dsa-import`: downloads LeetCodeDataset (pinned revision) into dsa/raw/,

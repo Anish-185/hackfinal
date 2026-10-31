@@ -1,4 +1,4 @@
-.PHONY: up down migrate seed-demo e2e test test-docker lint contracts runtimes mutate remove-feature build-master llm-smoke llm-usage dsa-import
+.PHONY: up down migrate seed-demo e2e test test-docker lint contracts runtimes mutate remove-feature build-master enrich llm-smoke llm-usage dsa-import
 
 up:
 	docker compose up -d --build
@@ -66,6 +66,13 @@ remove-feature:
 # Usage: make build-master SEED=py-fastapi-expenses [CONCEPTS="pagination validation"] [RNG_SEED=0]
 build-master:
 	docker compose run --rm worker python -m builder.master $(SEED) $(CONCEPTS) --rng-seed $(RNG_SEED)
+
+# LLM enrichment (P2.5): build a draft Novice or Adept task, then write its statement (one
+# generator call, cached), copy the repo tour and rename domain entities when the re-run in the
+# sandbox matches. Spends Featherless credits on a cache miss.
+# Usage: make enrich SEED=py-fastapi-expenses TIER=novice|adept [CONCEPT=...] [PORTFOLIO=...]
+enrich:
+	docker compose run --rm worker python -m builder.enrich $(SEED) --tier $(TIER) $(if $(CONCEPT),--concept $(CONCEPT)) $(if $(PORTFOLIO),--portfolio $(PORTFOLIO))
 
 # One small real request per model slot. Spends Featherless credits on a cache miss.
 llm-smoke:
