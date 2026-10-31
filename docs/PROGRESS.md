@@ -42,8 +42,9 @@ Roles: A Execution · B Generation + AI and scoring · C Frontend + interviewer 
 | P4.1 | Certificate view | C | Not started | |
 | P4.2 | Claim verification map | C | Not started | |
 | P4.3 | Progress timeline and hint ROI | C | Not started | |
-| P4.4 | Trail Map builder and metrics | B | Not started | |
-| P4.5 | Trail Map replay UI | C | Not started | |
+| F4 | Trail Map (replaces P4.4-P4.5) | B, C | Done | 2026-10-31: backend/trail (ast spans + name-based call graph; focus samples mapped with the snapshot of the moment; visits, dwell, edits under the cursor), metrics time to target, off-path time before it, found independently / within 2 min of a hint / not reached, edit precision (changed lines inside target symbols), GET /sessions/{id}/trail with X-Recruiter-Key (RECRUITER_API_KEY, fails closed). Report tab with React Flow: functions grouped by file, target outlined, dwell heat up to the scrubber, animated trail (orange after a hint), play/scrub, metric cards. Rendered for the seed-demo (e2e) session, npm run build passes |
+| P4.4 | Trail Map builder and metrics | B | Done (F4) | Python ast instead of tree-sitter |
+| P4.5 | Trail Map replay UI | C | Done (F4) | |
 | P4.6 | Integrity flags | A | Not started | |
 | P4.7 | Interview plan generator | B | Not started | |
 | P4.8 | Interview turn endpoint | B | Not started | |
@@ -148,6 +149,10 @@ Roles: A Execution · B Generation + AI and scoring · C Frontend + interviewer 
 | 2026-10-31 | No streaming: the whole reply is checked before the candidate sees it; chat history lives in the page only (events store levels, not text) | Guards need the full reply; the event contract has no text fields |
 | 2026-10-31 | AI efficiency details: PPH's failing set is the task's latest earlier run's failing visible tests (fail_to_pass.visible before any run); a hint with nothing failing scores 0; TD counts runs on the hint's task since that task's previous hint; FREQ = runs/10 min over started_at..submitted_at (or the deadline), linear from 0 at 0 runs and to 0 at 12; zero hints: E = mean/100 minus 0.15 per extraction attempt | BLUEPRINT section 5 leaves these open; without the last rule, an extractor who never got a hint would keep full E |
 | 2026-10-31 | Scoring version 3 (AI efficiency with hints); sessions without hints score as in v2 | Re-grades of older sessions show the new version |
+| 2026-10-31 | Trail Map uses Python's ast (stdlib), not py-tree-sitter: nodes are top-level functions and class methods ("path::qualname", the target_symbols form) plus a per-file node; calls link by name, preferring the caller's file; .js files get a file node only | Seeds are Python; no new dependency |
+| 2026-10-31 | A focus sample (1/s from telemetry) is 1 s of dwell and is mapped with the latest saved snapshot at that moment (else the starter); blank lines right after a function belong to it; edits (no line in the event) go to the function under that file's latest cursor; a pause over 5 s on one node starts a new visit | Lines added above a function don't shift the trail; Monaco leaves the cursor after the final newline after a paste |
+| 2026-10-31 | Trail metrics: time to target from the task's first focus; off-path time = dwell outside the targets before the first target visit; "after_hint" when that visit is within 2 min after a hint on the task; edit precision = share of lines changed from the starter to the final files inside a target symbol | Report-only (rule 8); targets = target_symbols, else entry_symbols (DSA) |
+| 2026-10-31 | RECRUITER_API_KEY added now (X-Recruiter-Key, constant-time compare, 503 when unset) and used only by the trail route; F1 extends it to the recruiter and report routes | The Trail Map exposes the candidate's behaviour and code positions |
 
 ## Reuse from Faiz
 
@@ -209,3 +214,4 @@ Not covered by anything from Faiz: charts (P4.3 progress timeline, hint ROI), th
 | 2026-10-31 | Anish (Claude Code) | Practice app nav (frontend/app/practice/SiteNav.tsx, lib/site.ts): Home, Practice, Code reading (code-compr, :3002) and AI interview (showcase, :3001) on the problem list and editor; URLs from NEXT_PUBLIC_SHOWCASE_URL / NEXT_PUBLIC_CODE_READING_URL via docker-compose; showcase and code-compr dev ports set to 3001 / 3002. Frontend lint + build clean, links checked in headless Chromium | Serve the parts behind one host if needed |
 | 2026-10-31 | Sriram (Claude Code) | G1: merged faiz/main, archived coding-assessment/, practice-only DSA split + counts-only Submit, Reuse from Faiz inventory, CLAUDE.md token policy | F1 builder pipeline + recruiter page |
 | 2026-10-31 | Sriram (Claude Code) | F2 hint assistant: assistant/ (hints, guards), hints routes, assistant-ui panel, scoring/efficiency.py (v3), seed-demo TIER=adept; real Adept run: 2 hints + 1 refused extraction | F1 builder pipeline + recruiter page |
+| 2026-10-31 | Sriram (Claude Code) | F4 Trail Map: backend/trail, GET /sessions/{id}/trail (recruiter key), report Trail Map tab (React Flow), RECRUITER_API_KEY in .env.example; rendered for the e2e seed-demo session | F1 builder pipeline + recruiter page |

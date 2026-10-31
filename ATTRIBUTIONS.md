@@ -44,6 +44,7 @@ Add every new one here in the same change that introduces it (CLAUDE.md).
 | [json-schema-to-typescript](https://github.com/bcherny/json-schema-to-typescript) | MIT | Generating TypeScript types from contracts/ |
 | [Monaco Editor](https://github.com/microsoft/monaco-editor) / [@monaco-editor/react](https://github.com/suren-atoyan/monaco-react) | MIT | Candidate IDE editor (P1.4). monaco-editor 0.55.1 is bundled from npm (core editor + a few syntax highlighters, lib/monaco.ts), no CDN (P1.4b) |
 | [react-markdown](https://github.com/remarkjs/react-markdown) | MIT | Rendering task statements and repo tours (P1.4) |
+| [React Flow](https://github.com/xyflow/xyflow) (@xyflow/react 12.12.0) | MIT | Trail Map tab on the report: function graph grouped by file, animated trail (F4) |
 | [assistant-ui](https://github.com/assistant-ui/assistant-ui) (@assistant-ui/react 0.15.29) | MIT | Hint assistant chat panel in the IDE: thread, messages and composer primitives over our hint API (F2) |
 | [GSAP](https://github.com/greensock/GSAP) 3.15.0 (ScrollTrigger, SplitText) | GSAP Standard License (free, no-charge) | Scroll, text and page-transition animation in the themed journey (`components/olympus`) |
 | [Lenis](https://github.com/darkroomengineering/lenis) 1.3.27 | MIT | Smooth scrolling on the landing, Offering and Verdict pages |
@@ -160,7 +161,6 @@ From docs/BLUEPRINT.md section 7. Move a row up to "Used as dependencies" or
 | [Sandpack](https://github.com/codesandbox/sandpack) | Apache-2.0 | Web preview only |
 | [LLM Guard](https://github.com/protectai/llm-guard) (rules) | MIT | Assistant input rules (P3.2) |
 | [promptfoo](https://github.com/promptfoo/promptfoo) | MIT | Attack testing of the assistant (P3.6) |
-| [py-tree-sitter](https://github.com/tree-sitter/py-tree-sitter) | MIT | Function spans and call graph for the Trail Map (P4.4) |
 | [Web Speech API](https://developer.mozilla.org/en-US/docs/Web/API/Web_Speech_API) | Browser API | Interviewer listening (P4.9) |
 | [Kokoro-82M](https://huggingface.co/hexgrad/Kokoro-82M) (via Featherless) | Apache-2.0 | Interviewer voice (P4.9) |
 | [faster-whisper](https://github.com/SYSTRAN/faster-whisper) | MIT | Optional speech-recognition fallback (P4.12) |

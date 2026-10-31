@@ -8,6 +8,8 @@ class Settings(BaseSettings):
 
     database_url: str
     redis_url: str
+    recruiter_api_key: str = ""
+    """Required in the X-Recruiter-Key header of recruiter routes; unset: they return 503."""
 
 
 @lru_cache

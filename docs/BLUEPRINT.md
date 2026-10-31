@@ -152,7 +152,7 @@ Tune weights with the simulated candidates.
 | Sandbox | llm-sandbox / Docker SDK | Runner | MIT / Apache-2.0 |
 | Editor | Monaco + @monaco-editor/react; Sandpack (preview only) | IDE | MIT / Apache-2.0 |
 | Guard | copydetect, LLM Guard (rules), promptfoo | Leak guard, attack testing | See repos / MIT |
-| Trail Map | py-tree-sitter | Function spans, call graph | MIT |
+| Trail Map | Python `ast` (stdlib; F4) and React Flow | Function spans, call graph; replay UI | PSF / MIT |
 | Voice | Web Speech API (browser), faster-whisper (optional fallback), Three.js (orb) | Listening, orb | Browser / MIT |
 | Security tasks | Bandit, Semgrep CE (own rules) | Static checks | Apache-2.0 / LGPL-2.1 |
 | Stretch | catsim, Dolos | Adaptive mode, collusion | See repos / MIT |

@@ -43,7 +43,16 @@ dev = [
 
 [tool.hatch.build.targets.wheel]
 packages = [
-    "app", "assistant", "builder", "contracts_gen", "gate", "llm", "profiler", "runner", "scoring"
+    "app",
+    "assistant",
+    "builder",
+    "contracts_gen",
+    "gate",
+    "llm",
+    "profiler",
+    "runner",
+    "scoring",
+    "trail",
 ]
 
 [tool.pytest.ini_options]

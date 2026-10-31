@@ -38,6 +38,42 @@ export type HintStatus = {
 };
 export type HintOut = { reply: string; level: number; refused: boolean; blocked: boolean; status: HintStatus };
 
+// GET /sessions/{id}/trail (recruiter key): report-only, never part of the score.
+export type TrailNode = {
+  id: string; // "path::qualname", or "path" for code outside functions
+  file: string;
+  name: string;
+  target: boolean;
+  start: number | null;
+  end: number | null;
+  dwell_ms: number;
+};
+export type TrailVisit = { node: string; start_ms: number; end_ms: number; after_hint: boolean };
+export type TrailMetrics = {
+  time_to_target_ms: number | null;
+  off_path_ms: number;
+  found: "independent" | "after_hint" | "not_found";
+  edit_precision: number | null;
+  lines_changed: number;
+  functions_visited: number;
+  hints: number;
+};
+export type TaskTrail = {
+  task_id: string;
+  kind: string;
+  targets: string[];
+  files: string[];
+  nodes: TrailNode[];
+  edges: [string, string][];
+  visits: TrailVisit[];
+  edits: { ts: number; node: string; chars: number }[];
+  hints: { ts: number; level: number; blocked: boolean }[];
+  metrics: TrailMetrics;
+  first_ms: number | null;
+  last_ms: number | null;
+};
+export type TrailOut = { session_id: string; tasks: TaskTrail[] };
+
 export type ScoreOut = {
   status: "in_progress" | "grading" | "graded"; // in_progress: not submitted yet
   computed_at: string | null;
@@ -53,10 +89,10 @@ export class ApiError extends Error {
   }
 }
 
-async function request<T>(method: string, path: string, body?: unknown): Promise<T> {
+async function request<T>(method: string, path: string, body?: unknown, headers?: Record<string, string>): Promise<T> {
   const res = await fetch(`${API_BASE}${path}`, {
     method,
-    headers: body === undefined ? undefined : { "Content-Type": "application/json" },
+    headers: { ...(body === undefined ? {} : { "Content-Type": "application/json" }), ...headers },
     body: body === undefined ? undefined : JSON.stringify(body),
     cache: "no-store",
   });
@@ -80,6 +116,8 @@ export const api = {
   postEvents: (id: string, events: Event[]) => request<{ accepted: number }>("POST", `/sessions/${id}/events`, events),
   getScore: (id: string) => request<ScoreOut>("GET", `/sessions/${id}/score`),
   regrade: (id: string) => request<ScoreBreakdown>("POST", `/sessions/${id}/regrade`),
+  getTrail: (id: string, recruiterKey: string) =>
+    request<TrailOut>("GET", `/sessions/${id}/trail`, undefined, { "X-Recruiter-Key": recruiterKey }),
   hintStatus: (id: string, taskId: string) => request<HintStatus>("GET", `/sessions/${id}/tasks/${taskId}/hints`),
   hint: (id: string, taskId: string, question: string) =>
     request<HintOut>("POST", `/sessions/${id}/tasks/${taskId}/hint`, { question }),

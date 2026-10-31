@@ -716,6 +716,14 @@ P3.5 (simulated candidates) and P3.6 (promptfoo) were not built.
 
 ## Phase 4: Report, Trail Map, interviewer
 
+F4 (2026-10-31) replaces P4.4-P4.5: backend/trail/ (Python ast -> function spans and a
+name-based call graph per task; focus/edit events mapped to functions), report-only
+metrics (time to first target visit, off-path time before it, found independently vs
+within 2 min after a hint, edit precision), GET /sessions/{id}/trail behind
+RECRUITER_API_KEY, and a Trail Map tab on the report with React Flow (nodes grouped by
+file, target highlighted, animated trail styled differently after hints, dwell heat,
+scrubber and play button, metric cards).
+
 - **P4.1** Certificate view (recruiter page + report).
 - **P4.2** Claim verification map.
 - **P4.3** Progress timeline + hint ROI chart.

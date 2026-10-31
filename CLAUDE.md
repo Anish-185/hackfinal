@@ -81,7 +81,8 @@ DATABASE_URL, REDIS_URL, FEATHERLESS_API_KEY,
 FEATHERLESS_MODEL_GENERATOR, FEATHERLESS_MODEL_ASSISTANT,
 FEATHERLESS_MODEL_PROBE, FEATHERLESS_MODEL_INTERVIEWER,
 FEATHERLESS_TTS_MODEL, FEATHERLESS_TTS_VOICE,
-INTERVIEW_TOKEN_BUDGET (default 4000)
+INTERVIEW_TOKEN_BUDGET (default 4000), RECRUITER_API_KEY (X-Recruiter-Key header on
+recruiter routes; unset: they return 503)
 
 Also used by the P0 code (see .env.example for values and comments):
 - POSTGRES_USER, POSTGRES_PASSWORD, POSTGRES_DB (postgres container)
@@ -98,7 +99,8 @@ frontend/    Next.js app: app/practice (LeetCode-style problem list and
              app/practice/[id] editor; lib/practice.ts, no session),
              app/recruiter, app/session/[id] (IDE; AssistantPanel.tsx: assistant-ui
              hint chat, Adept/Master only), app/report/[id]
-             (score, band, per-task table, Re-grade), app/interview/[id].
+             (score, band, per-task table, Re-grade; Trail Map tab: TrailTab.tsx,
+             React Flow, recruiter key kept in sessionStorage), app/interview/[id].
              lib/api.ts (browser client, calls /api,
              rewritten to API_URL in next.config.ts), lib/telemetry.ts,
              lib/workspace.ts (mirror of backend/app/workspace.py: keep in sync),
@@ -149,6 +151,12 @@ backend/     app/            FastAPI app and plumbing:
                              score_session.py (ScoreBreakdown from stored submit
                              runs + events; used by submit and POST .../regrade),
                              efficiency.py (AI efficiency E from hint events and runs)
+             trail/          Trail Map (F4, report-only): graph.py (ast function spans,
+                             name-based call graph), replay.py (focus/edit events ->
+                             functions using the snapshot of the moment; visits, dwell,
+                             metrics), session.py (load from the DB);
+                             app/routes/trail.py GET /sessions/{id}/trail and
+                             app/recruiter.py (X-Recruiter-Key check)
              assistant/      hint assistant (F2): hints.py (ladder L1 concept / L2
                              function / L3 line, rising only after a run; 1 per
                              60 s per session, 8 per task; context without reference
@@ -163,7 +171,7 @@ backend/     app/            FastAPI app and plumbing:
                              stubs.py (DSA stub strength), reference.py,
                              mutation.py (optional mutmut); `make gate`
              llm/ runner/ contracts_gen/ scripts/ tests/
-             planned packages: trail/ interviewer/
+             planned packages: interviewer/
              A new top-level package must be added to `packages` in
              backend/pyproject.toml and to the mkdir line in backend/Dockerfile.
 seeds/       hand-written seed repos, each with tests + concepts.yaml; tests/perf/
