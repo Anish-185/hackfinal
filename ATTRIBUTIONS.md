@@ -128,3 +128,6 @@ From docs/BLUEPRINT.md section 7. Move a row up to "Used as dependencies" or
 | [Anthropic TypeScript SDK](https://github.com/anthropics/anthropic-sdk-typescript) | MIT | coding-assessment/ debug hints and challenge generation |
 | [axios](https://github.com/axios/axios), [dotenv](https://github.com/motdotla/dotenv) | MIT | coding-assessment/ |
 | [React](https://github.com/facebook/react), [react-router](https://github.com/remix-run/react-router), [react-markdown](https://github.com/remarkjs/react-markdown), [Vite](https://github.com/vitejs/vite) | MIT | coding-assessment/ frontend |
+| [DeepInterview](https://github.com/ngoanpv/DeepInterview) (plan structure and guard ideas only, no code copied) | Apache-2.0 | Browser AI interview in showcase/ |
+| [Lenis](https://github.com/darkroomengineering/lenis), [Motion](https://github.com/motiondivision/motion), [Fontsource](https://github.com/fontsource/fontsource) | MIT / OFL | showcase/ |
+| [Prisma](https://github.com/prisma/prisma), [Next.js](https://github.com/vercel/next.js) | Apache-2.0 / MIT | code-compr/ |
