@@ -106,7 +106,23 @@ Our code lives in these folders at the root, instead of the starter's suggested 
 
 ## 🚀 Local Setup
 
-*To be completed.*
+The platform is four parts that run side by side:
+
+| Part | Folder | What it is | Run it |
+| --- | --- | --- | --- |
+| Landing site | `showcase/` | Static site "Assay": overview, **Code reading** (`/comprehension`) and **AI mock interview** (`/interview`), both in the browser | `cd showcase && npm ci && npm run dev` (port 3001) |
+| Practice problems | `frontend/` + `backend/` | LeetCode-style problem list and Monaco editor (`/practice`); Run, custom input and Submit in a sandbox | `cp .env.example .env`, `make runtimes`, `make up`, `make migrate`; open http://localhost:3000/practice |
+| Assessment engine | `backend/`, `frontend/app/session`, `frontend/app/report` | Portfolio to validated 60-minute assessment, sandbox grading, report | `make seed-demo` prints a session URL |
+| Code comprehension app | `code-compr/` | Full code-reading app (GitHub task curation, rubric review, Prisma) | see `code-compr/.env.example`; `npm install`, `npm run db:push`, `npm run dev` (port 3002) |
+
+The landing site links to the practice app at `NEXT_PUBLIC_PRACTICE_URL`
+(default `http://localhost:3000/practice`), and the practice app's navigation links back
+to the landing site, the code-reading app and the AI interview through
+`NEXT_PUBLIC_SHOWCASE_URL` (default `http://localhost:3001`) and
+`NEXT_PUBLIC_CODE_READING_URL` (default `http://localhost:3002`). `coding-assessment/` is an earlier standalone
+prototype (Express, Judge0, MongoDB); the practice mode in `frontend/` replaces it.
+The in-site AI interview is browser-only (Web Speech API, scripted questions); the
+model-backed interviewer in `docs/INTERVIEWER.md` is not built yet.
 
 ## 🎥 Demo Video
 

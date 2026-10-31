@@ -93,7 +93,9 @@ Also used by the P0 code (see .env.example for values and comments):
 
 ## Layout
 contracts/   JSON Schemas (source of truth) + fixtures + generated types
-frontend/    Next.js app: app/recruiter, app/session/[id], app/report/[id]
+frontend/    Next.js app: app/practice (LeetCode-style problem list and
+             app/practice/[id] editor; lib/practice.ts, no session),
+             app/recruiter, app/session/[id], app/report/[id]
              (score, band, per-task table, Re-grade), app/interview/[id].
              lib/api.ts (browser client, calls /api,
              rewritten to API_URL in next.config.ts), lib/telemetry.ts,
@@ -126,6 +128,10 @@ backend/     app/            FastAPI app and plumbing:
                              build), dsa_rewrite.py (one generator call per
                              problem+domain, validation, template fallback),
                              dsa_demo.py (build one DSA task for a portfolio)
+             app/practice.py practice mode: bank problem -> TaskSpec, Run / custom
+                             input / Submit through app.dsa; practice_jobs.py
+                             (Redis job records, one job and 20 per minute per
+                             X-Client-Id); routes/practice.py; Celery practice_job
              app/dsa.py      DSA grading: harness gets inputs only, outputs
                              compared on the backend (runner/harness/:
                              python_cases.py, node_cases.js); hidden_sample()
@@ -169,7 +175,7 @@ docs/        blueprint, prompts, progress, interviewer spec
 - master: multi-file bug + performance constraint + medium/hard DSA, assistant enabled
 
 ## Commands
-make up | make down | make migrate | make seed-demo | make e2e | make test |
+make up | make down | make migrate | make seed-demo | make e2e | make e2e-practice | make test |
 make test-docker | make lint | make contracts | make runtimes | make mutate |
 make remove-feature | make build-master | make enrich | make gate | make llm-smoke |
 make llm-usage | make dsa-import
@@ -189,6 +195,10 @@ make llm-usage | make dsa-import
   failure saves e2e/artifacts/failure.png. Re-run it instead of re-testing the
   browser flow by hand; when a phase changes the flow or the expected scores,
   update e2e/demo.mjs in the same change.
+
+- `make e2e-practice`: needs the stack up. Restarts the worker, then headless
+  Chromium on /practice: Run, custom input, Submit (Accepted 35/35) in Python and
+  JavaScript, code survives a reload, no request leaves the stack. ~30 s.
 
 - `make migrate`: `alembic upgrade head` on the dev database. A schema change
   means: edit app/models.py → `docker compose run --rm api alembic revision

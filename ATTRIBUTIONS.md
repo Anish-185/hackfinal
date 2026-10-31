@@ -72,6 +72,24 @@ Product screenshots on the site are captured from our own running app with Playw
 
 The `/interview` practice demo uses only browser APIs: the [Web Speech API](https://developer.mozilla.org/en-US/docs/Web/API/Web_Speech_API) (speech recognition and the built-in speech synthesis voice) and the [Web Audio API](https://developer.mozilla.org/en-US/docs/Web/API/Web_Audio_API) (mic level for the blob). No new packages.
 
+### Code reading app (`code-compr/package.json`)
+
+| Project | License | Use |
+| :--- | :--- | :--- |
+| [Prisma](https://github.com/prisma/prisma), [Next.js](https://github.com/vercel/next.js) | Apache-2.0 / MIT | code-compr/ |
+
+### Archived: coding-assessment (branch `archive/coding-assessment`, not on main)
+
+| Project | License | Use |
+| :--- | :--- | :--- |
+| [Judge0](https://github.com/judge0/judge0) | GPL-3.0 | Code execution service for coding-assessment/ (used over HTTP, not bundled) |
+| [Express](https://github.com/expressjs/express), [helmet](https://github.com/helmetjs/helmet), [express-rate-limit](https://github.com/express-rate-limit/express-rate-limit), [cors](https://github.com/expressjs/cors) | MIT | coding-assessment/ API |
+| [BullMQ](https://github.com/taskforcesh/bullmq), [ioredis](https://github.com/redis/ioredis) | MIT | coding-assessment/ job queue |
+| [Mongoose](https://github.com/Automattic/mongoose) | MIT | coding-assessment/ MongoDB models |
+| [Anthropic TypeScript SDK](https://github.com/anthropics/anthropic-sdk-typescript) | MIT | coding-assessment/ debug hints and challenge generation |
+| [axios](https://github.com/axios/axios), [dotenv](https://github.com/motdotla/dotenv) | MIT | coding-assessment/ |
+| [React](https://github.com/facebook/react), [react-router](https://github.com/remix-run/react-router), [react-markdown](https://github.com/remarkjs/react-markdown), [Vite](https://github.com/vitejs/vite) | MIT | coding-assessment/ frontend |
+
 ### Runner images (`runtimes/`)
 
 | Software | License | Use |

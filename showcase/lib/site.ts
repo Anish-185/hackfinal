@@ -6,6 +6,12 @@ export const NAME = "Assay";
 
 export const TEAM_LINE = "HFT26 Team 41 · JL";
 export const EVENT = "CBIT Hacktoberfest '26";
+/**
+ * The practice-problem app (frontend/ in this repo, needs the backend running). The other
+ * two tools, code reading and the AI interview, are pages of this site.
+ */
+export const PRACTICE_URL = process.env.NEXT_PUBLIC_PRACTICE_URL ?? "http://localhost:3000/practice";
+
 export const REPO_URL = "https://github.com/ROG-user-0987/HFT26-TEAM-41";
 
 export type Status = "built" | "progress" | "planned";

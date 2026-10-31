@@ -3,10 +3,11 @@
 import { useState } from "react";
 import { motion, useMotionValueEvent, useScroll, useSpring } from "motion/react";
 import Link from "next/link";
-import { NAME } from "@/lib/site";
+import { NAME, PRACTICE_URL } from "@/lib/site";
 import { Star } from "./fx";
 
 const LINKS = [
+  ["#try", "Try it"],
   ["#how", "Voyage"],
   ["#trail", "Thread"],
   ["#trust", "Aegis"],
@@ -47,6 +48,9 @@ export default function Header() {
               </a>
             ))}
           </nav>
+          <a href={PRACTICE_URL} className="hdr-cc">
+            Practice
+          </a>
           <Link href="/comprehension" className="hdr-cc">
             Code reading
           </Link>

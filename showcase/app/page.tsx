@@ -2,6 +2,7 @@ import Header from "@/components/Header";
 import Intro from "@/components/Intro";
 import Hero from "@/components/Hero";
 import Marquee from "@/components/Marquee";
+import Try from "@/components/Try";
 import Problem from "@/components/Problem";
 import Pipeline from "@/components/Pipeline";
 import TrailMap from "@/components/TrailMap";
@@ -31,6 +32,7 @@ export default function Page() {
       <main>
         <Hero />
         <Marquee items={BAND} />
+        <Try />
         <Problem />
         <Pipeline />
         <TrailMap />

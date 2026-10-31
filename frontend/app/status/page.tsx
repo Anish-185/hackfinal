@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { connection } from "next/server";
 import { Suspense } from "react";
 
@@ -50,6 +51,9 @@ export default function Status() {
       <Suspense fallback={<p className="text-gray-500">Checking…</p>}>
         <HealthStatus />
       </Suspense>
+      <Link href="/practice" className="mt-6 inline-block text-blue-700 underline">
+        Practice problems
+      </Link>
     </main>
   );
 }
