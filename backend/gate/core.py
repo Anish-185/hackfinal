@@ -13,6 +13,7 @@ from dataclasses import dataclass
 from typing import Any, NoReturn
 
 from app import grading
+from builder.perf import PERF_DIR
 from builder.tasks import load_seed
 from contracts_gen.profile import Profile
 from contracts_gen.task_spec import Certificate, TaskSpec, TestIdSplit
@@ -328,6 +329,10 @@ def _perf_reasons(task: TaskSpec) -> list[Reason]:
         if limits.SCOPE[task.tier].needs_perf and task.kind == "domain":
             return [reason("perf_missing", f"{task.tier} tasks need a perf budget and calibration")]
         return []
+    if task.kind == "domain" and not any(t.path.startswith(PERF_DIR) for t in task.hidden_tests):
+        # grading.measure_perf times this test at submit; without it every submission
+        # would get the perf floor.
+        return [reason("perf_test_missing", f"perf is set but no hidden test is in {PERF_DIR}")]
     budget = task.perf.budget_ms
     ref_ms, naive_ms = task.certificate.perf_ref_ms, task.certificate.perf_naive_ms
     if ref_ms is None or naive_ms is None:

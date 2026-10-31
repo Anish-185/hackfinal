@@ -17,10 +17,13 @@ from gate.diff import diff
 from gate.limits import LEAK_MIN_EDIT_CHARS, LEAK_MIN_LINE_TOKENS, LEAK_MIN_NAME_CHARS
 
 _TOKEN = re.compile(r"\w+|==|!=|<=|>=|\*\*|//|->|\+=|-=|[^\w\s]")
+# Any quote is the same quote; smart quotes count as plain ones.
+_QUOTES = str.maketrans({"'": '"', "\u2018": '"', "\u2019": '"', "\u201c": '"', "\u201d": '"'})
 
 
 def tokens(text: str) -> list[str]:
-    return _TOKEN.findall(text)
+    """Code tokens; quote style is ignored and Markdown backticks are dropped."""
+    return [t for t in _TOKEN.findall(text.translate(_QUOTES)) if t != "`"]
 
 
 def _contains(haystack: list[str], needle: list[str]) -> bool:

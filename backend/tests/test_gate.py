@@ -18,7 +18,8 @@ from contracts_gen.run_result import RunResult, Summary
 from contracts_gen.run_result import TestResult as Result
 from contracts_gen.task_spec import DsaNames, NameMapping, TaskSpec
 from gate import certify, check, leak, validate
-from gate.stubs import stub_fail_rates
+from gate.diff import diff
+from gate.stubs import empty_value, stub_fail_rates
 from scoring.score_session import _mutation_score
 from tests.test_dsa_bank import problem, profile
 
@@ -221,7 +222,7 @@ def test_hidden_copies_of_concept_tests_count_as_the_concept() -> None:
 
 def test_a_novice_fix_in_two_files_is_out_of_scope() -> None:
     spec = domain_spec()
-    spec["starter_files"]["app/services.py"] += "\n# stray change\n"
+    spec["starter_files"]["app/services.py"] += "\nSTRAY_CHANGE = 1\n"
     _, reasons = run_gate(spec)
 
     assert codes(reasons) == ["scope_files"]
@@ -230,7 +231,7 @@ def test_a_novice_fix_in_two_files_is_out_of_scope() -> None:
 
 def test_a_novice_fix_over_ten_lines_is_out_of_scope() -> None:
     spec = domain_spec()
-    spec["starter_files"]["app/utils.py"] += "".join(f"# extra {i}\n" for i in range(10))
+    spec["starter_files"]["app/utils.py"] += "".join(f"EXTRA_{i} = {i}\n" for i in range(10))
     _, reasons = run_gate(spec)
 
     assert codes(reasons) == ["scope_lines"]
@@ -240,16 +241,20 @@ def test_a_novice_fix_over_ten_lines_is_out_of_scope() -> None:
 def test_adept_needs_two_or_three_files() -> None:
     _, one_file = run_gate(domain_spec("adept"))
     spec = domain_spec("adept")
-    spec["starter_files"]["app/services.py"] += "\n# removed feature\n"
+    spec["starter_files"]["app/services.py"] += "\nREMOVED_FEATURE = None\n"
     _, two_files = run_gate(spec)
 
     assert codes(one_file) == ["scope_files"]
     assert two_files == []
 
 
+PERF_TEST = {"path": "tests/perf/test_report_perf.py", "content": "# timed\n"}
+
+
 def master_spec(perf: dict[str, Any] | None, ref_ms=40.0, naive_ms=900.0) -> dict[str, Any]:
     spec = domain_spec("master", perf=perf)
-    spec["starter_files"]["app/services.py"] += "\n# naive lookup\n"
+    spec["hidden_tests"] = spec["hidden_tests"] + [PERF_TEST]
+    spec["starter_files"]["app/services.py"] += "\nNAIVE_LOOKUP = True\n"
     spec["certificate"] |= {"perf_ref_ms": ref_ms, "perf_naive_ms": naive_ms}
     return spec
 
@@ -286,6 +291,38 @@ def test_master_perf_calibration_must_hold(ref_ms, naive_ms, code) -> None:
     _, reasons = run_gate(master_spec(PERF, ref_ms, naive_ms))
 
     assert codes(reasons) == [code]
+
+
+def test_a_perf_budget_without_a_hidden_perf_test_is_rejected() -> None:
+    spec = master_spec(PERF)
+    spec["hidden_tests"] = [t for t in spec["hidden_tests"] if t != PERF_TEST]
+    _, reasons = run_gate(spec)
+
+    assert codes(reasons) == ["perf_test_missing"]
+
+
+def test_comment_and_whitespace_changes_are_not_part_of_the_scope() -> None:
+    spec = domain_spec()
+    utils = spec["starter_files"]["app/utils.py"]
+    spec["starter_files"]["app/utils.py"] = "# reworded header comment\n\n\n" + utils.replace(
+        "offset = (page - 2) * page_size", "offset = (page-2)*page_size  # hmm"
+    )
+    spec["starter_files"]["app/services.py"] += "\n\n# only a comment here\n   \n"
+    certificate, reasons = run_gate(spec)
+
+    assert reasons == []
+    assert certificate.model_dump(mode="json")["scope_files"] == ["app/utils.py"]
+    assert certificate.changed_lines == 1
+
+
+def test_scope_counts_code_lines_once_per_replaced_line() -> None:
+    changes = diff(
+        {"a.py": "x = 1\ny = 2\n", "b.py": "z = 0\n"},
+        {"a.py": "x = 2\ny = 3\nw = 4\n", "b.py": "z = 0  # same code\n"},
+    )
+
+    assert (changes.files, changes.changed_lines) == (["a.py"], 3)
+    assert changes.reference_lines == ["x = 2", "y = 3", "w = 4"]
 
 
 def test_test_ids_must_match_the_derived_ones() -> None:
@@ -369,6 +406,29 @@ def test_a_multi_token_fix_leaks_without_its_context() -> None:
     )
 
 
+@pytest.mark.parametrize(
+    "statement",
+    [
+        "Set label = 'total' first.",  # other quote style
+        "Set label = \u201ctotal\u201d first.",  # smart quotes
+        'Set `label` = `"total"` first.',  # backticks inside the snippet
+    ],
+)
+def test_leak_check_ignores_quote_style_and_backticks(statement) -> None:
+    starter, reference = {"m.py": 'label = "sum"\n'}, {"m.py": 'label = "total"\n'}
+
+    assert leak.domain_leaks(statement, starter, reference)
+
+
+def test_leak_lines_ignore_the_reference_comment() -> None:
+    starter = {"m.py": "offset = page * size\n"}
+    reference = {"m.py": "offset = (page - 1) * size  # first page is 1\n"}
+
+    assert "contains reference line `offset = (page - 1) * size`" in leak.domain_leaks(
+        "Use offset = (page - 1) * size.", starter, reference
+    )
+
+
 def test_fix_fragments_cover_an_operator_flip() -> None:
     fragments = leak.fix_fragments("return a < b", "return a <= b")
 
@@ -438,7 +498,7 @@ def test_weak_dsa_tests_are_rejected() -> None:
 
 
 def test_stub_fail_rates_cover_identity_and_empty_stubs() -> None:
-    spec = copy.deepcopy(dsa_task_spec())
+    spec = copy.deepcopy(dsa_task_spec()) | {"seed_id": "not_in_bank"}  # str returns
     cases = spec["dsa_cases"]
     cases["comparator"] = None
     cases["visible"] = [{"id": "v1", "input": {"s": "ab"}, "expected": "ab"}]
@@ -448,6 +508,30 @@ def test_stub_fail_rates_cover_identity_and_empty_stubs() -> None:
     )
 
     assert rates == {"first_argument": 0.0, "empty_value": 0.5, "zero": 1.0, "none": 1.0}
+
+
+def test_the_empty_stub_uses_the_declared_return_type() -> None:
+    spec = TaskSpec.model_validate(renamed_dsa_spec("Find two expenses."))
+
+    assert empty_value(spec) == []  # two_sum returns list[int]
+
+
+def test_without_a_bank_signature_the_empty_stub_uses_the_common_expected_type() -> None:
+    spec = copy.deepcopy(dsa_task_spec()) | {"seed_id": "not_in_bank"}
+    spec["dsa_cases"]["visible"][0]["expected"] = None
+    for case in spec["dsa_cases"]["visible"][1:] + spec["dsa_cases"]["hidden"]:
+        case["expected"] = "abc"
+
+    assert empty_value(TaskSpec.model_validate(spec)) == ""
+
+
+def test_the_first_argument_stub_follows_the_parameter_order() -> None:
+    spec = renamed_dsa_spec("Find two expenses.")
+    for case in spec["dsa_cases"]["visible"] + spec["dsa_cases"]["hidden"]:
+        case["input"] = {"goal": case["input"]["goal"], "amounts": case["input"]["amounts"]}
+        case["expected"] = case["input"]["amounts"]  # identity on the first parameter
+
+    assert stub_fail_rates(TaskSpec.model_validate(spec))["first_argument"] == 0.0
 
 
 def renamed_dsa_spec(story: str) -> dict[str, Any]:
@@ -505,7 +589,7 @@ def test_report_mutation_score_is_null_for_pre_gate_certificates() -> None:
 
 def test_check_reports_everything_it_found() -> None:
     spec = domain_spec(statement_md="Use `page - 1`.")
-    spec["starter_files"]["app/services.py"] += "\n# stray\n"
+    spec["starter_files"]["app/services.py"] += "\nSTRAY = 1\n"
     report = check(
         spec, PROFILE, grade=FakeGrade(starter_fails={VISIBLE[0], OTHER_CONCEPT}), derive=same_ids
     )
