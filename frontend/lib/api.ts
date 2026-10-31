@@ -119,6 +119,41 @@ export type ReportDetails = {
 };
 export type SummaryOut = { summary: string; label: string };
 
+// /interviews/{session id} (F5): the AI voice interview after a submitted session. Never scored.
+export type InterviewBlock = "role" | "portfolio" | "submission";
+export type InterviewState = {
+  status: "planned" | "live" | "done";
+  question_index: number;
+  question_count: number;
+  blocks: InterviewBlock[];
+  started_ms: number | null;
+  max_seconds: number;
+};
+export type InterviewTurn = { speaker: "interviewer" | "candidate"; text: string; question_id: string | null; ts: number };
+export type InterviewView = { company: string; role: string; state: InterviewState; transcript: InterviewTurn[] };
+export type InterviewSay = {
+  say_text: string;
+  segments: { text: string; audio_url: string }[]; // audio_url is relative to the API
+  kind: "question" | "follow_up" | "closing";
+  state: InterviewState;
+};
+export type InterviewSetup = { company: string; role: string; job_description: string; focus: string };
+export type InterviewReport = {
+  setup: InterviewSetup;
+  status: InterviewState["status"];
+  consent_at: string | null;
+  ended_at: string | null;
+  questions: { id: string; block: InterviewBlock; text: string; source: "model" | "template" }[];
+  transcript: (InterviewTurn & { kind?: string; llm_used?: boolean })[];
+  facts: {
+    questions: { question_id: string; task_id: string | null; text: string; facts: { label: string; mentioned: boolean }[] }[];
+    mentioned: number;
+    total: number;
+  };
+  tokens: { plan: number; turns: number; budget: number; llm_calls: number };
+  label: string;
+};
+
 export type ScoreOut = {
   status: "in_progress" | "grading" | "graded"; // in_progress: not submitted yet
   computed_at: string | null;
@@ -167,6 +202,15 @@ export const api = {
     request<SummaryOut>("GET", `/sessions/${id}/report/summary`, undefined, { "X-Recruiter-Key": recruiterKey }),
   getTrail: (id: string, recruiterKey: string) =>
     request<TrailOut>("GET", `/sessions/${id}/trail`, undefined, { "X-Recruiter-Key": recruiterKey }),
+  getInterview: (id: string) => request<InterviewView>("GET", `/interviews/${id}`),
+  startInterview: (id: string) => request<InterviewSay>("POST", `/interviews/${id}/start`, { consent: true }),
+  interviewTurn: (id: string, answer_text: string) =>
+    request<InterviewSay>("POST", `/interviews/${id}/turn`, { answer_text }),
+  endInterview: (id: string) => request<InterviewSay>("POST", `/interviews/${id}/end`),
+  setUpInterview: (id: string, setup: InterviewSetup, recruiterKey: string) =>
+    request<{ url: string }>("POST", `/interviews/${id}`, setup, { "X-Recruiter-Key": recruiterKey }),
+  getInterviewReport: (id: string, recruiterKey: string) =>
+    request<InterviewReport>("GET", `/interviews/${id}/report`, undefined, { "X-Recruiter-Key": recruiterKey }),
   hintStatus: (id: string, taskId: string) => request<HintStatus>("GET", `/sessions/${id}/tasks/${taskId}/hints`),
   hint: (id: string, taskId: string, question: string) =>
     request<HintOut>("POST", `/sessions/${id}/tasks/${taskId}/hint`, { question }),

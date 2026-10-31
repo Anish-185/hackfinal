@@ -5,6 +5,7 @@ import { api, ApiError, type ScoreOut } from "@/lib/api";
 import type { ScoreBreakdown, TaskScore, TestCounts } from "@/lib/types";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import InsightsTab from "./InsightsTab";
+import InterviewTab from "./InterviewTab";
 import TrailTab from "./TrailTab";
 
 const POLL_MS = 2000;
@@ -158,7 +159,13 @@ export default function Report({ sessionId }: { sessionId: string }) {
           <TabsTrigger value="trail" data-testid="tab-trail">
             Trail Map
           </TabsTrigger>
+          <TabsTrigger value="interview" data-testid="tab-interview">
+            Interview
+          </TabsTrigger>
         </TabsList>
+        <TabsContent value="interview">
+          <InterviewTab sessionId={sessionId} />
+        </TabsContent>
         <TabsContent value="insights">
           <InsightsTab sessionId={sessionId} />
         </TabsContent>

@@ -334,6 +334,13 @@ export default function SessionIDE({ sessionId }: { sessionId: string }) {
         <div className="rounded-lg border border-gray-200 bg-white p-8 text-center shadow-sm">
           <h1 className="mb-2 text-xl font-semibold">Submitted</h1>
           <p className="text-gray-600">Your solutions are being graded. You can close this tab.</p>
+          <p className="mt-4 text-sm text-gray-600">
+            If your recruiter set up an AI interview,{" "}
+            <a href={`/interview/${sessionId}`} className="text-blue-700 underline">
+              start it here
+            </a>
+            . It never changes your score.
+          </p>
         </div>
       </main>
     );

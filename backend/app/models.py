@@ -128,3 +128,27 @@ class Score(Base):
     session_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("sessions.id"), index=True)
     computed_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
     breakdown: Mapped[dict[str, Any]]
+
+
+class Interview(Base):
+    """The optional AI voice interview after a submitted session (F5). Never scored.
+
+    One per session, keyed by the session id. Audio is not stored, only the transcript.
+    """
+
+    __tablename__ = "interviews"
+    __table_args__ = (
+        CheckConstraint("status IN ('planned', 'live', 'done')", name="ck_interviews_status"),
+    )
+
+    session_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("sessions.id"), primary_key=True)
+    setup: Mapped[dict[str, Any]]
+    """Recruiter-entered: company, role, job_description, focus."""
+    plan: Mapped[dict[str, Any]]
+    """interviewer.plan.Plan: questions with expected facts (backend and recruiter only)."""
+    state: Mapped[dict[str, Any]]
+    transcript: Mapped[list[Any]]
+    status: Mapped[str] = mapped_column(String(16), default="planned")
+    consent_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    ended_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))

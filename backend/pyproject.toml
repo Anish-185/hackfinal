@@ -48,6 +48,7 @@ packages = [
     "builder",
     "contracts_gen",
     "gate",
+    "interviewer",
     "llm",
     "profiler",
     "report",

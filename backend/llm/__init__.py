@@ -5,7 +5,15 @@ model IDs.
 """
 
 from llm.budget import BudgetExceededError
-from llm.client import complete_structured, complete_text
+from llm.client import complete_structured, complete_text, default_client, synthesize_speech
 from llm.config import SLOTS, Slot
 
-__all__ = ["SLOTS", "BudgetExceededError", "Slot", "complete_structured", "complete_text"]
+__all__ = [
+    "SLOTS",
+    "BudgetExceededError",
+    "Slot",
+    "complete_structured",
+    "complete_text",
+    "default_client",
+    "synthesize_speech",
+]
