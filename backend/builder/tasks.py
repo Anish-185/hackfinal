@@ -160,12 +160,11 @@ def split_concept_tests(
 def draft_certificate(
     scope_files: list[str], reference_pass: bool = False, starter_fail: bool = False
 ) -> dict[str, Any]:
-    # mutation_score, bruteforce_agree and perf are filled by the validation gate (P2.7).
+    # A draft: the validation gate (backend/gate, P2.7) replaces it with the real certificate.
     return {
         "reference_pass": reference_pass,
         "starter_fail": starter_fail,
-        "mutation_score": 0.0,
-        "bruteforce_agree": None,
+        "mutation_score": None,
         "perf_ref_ms": None,
         "perf_naive_ms": None,
         "scope_files": scope_files,

@@ -27,7 +27,9 @@ def test_offset_bug_changes_exactly_one_line() -> None:
         for old, new in zip(UTILS.splitlines(), buggy.splitlines(), strict=True)
         if old != new
     ]
-    assert changed == [("    offset = (page - 1) * page_size", "    offset = page * page_size")]
+    assert changed == [
+        ("    offset = (page - 1) * page_size", "    offset = (page - 2) * page_size")
+    ]
     ast.parse(buggy)
 
 

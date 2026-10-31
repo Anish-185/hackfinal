@@ -1,4 +1,4 @@
-.PHONY: up down migrate seed-demo e2e test test-docker lint contracts runtimes mutate remove-feature llm-smoke llm-usage dsa-import
+.PHONY: up down migrate seed-demo e2e test test-docker lint contracts runtimes mutate remove-feature gate llm-smoke llm-usage dsa-import
 
 up:
 	docker compose up -d --build
@@ -60,6 +60,12 @@ mutate:
 # Usage: make remove-feature SEED=py-fastapi-expenses [CONCEPT=reporting]
 remove-feature:
 	docker compose run --rm worker python -m builder.remove_feature $(SEED) $(CONCEPT)
+
+# Validation gate (P2.7): re-check the newest stored task with this id in the sandbox and print
+# its certificate, or the reasons it is rejected (exit 1). MUTATION=1 adds mutmut (1-3 min).
+# Usage: make gate TASK=expenses-pagination [MUTATION=1]
+gate:
+	docker compose run --rm worker python -m gate $(TASK) $(if $(MUTATION),--mutation)
 
 # One small real request per model slot. Spends Featherless credits on a cache miss.
 llm-smoke:

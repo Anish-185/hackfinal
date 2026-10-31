@@ -53,6 +53,7 @@ Add every new one here in the same change that introduces it (CLAUDE.md).
 | [pytest-json-report](https://github.com/numirias/pytest-json-report) | MIT | Machine-readable pytest results |
 | [pytest-timeout](https://github.com/pytest-dev/pytest-timeout) | MIT | Per-test timeouts available to task authors |
 | [Hypothesis](https://github.com/HypothesisWorks/hypothesis) | MPL-2.0 | Property-based tests |
+| [mutmut](https://github.com/boxed/mutmut) 2.5.1 | BSD-3-Clause | Optional mutation score of a task's hidden tests on the reference (`backend/gate/mutation.py`, `make gate MUTATION=1`) |
 | [HTTPX](https://github.com/encode/httpx) | BSD-3-Clause | HTTP client for FastAPI test clients in tasks |
 | [Jest](https://github.com/jestjs/jest) | MIT | JavaScript test runner |
 
@@ -104,7 +105,6 @@ From docs/BLUEPRINT.md section 7. Move a row up to "Used as dependencies" or
 | Resource | License | Planned use |
 | :--- | :--- | :--- |
 | [EvalPlus](https://github.com/evalplus/evalplus) (method) | Apache-2.0 | Test strengthening, differential testing (P2.7) |
-| [mutmut](https://github.com/boxed/mutmut) | BSD-3-Clause | Mutation score, Python (P2.7) |
 | [StrykerJS](https://github.com/stryker-mutator/stryker-js) | Apache-2.0 | Mutation score, JavaScript (P2.7) |
 | [fast-check](https://github.com/dubzzz/fast-check) | MIT | Property-based tests, JavaScript (P2.7) |
 | [llm-sandbox](https://github.com/vndee/llm-sandbox) | MIT | Alternative runner backend |

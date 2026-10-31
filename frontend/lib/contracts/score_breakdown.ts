@@ -64,6 +64,10 @@ export interface TaskScore {
    * Runs of this task during the session.
    */
   runs: number;
+  /**
+   * The task certificate's mutation score: how well the task's tests catch bugs. Shown on the report, never affects the score. Null when not measured; absent in breakdowns stored before P2.7.
+   */
+  mutation_score?: number | null;
 }
 /**
  * Visible tests passed in the submission.

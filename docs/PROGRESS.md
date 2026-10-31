@@ -27,7 +27,7 @@ Roles: A Execution · B Generation + AI and scoring · C Frontend + interviewer 
 | P2.4 | Master builder | B | Not started | |
 | P2.5 | LLM enrichment | B | Not started | |
 | P2.6 | DSA bank, runners, rewriting | A, B | Done | 2026-10-31: `make dsa-import` (LeetCodeDataset @215604a, ast-only parsing, references re-run in the sandbox) → 100 imported + the P1.3 problem (novice 36, adept 38, master 65); select_problem with lower-tier fallback; domain rewrite (one generator call, validated names + renamed reference in the sandbox, one retry, template fallback); node_cases.js harness; ≤30 hidden cases sampled per session, seed + ids stored on submit; make test 344, make test-docker 44 (after merging P2.2 and P2.3), make e2e PASS (after P2.2) |
-| P2.7 | Validation gate and certificate | B | Not started | |
+| P2.7 | Validation gate and certificate | B | Done | 2026-10-31: backend/gate (validate/certify, limits.py, leak.py, diff.py, stubs.py, reference.py, optional mutmut 2.5.1 in the Python runner image); certificate contract: reference_pass "n/n x3", starter_fail "k/n visible", changed_lines, budget_ms, stub_fail_rate (bruteforce_agree kept optional), mutation_score null when not measured; TaskSpec.fail_to_pass / pass_to_pass; report shows the mutation score ("not measured"); `make gate TASK=...`; seed-demo gates both tasks (demo bug now `(page - 2)`, 3 pagination tests fail); make test 381, make test-docker 48, make e2e PASS. No LLM calls |
 | P2.8 | AI solve-rate probe | B | Not started | |
 | P2.9 | Builder pipeline and recruiter page | B, C | Not started | |
 | P3.1 | Hint endpoint and ladder | B | Not started | |
@@ -102,6 +102,15 @@ Roles: A Execution · B Generation + AI and scoring · C Frontend + interviewer 
 | 2026-10-31 | node20 DSA tasks are validated with the Python reference (renamed) on a python311 copy of the spec; the JS starter must fail visible | Expected values are computed on the backend, so the Python reference is the oracle; harness parity is covered by tests on 3 problems |
 | 2026-10-31 | JS harness: candidate module and each call run in a vm context with a timeout (interrupts sync infinite loops); object inputs passed positionally in dsa_names order; undefined → null; non-finite numbers are an error (as in Python) | Mirrors python_cases.py without a process per case |
 | 2026-10-31 | Problems whose snake_case entry name would shadow a builtin or a name in the reference are dropped (5) rather than renamed | Simpler; plenty of candidates |
+| 2026-10-31 | Demo bug is now `offset = (page - 2) * page_size` (engine candidate, 3 failing tests, all pagination: 1 visible, 2 hidden) | The old `page * page_size` bug failed 10 filtering/sorting/auth tests, breaking the gate's Novice rule; same line, so e2e pastes the same fix (user's choice) |
+| 2026-10-31 | Gate amendments: Novice/Adept starters must fail ≥1 visible AND ≥1 hidden test; certify() records fail_to_pass / pass_to_pass test ids in the spec | User request; the next prompt changes scoring to use them |
+| 2026-10-31 | Certificate reference_pass / starter_fail accept a boolean as well as the gate's strings | Builders' drafts and tasks stored before P2.7 stay valid; only the gate writes the strings |
+| 2026-10-31 | Report mutation score: null for pre-gate certificates (boolean reference_pass), since their 0.0 is a placeholder | "not measured" instead of a fake 0% |
+| 2026-10-31 | Gate perf check reads perf_ref_ms / perf_naive_ms from the builder's draft certificate (P2.4 writes them); it does not re-time | No perf runner exists before P2.4; noted in the P2.4 spec |
+| 2026-10-31 | Leak check: changed lines count only with ≥3 tokens incl. an operator; fix fragments only with an operator or number; DSA names under 3 chars and unrenamed names skipped | Avoids prose false positives ("return total", "a", "k"); template-fallback tasks keep the original names by design |
+| 2026-10-31 | DSA stubs are evaluated on the backend (constant/identity outputs vs expected), no sandbox; DSA reference graded on a Python copy of the task for every runtime | Fast and needs no new harness; the Python reference is the oracle (as in P2.6) |
+| 2026-10-31 | Mutation testing: mutmut 2.5.1 (not 3.x) in the Python runner image, hidden tests as the suite, domain tasks only; score = 1 − survived/total | 2.x takes a plain --runner command and works inside the locked-down sandbox; DSA tasks have no pytest suite |
+| 2026-10-31 | To review: the 90% stub rule rejects 45 of 101 bank problems (every bool-returning one: a `False` stub matches all False cases) | Kept as specified; P2.9 may need a lower bar per return type or more True cases |
 
 ## Session log
 
@@ -122,3 +131,4 @@ Roles: A Execution · B Generation + AI and scoring · C Frontend + interviewer 
 | 2026-10-31 | Sriram (Claude Code) | P2.2 mutation engine: LibCST operators, inject_bug, sandbox pre-filter, draft Novice spec, `make mutate`; manual.py uses the engine (demo unchanged). No LLM calls | P2.3 Feature removal (Adept) |
 | 2026-10-31 | Sriram (Claude Code) | P2.3 feature removal: eligibility, LibCST stubs, runner checks with dependent-concept exemption, draft Adept spec, `make remove-feature`; 2 seed docstrings. No LLM calls | P2.4 Master builder |
 | 2026-10-31 | Anish (Claude Code) | P2.6 DSA bank, JS harness, selection, domain rewriting, per-session hidden sampling; 2 real generator calls for the demo rewrite (~$0.0003) | P2.4 Master builder |
+| 2026-10-31 | Anish (Claude Code) | P2.7 validation gate + certificate, `make gate`, report mutation score, demo bug swapped to `(page - 2)`, fail_to_pass/pass_to_pass. No LLM calls | Scoring uses fail_to_pass / pass_to_pass; P2.8 probe |

@@ -35,6 +35,23 @@
     "h3",
     "h4"
   ],
+  "fail_to_pass": {
+    "visible": [
+      "v1",
+      "v2",
+      "v3"
+    ],
+    "hidden": [
+      "h1",
+      "h2",
+      "h3",
+      "h4"
+    ]
+  },
+  "pass_to_pass": {
+    "visible": [],
+    "hidden": []
+  },
   "dsa_cases": {
     "visible": [
       {
@@ -97,15 +114,16 @@
     7
   ],
   "certificate": {
-    "reference_pass": true,
-    "starter_fail": true,
-    "mutation_score": 0.93,
-    "bruteforce_agree": true,
+    "reference_pass": "7/7 x3",
+    "starter_fail": "3/3 visible",
+    "mutation_score": null,
+    "stub_fail_rate": 1.0,
     "perf_ref_ms": null,
     "perf_naive_ms": null,
     "scope_files": [
       "solution.py"
-    ]
+    ],
+    "changed_lines": null
   },
   "ai_solve_rate": 0.9,
   "difficulty_index": 0.35

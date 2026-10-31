@@ -124,6 +124,7 @@ def test_full_marks_with_time_and_run_count(db, runner) -> None:
                 "correctness": 100.0,
                 "time_ms": 8_000,  # first focus to last edit
                 "runs": 2,
+                "mutation_score": 0.86,  # from the fixture's certificate, not scored
             }
         ],
     }

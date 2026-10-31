@@ -63,7 +63,7 @@ Featherless. Candidate code never runs in the backend process.
 | --- | --- | --- |
 | 1 | Profiler | Portfolio → domain, runtime, concepts, allowed DSA topics per tier |
 | 2 | Task builder | Seed mutation (Novice), feature removal (Adept), bug + perf regression (Master), LLM mode, DSA bank + rewriting |
-| 3 | Validation gate | Reference ×3, starter fails, scope, size, brute-force agreement, perf calibration, topic check, mutation score → certificate |
+| 3 | Validation gate | Reference ×3, starter fails, scope, size, trivial-stub test strength (DSA), statement leak check, perf calibration, topic check, optional mutation score → certificate |
 | 4 | AI probe | Small model attempts each task 3 times, graded by tests → difficulty index |
 | 5 | Runner | Visible tests on Run, hidden tests silently, everything on Submit |
 | 6 | Web IDE | Monaco, tests panel, server timer, autosave, telemetry |

@@ -23,6 +23,10 @@ function duration(ms: number | null): string {
   return s >= 60 ? `${Math.floor(s / 60)}m ${String(s % 60).padStart(2, "0")}s` : `${s}s`;
 }
 
+function mutation(score: number | null | undefined): string {
+  return score === null || score === undefined ? "not measured" : `${Math.round(score * 100)}%`;
+}
+
 function TaskRow({ task, index }: { task: TaskScore; index: number }) {
   return (
     <tr data-testid="task-row" data-task-id={task.task_id} className="border-t border-gray-200">
@@ -49,8 +53,11 @@ function TaskRow({ task, index }: { task: TaskScore; index: number }) {
       <td className="py-2 pr-4 tabular-nums" data-field="time">
         {duration(task.time_ms)}
       </td>
-      <td className="py-2 tabular-nums" data-field="runs">
+      <td className="py-2 pr-4 tabular-nums" data-field="runs">
         {task.runs}
+      </td>
+      <td className="py-2 tabular-nums" data-field="mutation">
+        {mutation(task.mutation_score)}
       </td>
     </tr>
   );
@@ -160,7 +167,10 @@ export default function Report({ sessionId }: { sessionId: string }) {
             <th className="pb-2 pr-4 font-semibold">Hidden tests</th>
             <th className="pb-2 pr-4 font-semibold">Correctness</th>
             <th className="pb-2 pr-4 font-semibold">Time</th>
-            <th className="pb-2 font-semibold">Runs</th>
+            <th className="pb-2 pr-4 font-semibold">Runs</th>
+            <th className="pb-2 font-semibold" title="Share of reference mutants the task's hidden tests catch">
+              Mutation score
+            </th>
           </tr>
         </thead>
         <tbody>
@@ -171,7 +181,8 @@ export default function Report({ sessionId }: { sessionId: string }) {
       </table>
       <p className="mt-4 text-xs text-gray-500">
         Correctness = 100 × (0.3 × visible rate + 0.7 × hidden rate) × perf factor. Time: first focus to last edit.
-        Bands: Strong ≥ 80, Pass ≥ 60, Borderline ≥ 45.
+        Bands: Strong ≥ 80, Pass ≥ 60, Borderline ≥ 45. Mutation score: how well the task&apos;s tests catch
+        bugs (task quality, not part of the score).
       </p>
     </main>
   );

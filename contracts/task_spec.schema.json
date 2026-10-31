@@ -101,6 +101,14 @@
       "items": { "type": "string" },
       "uniqueItems": true
     },
+    "fail_to_pass": {
+      "oneOf": [{ "$ref": "#/$defs/TestIdSplit" }, { "type": "null" }],
+      "description": "Test ids that fail on the starter (the reference passes every test), recorded by the validation gate (backend/gate). Absent or null before the gate ran."
+    },
+    "pass_to_pass": {
+      "oneOf": [{ "$ref": "#/$defs/TestIdSplit" }, { "type": "null" }],
+      "description": "Test ids that already pass on the starter, recorded by the validation gate. Absent or null before the gate ran."
+    },
     "dsa_cases": {
       "oneOf": [{ "$ref": "#/$defs/DsaCases" }, { "type": "null" }],
       "description": "Input/expected cases for DSA tasks. Null for domain tasks. For bank problems, hidden is the pool a session's hidden sample is drawn from (see SubmitPayload.hidden_sample)."
@@ -231,30 +239,60 @@
       },
       "additionalProperties": false
     },
+    "TestIdSplit": {
+      "type": "object",
+      "required": ["visible", "hidden"],
+      "properties": {
+        "visible": { "type": "array", "items": { "type": "string" }, "uniqueItems": true },
+        "hidden": { "type": "array", "items": { "type": "string" }, "uniqueItems": true }
+      },
+      "additionalProperties": false
+    },
     "Certificate": {
       "type": "object",
-      "description": "Evidence from the validation gate that the task is sound.",
+      "description": "Evidence from the validation gate (backend/gate) that the task is sound. Builders store a draft (booleans); the gate replaces it with counts.",
       "required": [
         "reference_pass",
         "starter_fail",
         "mutation_score",
-        "bruteforce_agree",
         "perf_ref_ms",
         "perf_naive_ms",
         "scope_files"
       ],
       "properties": {
-        "reference_pass": { "type": "boolean", "description": "Reference solution passes all tests." },
-        "starter_fail": { "type": "boolean", "description": "Starter code fails at least one hidden test." },
+        "reference_pass": {
+          "anyOf": [{ "type": "string", "pattern": "^[0-9]+/[0-9]+ x[0-9]+$" }, { "type": "boolean" }],
+          "description": "Gate: 'n/n xR', tests (visible + hidden) the reference passed out of the total, the same in each of R runs. Boolean: a builder's draft, or a task stored before P2.7."
+        },
+        "starter_fail": {
+          "anyOf": [{ "type": "string", "pattern": "^[0-9]+/[0-9]+ visible$" }, { "type": "boolean" }],
+          "description": "Gate: 'k/n visible', k of the n visible tests fail on the starter. Boolean: a builder's draft, or a task stored before P2.7."
+        },
         "mutation_score": {
-          "type": "number",
+          "type": ["number", "null"],
           "minimum": 0,
           "maximum": 1,
-          "description": "Fraction of reference mutants killed by the hidden tests."
+          "description": "Fraction of reference mutants killed by the hidden tests (gate with mutation testing on). Null when not measured; tasks stored before P2.7 hold a 0.0 placeholder."
+        },
+        "stub_fail_rate": {
+          "type": ["number", "null"],
+          "minimum": 0,
+          "maximum": 1,
+          "description": "DSA: share of cases the weakest trivial stub (first argument, empty value of the return type, 0, None) fails. Null or absent for domain tasks."
         },
         "bruteforce_agree": {
           "type": ["boolean", "null"],
-          "description": "Reference agrees with a brute-force solution on generated inputs. Null for domain tasks."
+          "description": "Deprecated, replaced by stub_fail_rate. Kept so tasks stored before P2.7 stay valid."
+        },
+        "budget_ms": {
+          "type": ["integer", "null"],
+          "minimum": 1,
+          "description": "The task's perf budget (perf.budget_ms). Null or absent when perf is null."
+        },
+        "changed_lines": {
+          "type": ["integer", "null"],
+          "minimum": 0,
+          "description": "Domain: lines that differ between the starter and the reference (a replaced line counts once). Null or absent for DSA tasks."
         },
         "perf_ref_ms": {
           "type": ["number", "null"],

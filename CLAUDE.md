@@ -133,9 +133,13 @@ backend/     app/            FastAPI app and plumbing:
                              score_session.py (ScoreBreakdown from stored submit
                              runs + events; used by submit and POST .../regrade)
              migrations/     Alembic (alembic.ini next to it)
+             gate/           validation gate (P2.7): core.py (validate/certify,
+                             every check), limits.py (all limits), leak.py
+                             (statement leak check, also for P2.5), diff.py,
+                             stubs.py (DSA stub strength), reference.py,
+                             mutation.py (optional mutmut); `make gate`
              llm/ runner/ contracts_gen/ scripts/ tests/
-             planned packages: gate/ assistant/ trail/
-             interviewer/
+             planned packages: assistant/ trail/ interviewer/
              A new top-level package must be added to `packages` in
              backend/pyproject.toml and to the mkdir line in backend/Dockerfile.
 seeds/       hand-written seed repos, each with tests + concepts.yaml
@@ -160,12 +164,13 @@ docs/        blueprint, prompts, progress, interviewer spec
 ## Commands
 make up | make down | make migrate | make seed-demo | make e2e | make test |
 make test-docker | make lint | make contracts | make runtimes | make mutate |
-make remove-feature | make llm-smoke | make llm-usage | make dsa-import
+make remove-feature | make gate | make llm-smoke | make llm-usage | make dsa-import
 (Keep this list in sync with the Makefile.)
 
-- `make seed-demo`: builds and validates the P1.3 demo tasks in the sandbox
-  (~1 min), stores an assessment for the portfolio fixture, starts its session
-  (the 60-minute timer starts now) and prints the session URL.
+- `make seed-demo`: builds and validates the P1.3 demo tasks in the sandbox,
+  runs the validation gate on both (they must pass; ~2 min), stores an
+  assessment for the portfolio fixture, starts its session (the 60-minute
+  timer starts now) and prints the session URL.
 
 - `make e2e`: needs the stack up (`make up`). Restarts worker and beat (Celery
   doesn't reload code), runs `make seed-demo`, then headless Chromium:
@@ -193,6 +198,10 @@ make remove-feature | make llm-smoke | make llm-usage | make dsa-import
 - `make remove-feature SEED=... [CONCEPT=...]`: without CONCEPT, list which
   concepts span 2–3 files; with it, stub that concept, check it in the sandbox
   and print a validated draft Adept task. Runs in the worker; no LLM calls.
+- `make gate TASK=<task_id> [MUTATION=1]`: run the validation gate on the
+  newest stored task with that id; prints the certificate (exit 0) or the
+  rejection reasons (exit 1). MUTATION=1 adds mutmut (1-3 min). Runs in the
+  worker; no LLM calls.
 - `make llm-smoke`: one real request per slot; spends credits on a cache miss.
 - `make llm-usage`: tokens and estimated spend per slot.
 - `make dsa-import`: downloads LeetCodeDataset (pinned revision) into dsa/raw/,

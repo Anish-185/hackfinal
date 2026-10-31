@@ -1,8 +1,10 @@
 """Demo tasks (P1.3): a Novice pagination bug and one DSA problem.
 
 The pagination bug comes from the mutation engine (builder/mutate.py, P2.2): the engine's
-off-by-one candidate at paginate()'s offset, which `make e2e` knows how to fix. If the
-engine stops producing it, the hand-written AST transform below is the fallback. Building
+off-by-one candidate at paginate()'s offset, `(page - 1)` -> `(page - 2)`, which `make e2e`
+knows how to fix. It fails 3 tests, all pagination ones, so it passes the gate's Novice
+rules (backend/gate). If the engine stops producing it, the hand-written AST transform
+below is the fallback. Building
 needs Docker: test ids are collected and both tasks are validated in the sandbox (the
 starter fails at least one visible test; the reference passes everything).
 """
@@ -31,7 +33,7 @@ DSA_PROBLEM = "longest_unique_substring"
 DSA_CASES_SEED = 20261031  # dsa/longest_unique_substring/make_cases.py
 DEMO_RNG_SEED = 1031
 # The demo bug as it appears in the starter; e2e/demo.mjs pastes the fix for this line.
-DEMO_BUG_LINE = "offset = page * page_size"
+DEMO_BUG_LINE = "offset = (page - 2) * page_size"
 
 PAGINATION_STATEMENT = """\
 ## Expenses list pages are wrong
@@ -51,7 +53,7 @@ run when you submit.
 
 
 def inject_offset_bug(source: str) -> str:
-    """In paginate(), turn `offset = (page - 1) * page_size` into `offset = page * page_size`.
+    """In paginate(), turn `offset = (page - 1) * page_size` into `offset = (page - 2) * page_size`.
 
     Located with the AST and applied as a text splice, so the rest of the file keeps its
     formatting. Deterministic; raises if the pattern isn't there exactly once.
@@ -63,7 +65,7 @@ def inject_offset_bug(source: str) -> str:
     if paginate is None:
         raise ValueError("paginate() not found")
     sites = [
-        node.value.left
+        node.value.left.right
         for node in ast.walk(paginate)
         if isinstance(node, ast.Assign)
         and [getattr(t, "id", None) for t in node.targets] == ["offset"]
@@ -76,14 +78,11 @@ def inject_offset_bug(source: str) -> str:
     ]
     if len(sites) != 1:
         raise ValueError(f"expected one `offset = (page - 1) * ...`, found {len(sites)}")
-    minus_one = sites[0]
+    one = sites[0]
     lines = source.splitlines(keepends=True)
-    line = lines[minus_one.lineno - 1].encode()
-    start, end = minus_one.col_offset, minus_one.end_col_offset  # UTF-8 byte offsets
-    if line[start - 1 : start] == b"(" and line[end : end + 1] == b")":
-        start, end = start - 1, end + 1
-    replacement = ast.get_source_segment(source, minus_one.left).encode()
-    lines[minus_one.lineno - 1] = (line[:start] + replacement + line[end:]).decode()
+    line = lines[one.lineno - 1].encode()
+    # UTF-8 byte offsets
+    lines[one.lineno - 1] = (line[: one.col_offset] + b"2" + line[one.end_col_offset :]).decode()
     return "".join(lines)
 
 

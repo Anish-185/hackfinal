@@ -62,6 +62,10 @@ class TaskScore(BaseModel):
     """
     Runs of this task during the session.
     """
+    mutation_score: float | None = Field(None, ge=0.0, le=1.0)
+    """
+    The task certificate's mutation score: how well the task's tests catch bugs. Shown on the report, never affects the score. Null when not measured; absent in breakdowns stored before P2.7.
+    """
 
 
 class ScoreBreakdown(BaseModel):

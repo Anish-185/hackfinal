@@ -18,7 +18,7 @@ const EDIT_SAMPLE_MS = 1200; // let the per-second edit sample fire before leavi
 
 // The candidate's fixes. The domain fix is a one-line edit of the starter; the DSA
 // solution is written from scratch (not the backend's reference).
-const DOMAIN_BUG = "offset = page * page_size";
+const DOMAIN_BUG = "offset = (page - 2) * page_size";
 const DOMAIN_FIX = "offset = (page - 1) * page_size";
 const DSA_SOLUTION = `def length_of_longest_substring(s: str) -> int:
     window = set()
@@ -190,6 +190,8 @@ async function main(page, external) {
     assert.ok((await cell("hidden")).startsWith(`${t.hidden.passed}/${t.hidden.total}`), `report: ${t.task_id} hidden`);
     assert.ok((await cell("correctness")).startsWith(t.correctness.toFixed(2)), `report: ${t.task_id} correctness`);
     assert.equal(await cell("runs"), String(t.runs), `report: ${t.task_id} runs`);
+    const mutation = t.mutation_score == null ? "not measured" : `${Math.round(t.mutation_score * 100)}%`;
+    assert.equal(await cell("mutation"), mutation, `report: ${t.task_id} mutation score`);
   }
   step("report matches the breakdown JSON");
 
