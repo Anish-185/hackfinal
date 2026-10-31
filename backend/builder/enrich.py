@@ -43,7 +43,6 @@ from runner import run_tests
 STATEMENT_MAX_TOKENS = 500
 STATEMENT_TEMPERATURE = 0.2
 EXTRA_TESTS_MAX_TOKENS = 1200
-MAX_WORDS = 200
 MESSAGE_LINES = 20
 EXTRA_TESTS_PATH = "tests/test_extra_hidden.py"
 RENAMED_WORD = re.compile(r"^[a-z]{3,20}$")
@@ -106,14 +105,6 @@ def fix_info(reference: dict[str, str], starter: dict[str, str]) -> FixInfo:
         diff_parts += [line for line in diff if not line.startswith("-") or line.startswith("---")]
     reference_lines, fragments = leak.fix_evidence(reference, starter)
     return FixInfo("\n".join(diff_parts), reference_lines, fragments)
-
-
-def leak_reasons(text: str, info: FixInfo) -> list[str]:
-    """Why `text` gives the fix away (empty when it doesn't), plus the word limit."""
-    reasons = leak.leaks(text, info.reference_lines, info.fragments)
-    if len(text.split()) > MAX_WORDS:
-        reasons.append(f"longer than {MAX_WORDS} words")
-    return reasons
 
 
 # --- Statement ------------------------------------------------------------------------
@@ -461,7 +452,9 @@ def enrich(
         except Exception as exc:  # noqa: BLE001 - any LLM failure falls back to the template
             result.notes.append(f"statement attempt {attempt} failed: {summarize_error(exc)}")
             break
-        reasons = leak_reasons(f"{candidate.title}\n{candidate.statement}", info)
+        reasons = leak.statement_problems(
+            f"{candidate.title}\n{candidate.statement}", info.reference_lines, info.fragments
+        )
         if not reasons:
             answer = candidate
             result.statement_source = "llm" if attempt == 1 else "llm_retry"

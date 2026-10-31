@@ -7,6 +7,8 @@ Domain tasks: a statement leaks if it contains a changed line from the reference
 the starter-vs-reference diff, or the exact operator/value that fixes a replaced line.
 DSA tasks: a statement leaks if it names the bank's original function or parameters.
 Matching is on tokens, so whitespace and Markdown backticks don't hide a leak.
+LLM-written statements must also stay within STATEMENT_MAX_WORDS (statement_problems:
+what enrichment rejects, retries once and then replaces with a template).
 """
 
 import difflib
@@ -14,7 +16,12 @@ import re
 
 from contracts_gen.task_spec import DsaNames
 from gate.diff import diff
-from gate.limits import LEAK_MIN_EDIT_CHARS, LEAK_MIN_LINE_TOKENS, LEAK_MIN_NAME_CHARS
+from gate.limits import (
+    LEAK_MIN_EDIT_CHARS,
+    LEAK_MIN_LINE_TOKENS,
+    LEAK_MIN_NAME_CHARS,
+    STATEMENT_MAX_WORDS,
+)
 
 _TOKEN = re.compile(r"\w+|==|!=|<=|>=|\*\*|//|->|\+=|-=|[^\w\s]")
 # Any quote is the same quote; smart quotes count as plain ones.
@@ -49,9 +56,9 @@ def fix_fragments(starter_line: str, reference_line: str) -> list[list[str]]:
 
     On the reference side: each edit alone (if it has 3+ characters) and with one token of
     context on each side; the span from the first edit to the last (if it has 2+ tokens,
-    e.g. `(page - 1)`), and that span with two tokens of context on the left (`page - 1`
-    for a `2` -> `1` fix). Only runs with an operator or a number count. Empty when the
-    fix only deletes tokens.
+    e.g. `(page - 1)`), that span with one token of context on each side, and with two
+    tokens of context on the left (`page - 1` for a `2` -> `1` fix). Only runs with an
+    operator or a number count. Empty when the fix only deletes tokens.
     """
     before, after = tokens(starter_line), tokens(reference_line)
     matcher = difflib.SequenceMatcher(None, before, after, autojunk=False)
@@ -63,6 +70,7 @@ def fix_fragments(starter_line: str, reference_line: str) -> list[list[str]]:
     start, end = edits[0][0], edits[-1][1]
     if end - start >= 2:
         runs.append(after[start:end])
+    runs.append(after[max(0, start - 1) : end + 1])
     runs.append(after[max(0, start - 2) : end])
     unique = {tuple(run): run for run in runs if _fix_like(run)}
     return list(unique.values())
@@ -103,6 +111,21 @@ def domain_leaks(
 ) -> list[str]:
     """leaks() for a statement, given the task's starter and reference files."""
     return leaks(statement, *fix_evidence(reference_files, starter_files))
+
+
+def too_long(statement: str, max_words: int = STATEMENT_MAX_WORDS) -> bool:
+    return len(statement.split()) > max_words
+
+
+def statement_problems(text: str, reference_lines: list[str], fragments: list[str]) -> list[str]:
+    """Why an LLM-written statement is rejected (P2.5): leaks(), then the word limit.
+
+    The gate itself checks leaks only; the word limit applies to generated statements.
+    """
+    problems = leaks(text, reference_lines, fragments)
+    if too_long(text):
+        problems.append(f"longer than {STATEMENT_MAX_WORDS} words")
+    return problems
 
 
 def name_leaks(statement: str, names: DsaNames | None) -> list[str]:

@@ -13,6 +13,7 @@ from builder.manual import EXPENSES_SEED
 from builder.tasks import load_seed, starter_base
 from contracts_gen.run_result import RunResult, Summary
 from contracts_gen.run_result import TestResult as RunTest
+from gate import leak
 from llm.client import LLMClient
 from tests.test_llm_client import FakeFeatherless, make_settings, ok
 
@@ -90,6 +91,12 @@ def info() -> e.FixInfo:
     return e.fix_info({"app/utils.py": FILES["app/utils.py"]}, draft()["starter_files"])
 
 
+def problems(statement: str) -> list[str]:
+    """What enrich rejects a statement for: gate/leak.py's statement_problems."""
+    found = info()
+    return leak.statement_problems(statement, found.reference_lines, found.fragments)
+
+
 def test_model_sees_the_starter_side_of_the_diff_only() -> None:
     diff = info().starter_diff
 
@@ -105,15 +112,15 @@ def test_model_sees_the_starter_side_of_the_diff_only() -> None:
     ],
 )
 def test_leak_check_catches_a_statement_containing_the_fix(statement) -> None:
-    assert e.leak_reasons(statement, info())
+    assert problems(statement)
 
 
 def test_leak_check_passes_a_statement_of_symptoms() -> None:
-    assert e.leak_reasons(f"{SAFE.title}\n{SAFE.statement}", info()) == []
+    assert problems(f"{SAFE.title}\n{SAFE.statement}") == []
 
 
 def test_leak_check_enforces_the_word_limit() -> None:
-    assert e.leak_reasons("word " * 201, info()) == ["longer than 200 words"]
+    assert problems("word " * 201) == ["longer than 200 words"]
 
 
 # --- Statement ------------------------------------------------------------------------
@@ -153,7 +160,7 @@ def test_template_is_used_after_two_failures() -> None:
     assert result.rejections
     statement = result.spec["statement_md"]
     assert "test_first_page_reports_total_and_has_next" in statement
-    assert e.leak_reasons(statement, info()) == []
+    assert problems(statement) == []
 
 
 def test_master_budget_sentence_is_appended_by_code() -> None:

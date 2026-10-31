@@ -439,6 +439,34 @@ def test_fix_fragments_cover_an_operator_flip() -> None:
     ]
 
 
+def test_each_edit_of_a_split_fix_is_a_fragment() -> None:
+    # Two separate edits: `<` -> `<=` and `0` -> `1`. Each one alone gives the fix away.
+    fragments = leak.fix_fragments("if a < limit and b > 0:", "if a <= limit and b > 1:")
+
+    assert ["a", "<=", "limit"] in fragments
+    assert [">", "1", ":"] in fragments
+    assert ["1"] not in fragments  # a lone 1 is too short to count on its own
+    starter = {"m.py": "if a < limit and b > 0:\n"}
+    reference = {"m.py": "if a <= limit and b > 1:\n"}
+    assert leak.domain_leaks("check that b > 1: holds", starter, reference)
+
+
+def test_a_split_fix_span_counts_with_one_token_of_context() -> None:
+    fragments = leak.fix_fragments("x = f(a, 0)", "x = g(a, 1)")
+
+    assert ["=", "g", "(", "a", ",", "1", ")"] in fragments
+
+
+def test_statement_problems_add_the_word_limit_to_leaks() -> None:
+    lines, fragments = leak.fix_evidence({"m.py": "return a <= b\n"}, {"m.py": "return a < b\n"})
+
+    assert leak.statement_problems("make it `a <= b`", lines, fragments) == [
+        "contains the fix `a <= b`"
+    ]
+    assert leak.statement_problems("word " * 201, lines, fragments) == ["longer than 200 words"]
+    assert not leak.too_long("word " * 200)
+
+
 def test_name_leaks_check_only_renamed_names_of_three_or_more_chars() -> None:
     names = DsaNames(
         function=NameMapping(original="two_sum", renamed="find_pair"),

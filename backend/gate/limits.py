@@ -35,6 +35,8 @@ LEAK_MIN_LINE_TOKENS = 3
 LEAK_MIN_EDIT_CHARS = 3
 # DSA original names shorter than this are not checked (s, n, k say nothing).
 LEAK_MIN_NAME_CHARS = 3
+# LLM-written statements (P2.5 enrichment) longer than this are rejected like a leak.
+STATEMENT_MAX_WORDS = 200
 
 # Mutation testing (optional): sandbox timeout for the whole mutmut run.
 MUTATION_TIMEOUT_S = 600
