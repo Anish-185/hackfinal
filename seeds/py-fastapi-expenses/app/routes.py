@@ -2,16 +2,25 @@
 
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
+from fastapi import APIRouter, Body, Depends, HTTPException, Query, Request, status
 from sqlalchemy.orm import Session
 
 from app import services
 from app.auth import get_current_user
 from app.models import Category, User
 from app.repo import get_session
-from app.schemas import ExpenseCreate, ExpenseOut, ExpensePage, IsoDate, MonthlyReport, SortKey
+from app.schemas import (
+    ExpenseCreate,
+    ExpenseOut,
+    ExpensePage,
+    ImportResult,
+    IsoDate,
+    MonthlyReport,
+    SortKey,
+)
 
 MAX_PAGE_SIZE = 100
+MAX_IMPORT_ITEMS = 5_000
 
 router = APIRouter()
 
@@ -64,6 +73,17 @@ def create_expense(
 ) -> ExpenseOut:
     expense = services.create_expense(session, cache, user.id, data)
     return ExpenseOut.model_validate(expense)
+
+
+@router.post("/expenses/import")
+def import_expenses(
+    items: Annotated[list[ExpenseCreate], Body(min_length=1, max_length=MAX_IMPORT_ITEMS)],
+    user: CurrentUser,
+    session: DbSession,
+    cache: Cache,
+) -> ImportResult:
+    """Create many expenses in one request; exact duplicates are skipped, not errors."""
+    return services.import_expenses(session, cache, user.id, items)
 
 
 @router.get("/reports/monthly")

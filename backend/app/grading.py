@@ -25,6 +25,7 @@ from app.workspace import (
     runnable_test_paths,
     split_editable,
 )
+from builder.perf import PERF_DIR, run_with_perf
 from contracts_gen.event import (
     HiddenSample,
     HiddenSilentCounts,
@@ -43,6 +44,7 @@ from scoring.score_session import score_session
 logger = logging.getLogger(__name__)
 
 TEST_SET_MISMATCH = dsa.TEST_SET_MISMATCH
+PERF_TIMEOUT_S = 60
 
 
 @dataclass(frozen=True)
@@ -127,6 +129,20 @@ def grade_task(
     visible = run_visible(spec, candidate_files)
     hidden = run_hidden(spec, candidate_files, sample)
     return combine(spec, candidate_files, visible, hidden, sample)
+
+
+def measure_perf(spec: TaskSpec, candidate_files: dict[str, str]) -> float | None:
+    """perf_ms of the candidate's code on the task's hidden perf test, in its own sandbox.
+
+    None when the task has no perf budget, or the test crashed before recording a time.
+    """
+    if spec.perf is None:
+        return None
+    perf_tests = [t for t in spec.hidden_tests if t.path.startswith(PERF_DIR)]
+    files = build_workspace(spec, candidate_files, perf_tests)
+    readonly = frozenset(p for p in files if protected_reason(p) is not None)
+    paths = runnable_test_paths(spec.runtime, perf_tests)
+    return run_with_perf(spec.runtime, files, paths, PERF_TIMEOUT_S, readonly).perf_ms
 
 
 def derive_test_ids(spec: dict[str, Any]) -> dict[str, Any]:
@@ -249,11 +265,14 @@ def process_submit(db: Session, session_id: str) -> None:
             .limit(1)
         ).first()
         sample = dsa.hidden_sample(spec, session_id)
-        grade = grade_task(spec, snapshot.files if snapshot else {}, sample)
+        candidate_files = snapshot.files if snapshot else {}
+        grade = grade_task(spec, candidate_files, sample)
+        perf_ms = measure_perf(spec, candidate_files)
         now = datetime.now(UTC)
         result = {
             "visible": grade.visible.model_dump(mode="json"),
             "hidden": grade.hidden.model_dump(mode="json"),
+            "perf_ms": perf_ms,
         }
         if sample is not None:
             result["hidden_sample"] = sample.model_dump(mode="json")
@@ -277,7 +296,7 @@ def process_submit(db: Session, session_id: str) -> None:
             payload=SubmitPayload(
                 visible=visible,
                 hidden=hidden,
-                perf_ms=None,
+                perf_ms=perf_ms,
                 final=True,
                 **({"hidden_sample": sample} if sample is not None else {}),
             ),

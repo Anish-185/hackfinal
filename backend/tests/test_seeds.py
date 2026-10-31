@@ -8,7 +8,7 @@ from runner import RUNTIMES
 from tests.seeds_support import load_concepts, seed_dirs, symbol_exists
 
 MAX_APP_FILES = 10
-MAX_APP_LINES = 500
+MAX_APP_LINES = 520  # 500 until P2.4 added bulk import (the perf-sensitive code)
 
 SEEDS = [pytest.param(path, id=path.name) for path in seed_dirs()]
 

@@ -1,4 +1,4 @@
-.PHONY: up down migrate seed-demo e2e test test-docker lint contracts runtimes mutate remove-feature llm-smoke llm-usage dsa-import
+.PHONY: up down migrate seed-demo e2e test test-docker lint contracts runtimes mutate remove-feature build-master llm-smoke llm-usage dsa-import
 
 up:
 	docker compose up -d --build
@@ -60,6 +60,12 @@ mutate:
 # Usage: make remove-feature SEED=py-fastapi-expenses [CONCEPT=reporting]
 remove-feature:
 	docker compose run --rm worker python -m builder.remove_feature $(SEED) $(CONCEPT)
+
+# Master builder (P2.4): one bug + one perf regression in different files, perf budget calibrated
+# in the sandbox (3 x the reference's median over 5 runs). Prints the task and calibration.
+# Usage: make build-master SEED=py-fastapi-expenses [CONCEPTS="pagination validation"] [RNG_SEED=0]
+build-master:
+	docker compose run --rm worker python -m builder.master $(SEED) $(CONCEPTS) --rng-seed $(RNG_SEED)
 
 # One small real request per model slot. Spends Featherless credits on a cache miss.
 llm-smoke:

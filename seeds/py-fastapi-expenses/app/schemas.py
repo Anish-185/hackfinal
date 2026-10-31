@@ -53,3 +53,9 @@ class MonthlyReport(BaseModel):
     totals: dict[Category, int]
     """Cents spent per category; categories with no expenses are left out."""
     total_cents: int
+
+
+class ImportResult(BaseModel):
+    created: int
+    skipped: int
+    """Exact duplicates (date, amount, category, description) of stored or earlier items."""
