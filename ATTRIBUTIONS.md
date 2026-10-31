@@ -121,3 +121,10 @@ From docs/BLUEPRINT.md section 7. Move a row up to "Used as dependencies" or
 | [Semgrep CE](https://github.com/semgrep/semgrep) (own rules) | LGPL-2.1 | Static checks for security tasks |
 | [catsim](https://github.com/douglasrizzo/catsim) | See repo | Stretch: adaptive mode (IRT) |
 | [Dolos](https://github.com/dodona-edu/dolos) | MIT | Stretch: collusion detection |
+| [Judge0](https://github.com/judge0/judge0) | GPL-3.0 | Code execution service for coding-assessment/ (used over HTTP, not bundled) |
+| [Express](https://github.com/expressjs/express), [helmet](https://github.com/helmetjs/helmet), [express-rate-limit](https://github.com/express-rate-limit/express-rate-limit), [cors](https://github.com/expressjs/cors) | MIT | coding-assessment/ API |
+| [BullMQ](https://github.com/taskforcesh/bullmq), [ioredis](https://github.com/redis/ioredis) | MIT | coding-assessment/ job queue |
+| [Mongoose](https://github.com/Automattic/mongoose) | MIT | coding-assessment/ MongoDB models |
+| [Anthropic TypeScript SDK](https://github.com/anthropics/anthropic-sdk-typescript) | MIT | coding-assessment/ debug hints and challenge generation |
+| [axios](https://github.com/axios/axios), [dotenv](https://github.com/motdotla/dotenv) | MIT | coding-assessment/ |
+| [React](https://github.com/facebook/react), [react-router](https://github.com/remix-run/react-router), [react-markdown](https://github.com/remarkjs/react-markdown), [Vite](https://github.com/vitejs/vite) | MIT | coding-assessment/ frontend |
