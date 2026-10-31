@@ -119,8 +119,9 @@ The landing site links to the practice app at `NEXT_PUBLIC_PRACTICE_URL`
 (default `http://localhost:3000/practice`), and the practice app's navigation links back
 to the landing site, the code-reading app and the AI interview through
 `NEXT_PUBLIC_SHOWCASE_URL` (default `http://localhost:3001`) and
-`NEXT_PUBLIC_CODE_READING_URL` (default `http://localhost:3002`). `coding-assessment/` is an earlier standalone
-prototype (Express, Judge0, MongoDB); the practice mode in `frontend/` replaces it.
+`NEXT_PUBLIC_CODE_READING_URL` (default `http://localhost:3002`). `coding-assessment/`, an earlier standalone
+prototype (Express, Judge0, MongoDB), is archived on the `archive/coding-assessment` branch;
+the practice mode in `frontend/` replaces it.
 The in-site AI interview is browser-only (Web Speech API, scripted questions); the
 model-backed interviewer in `docs/INTERVIEWER.md` is not built yet.
 
