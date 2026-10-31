@@ -41,7 +41,8 @@ def test_perf_factor_scales_correctness() -> None:
     ("budget", "measured", "expected"),
     [
         (None, 500.0, 1.0),  # no perf constraint
-        (100, None, 1.0),  # nothing measured
+        (None, None, 1.0),
+        (100, None, 0.5),  # budget but nothing measured: fails closed
         (100, 50.0, 1.0),
         (100, 100.0, 1.0),  # exactly at budget
         (100, 200.0, 0.75),  # 2× budget: halfway to the floor

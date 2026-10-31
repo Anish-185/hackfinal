@@ -380,12 +380,59 @@ files; auth is rejected by the runner check (every endpoint depends on it), repo
 becomes the Adept draft. Docstrings were added to repo.find_user_by_token and
 routes.get_monthly_report.
 
+### P2.4 Master builder
+
+```text
+Follow the session protocol and speed rules in CLAUDE.md. Branch:
+p2-4-master. Replace the P2.4 spec in docs/BUILD_PROMPTS.md with this
+prompt. A teammate is working on P2.6 in dsa/ in parallel: stay within
+backend/builder/, backend/scoring/ (perf wiring only), and seeds/. No LLM calls.
+
+Master tier = one bug plus one performance regression, in different files.
+
+1. Seed prep (seeds/py-fastapi-expenses):
+   - In concepts.yaml, mark 2–3 perf-sensitive symbols (e.g. filtering,
+     monthly report) with perf: true.
+   - Add tests/perf/gen_large.py producing a large deterministic dataset
+     (e.g. 50,000 expenses) and a perf test that times the target operation
+     with time.perf_counter (best of 3) and records the measured ms with
+     pytest's record_property.
+   - All seed tests, including perf, must pass on the reference.
+2. backend/builder/master.py, with LibCST perf-regression operators (each
+   unit-tested): dict/set lookup → list scan; cache bypass; per-item query
+   in a loop (N+1); quadratic de-duplication.
+   build_master(seed_id, concepts, rng_seed) = one P2.2 bug + one perf
+   regression in a different file. Reuse P2.2's engine and
+   grading.derive_test_ids.
+3. Calibration in the runner: run the reference perf test 5 times; set
+   budget_ms = 3 × median. The regressed starter must exceed the budget;
+   otherwise reject that regression and try the next site. Store
+   perf.budget_ms, perf_ref_ms and perf_naive_ms in the spec for the
+   certificate.
+4. Perf tests are hidden. The statement (a placeholder until P2.5) states
+   the budget. Submit runs must record perf_ms, and backend/scoring must
+   use it for perf_factor instead of "within budget until measured".
+5. `make build-master SEED=py-fastapi-expenses` prints the task summary
+   and calibration numbers.
+
+Tests: each perf operator; calibration rejects a regression that doesn't
+exceed the budget; the reference passes everything including perf;
+perf_factor uses the measured perf_ms.
+
+Acceptance checks: make test, make test-docker, and make e2e once at the
+end (scoring changed). Show make build-master output.
+```
+
+Implemented in backend/builder/master.py (`python -m builder.master SEED [CONCEPT ...]
+[--rng-seed N]`) and backend/builder/perf.py (perf_ms from pytest-json-report
+`user_properties`). The seed gained a bulk import (`POST /expenses/import`, concept
+importing) as its perf-sensitive code; concepts.yaml `perf_symbols` lists
+services.import_expenses and services.monthly_report with their perf tests. All four
+operators find a site in the seed; with rng_seed 0 calibration rejects the quadratic
+de-dup (within budget) and keeps the list scan (~2.8× budget).
+
 ### Specs for the rest of Phase 2
 
-- **P2.4 Master builder:** a bug plus a performance regression (e.g. dict
-  lookup → list scan, N+1 query); perf test with an input generator;
-  calibration on the runner (limit ≈ 3× the reference's median time; the
-  naive version must exceed it).
 - **P2.5 LLM enrichment:** statement, repo tour, entity renaming to match the
   candidate's project (re-run all tests after renaming), extra hidden tests
   kept only if the reference passes them. Token policy: one call per task,

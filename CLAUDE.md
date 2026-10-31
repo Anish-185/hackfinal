@@ -112,7 +112,10 @@ backend/     app/            FastAPI app and plumbing:
                              (P2.2 mutation engine, LibCST operators, sandbox
                              pre-filter, draft Novice spec), remove_feature.py
                              (P2.3: stub a concept across 2-3 files, runner
-                             checks, draft Adept spec), tasks.py (shared:
+                             checks, draft Adept spec), master.py (P2.4: bug +
+                             LibCST perf regression in another file, budget
+                             calibrated in the sandbox), perf.py (perf_ms from
+                             perf tests; also used by submit), tasks.py (shared:
                              concepts.yaml, starter files, visible/hidden split,
                              validation), seeds.py, seed_demo.py
              app/dsa.py      DSA grading: harness gets inputs only, outputs
@@ -131,7 +134,8 @@ backend/     app/            FastAPI app and plumbing:
              interviewer/
              A new top-level package must be added to `packages` in
              backend/pyproject.toml and to the mkdir line in backend/Dockerfile.
-seeds/       hand-written seed repos, each with tests + concepts.yaml
+seeds/       hand-written seed repos, each with tests + concepts.yaml; tests/perf/
+             (perf tests + input generator) is used only by Master tasks, as hidden tests
 dsa/         DSA bank: one folder per problem (problem.md, stub.py,
              reference.py, cases.json, make_cases.py) and taxonomy.yaml
              (canonical topics, synonyms, tiers, solved-count thresholds,
@@ -151,7 +155,7 @@ docs/        blueprint, prompts, progress, interviewer spec
 ## Commands
 make up | make down | make migrate | make seed-demo | make e2e | make test |
 make test-docker | make lint | make contracts | make runtimes | make mutate |
-make remove-feature | make llm-smoke | make llm-usage
+make remove-feature | make build-master | make llm-smoke | make llm-usage
 (Keep this list in sync with the Makefile.)
 
 - `make seed-demo`: builds and validates the P1.3 demo tasks in the sandbox
@@ -184,6 +188,11 @@ make remove-feature | make llm-smoke | make llm-usage
 - `make remove-feature SEED=... [CONCEPT=...]`: without CONCEPT, list which
   concepts span 2–3 files; with it, stub that concept, check it in the sandbox
   and print a validated draft Adept task. Runs in the worker; no LLM calls.
+- `make build-master SEED=... [CONCEPTS="a b"] [RNG_SEED=0]`: list the seed's perf
+  regressions, calibrate the budget (5 reference runs of the perf test, 3 × median),
+  keep the first regression that exceeds it and keeps functional tests green, add a
+  bug from CONCEPTS in another file, and print the validated draft Master task.
+  ~1.5 min in the worker; no LLM calls.
 - `make llm-smoke`: one real request per slot; spends credits on a cache miss.
 - `make llm-usage`: tokens and estimated spend per slot.
 

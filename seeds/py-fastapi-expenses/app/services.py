@@ -1,4 +1,5 @@
-"""Business logic: filtering, sorting, creating expenses, monthly reports and their cache."""
+"""Business logic: filtering, sorting, creating and importing expenses, monthly reports and
+their cache."""
 
 import datetime as dt
 import threading
@@ -9,7 +10,7 @@ from sqlalchemy.orm import Session
 
 from app import repo
 from app.models import Category, Expense
-from app.schemas import ExpenseCreate, MonthlyReport, SortKey
+from app.schemas import ExpenseCreate, ImportResult, MonthlyReport, SortKey
 from app.utils import Page, month_bounds, paginate
 
 _SORT_COLUMNS = {"date": Expense.spent_on, "amount": Expense.amount_cents}
@@ -109,6 +110,31 @@ def create_expense(
     repo.insert_expense(session, expense)
     cache.invalidate((user_id, data.date.year, data.date.month))
     return expense
+
+
+def import_expenses(
+    session: Session, cache: ReportCache, user_id: int, items: list[ExpenseCreate]
+) -> ImportResult:
+    """Store many expenses at once, skipping exact duplicates of stored or earlier items."""
+    keys = list(
+        dict.fromkeys((i.date, i.amount_cents, i.category.value, i.description) for i in items)
+    )
+    dates = sorted({key[0] for key in keys})
+    stored = session.execute(
+        select(Expense.spent_on, Expense.amount_cents, Expense.category, Expense.description).where(
+            Expense.user_id == user_id, Expense.spent_on.in_(dates)
+        )
+    )
+    existing = {tuple(row) for row in stored}
+    new = [key for key in keys if key not in existing]
+    session.add_all(
+        Expense(user_id=user_id, spent_on=day, amount_cents=cents, category=cat, description=text)
+        for day, cents, cat, text in new
+    )
+    session.commit()
+    for year, month in {(day.year, day.month) for day, *_ in new}:
+        cache.invalidate((user_id, year, month))
+    return ImportResult(created=len(new), skipped=len(items) - len(new))
 
 
 def compute_monthly_report(session: Session, user_id: int, year: int, month: int) -> MonthlyReport:

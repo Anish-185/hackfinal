@@ -339,8 +339,15 @@ def _param_types(module: cst.Module, function: cst.FunctionDef) -> dict[str, str
     }
 
 
-def mutations(source: str, qualname: str, operators: list[str] | None = None) -> list[Mutation]:
+def mutations(
+    source: str,
+    qualname: str,
+    operators: list[str] | None = None,
+    table: dict[str, Callable[[cst.CSTNode, Context], Iterator[Site]]] = OPERATORS,
+) -> list[Mutation]:
     """Every mutation of `qualname` in `source`, in a fixed order (scope, operator, position).
+
+    `table` is the operator set: the bug operators above, or master.py's perf regressions.
 
     Mutations that leave the code unchanged or duplicate an earlier one are dropped.
     """
@@ -352,8 +359,8 @@ def mutations(source: str, qualname: str, operators: list[str] | None = None) ->
     result = []
     for scope_name, scope, types in _scopes(module, qualname):
         ctx = Context(module, parents, types)
-        for operator in operators or list(OPERATORS):
-            for site in OPERATORS[operator](scope, ctx):
+        for operator in operators or list(table):
+            for site in table[operator](scope, ctx):
                 if site.new is None:
                     changed = module.deep_remove(site.old)
                 else:

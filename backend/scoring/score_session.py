@@ -70,7 +70,7 @@ def _task_score(
         hidden = RunResult.model_validate(submit.result["hidden"])
         visible_passed = len(c.passed_ids(visible, spec.visible_test_ids))
         hidden_passed = len(c.passed_ids(hidden, spec.hidden_test_ids))
-        # Written by the submit job once perf is measured (Master tasks, P2.4).
+        # Measured by the submit job for tasks with a perf budget (grading.measure_perf).
         perf_ms = submit.result.get("perf_ms")
     visible_rate = c.rate(visible_passed, len(spec.visible_test_ids))
     hidden_rate = c.rate(hidden_passed, len(spec.hidden_test_ids))

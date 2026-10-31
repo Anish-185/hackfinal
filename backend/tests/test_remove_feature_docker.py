@@ -27,7 +27,10 @@ def test_tests_of_other_concepts_pass_on_the_starter(reporting) -> None:
 
     assert checks.other_tests > 30
     assert checks.other_failing == []
-    assert checks.dependent_concepts == ["caching"]  # calls the report code; tests hidden
+    assert checks.dependent_concepts == [
+        "caching",
+        "importing",
+    ]  # calls the report code; tests hidden
 
 
 def test_target_tests_fail_on_the_starter_and_pass_on_the_seed(reporting) -> None:
