@@ -44,6 +44,31 @@ Add every new one here in the same change that introduces it (CLAUDE.md).
 | [Monaco Editor](https://github.com/microsoft/monaco-editor) / [@monaco-editor/react](https://github.com/suren-atoyan/monaco-react) | MIT | Candidate IDE editor (P1.4). monaco-editor 0.55.1 is bundled from npm (core editor + a few syntax highlighters, lib/monaco.ts), no CDN (P1.4b) |
 | [react-markdown](https://github.com/remarkjs/react-markdown) | MIT | Rendering task statements and repo tours (P1.4) |
 
+### Showcase site (`showcase/package.json`)
+
+A standalone static site for the project presentation. Versions are pinned exactly.
+
+| Library | License | Use |
+| :--- | :--- | :--- |
+| [Next.js](https://github.com/vercel/next.js) 16.4.3 | MIT | App framework, static export |
+| [React](https://github.com/facebook/react) / React DOM 19.3.0 | MIT | UI |
+| [TypeScript](https://github.com/microsoft/TypeScript) 5.9.3 | Apache-2.0 | Type checking |
+| [DefinitelyTyped](https://github.com/DefinitelyTyped/DefinitelyTyped) (@types/node, @types/react, @types/react-dom) | MIT | Type definitions |
+| [Motion](https://github.com/motiondivision/motion) 14.3.0 | MIT | Scroll-linked and reveal animations |
+| [Lenis](https://github.com/darkroomengineering/lenis) 1.3.26 | MIT | Smooth scrolling |
+| [Fontsource](https://github.com/fontsource/fontsource) (@fontsource-variable/cormorant, cinzel, eb-garamond, archivo, jetbrains-mono 5.3.0) | MIT (packaging) | Self-hosted font files, no font CDN |
+| [Cormorant](https://github.com/CatharsisFonts/Cormorant) (Christian Thalmann) | OFL-1.1 | Display typeface |
+| [Cinzel](https://github.com/NDISCOVER/Cinzel) (Natanael Gama) | OFL-1.1 | Inscriptions: labels, small capitals |
+| [EB Garamond](https://github.com/octaviopardo/EBGaramond12) (Georg Duffner, Octavio Pardo) | OFL-1.1 | Greek letters (numerals, the Delphi motto), which Cormorant lacks |
+| [Archivo](https://github.com/Omnibus-Type/Archivo) (Omnibus-Type) | OFL-1.1 | Text typeface |
+| [JetBrains Mono](https://github.com/JetBrains/JetBrainsMono) | OFL-1.1 | Code typeface |
+| Blue engraving asset sheets (Greek and Roman figures, architecture, ornaments) | Provided by the team (source to be confirmed) | `showcase/public/greek/`: single engravings cut from the sheets by `showcase/scripts/cut-greek.mjs` (sharp, already a Next.js dependency) |
+| [Hermes Agent](https://hermes-agent.nousresearch.com/) site (Nous Research) | Design reference only | Inspiration for pairing classical engraving with a technical product; no code or assets used |
+
+Product screenshots on the site are captured from our own running app with Playwright (listed under End-to-end test).
+
+The `/interview` practice demo uses only browser APIs: the [Web Speech API](https://developer.mozilla.org/en-US/docs/Web/API/Web_Speech_API) (speech recognition and the built-in speech synthesis voice) and the [Web Audio API](https://developer.mozilla.org/en-US/docs/Web/API/Web_Audio_API) (mic level for the blob). No new packages.
+
 ### Runner images (`runtimes/`)
 
 | Software | License | Use |
@@ -95,6 +120,7 @@ pytest, FastAPI, SQLAlchemy and Pydantic are also installed in the Python image 
 | :--- | :--- | :--- |
 | [JSON Resume schema](https://github.com/jsonresume/resume-schema) | MIT | `contracts/portfolio.schema.json` follows its `basics`, `skills`, `projects` and `meta` structure and its ISO 8601 date pattern |
 | [LeetCode 3, "Longest Substring Without Repeating Characters"](https://leetcode.com/problems/longest-substring-without-repeating-characters/) | Problem idea only | `dsa/longest_unique_substring`: the classic sliding-window problem. Statement, stub, reference solution and all cases written by us; no LeetCode text or tests used |
+| [DeepInterview](https://github.com/ngoanpv/DeepInterview) | Apache-2.0 (method only) | `showcase/components/interview/`: the live interview flow (setup, stage + transcript + timer + typed fallback, then notes), sectioned question plans with follow-ups, the word-count difficulty signal (`evaluate_difficulty`, thin answer < 12 words) and the hard time/turn ceilings (`SessionGuard`). Rewritten for the browser; no DeepInterview code, LiveKit or paid voice services used |
 | [SWE-smith](https://github.com/SWE-bench/SWE-smith) | MIT (method only) | `backend/builder/mutate.py`: the idea of injecting bugs into a working repo procedurally and keeping only those that break some of its tests. Operators and the filter are our own code; no SWE-smith code or data used. Issue-text generation (P2.5) not used yet |
 
 ## Planned
