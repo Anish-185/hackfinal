@@ -12,6 +12,7 @@ import {
   practiceApi,
 } from "@/lib/practice";
 import { DifficultyLabel } from "../ProblemList";
+import SiteNav from "../SiteNav";
 import PracticeEditor from "./PracticeEditor";
 import ResultPanel, { type JobState } from "./ResultPanel";
 
@@ -134,6 +135,9 @@ export default function PracticeIDE({ problemId }: { problemId: string }) {
         </Link>
         <h1 className="font-semibold">{problem.title}</h1>
         <DifficultyLabel difficulty={problem.difficulty} />
+        <div className="ml-2 border-l border-gray-200 pl-3">
+          <SiteNav />
+        </div>
         <div className="ml-auto flex items-center gap-2">
           <select
             value={language}

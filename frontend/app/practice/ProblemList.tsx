@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { type Difficulty, type ProblemSummary, practiceApi } from "@/lib/practice";
+import SiteNav from "./SiteNav";
 
 export const DIFFICULTY_STYLE: Record<Difficulty, string> = {
   easy: "text-green-700",
@@ -43,9 +44,7 @@ export default function ProblemList() {
     <main className="mx-auto max-w-4xl p-6">
       <div className="mb-4 flex items-baseline justify-between">
         <h1 className="text-2xl font-semibold">Practice problems</h1>
-        <Link href="/" className="text-sm text-blue-700 underline">
-          Home
-        </Link>
+        <SiteNav />
       </div>
       <div className="mb-4 flex flex-wrap gap-2 text-sm">
         <input
