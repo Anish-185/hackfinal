@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { animate, motion, useInView, useMotionValue, useMotionValueEvent, useReducedMotion } from "motion/react";
 import Chip from "./Chip";
+import { Label, Words } from "./fx";
 
 // Nodes and edges are the real functions and calls of seeds/py-fastapi-expenses.
 // The two candidate trails are SAMPLE data: the Trail Map builder is P4.4.
@@ -124,12 +125,16 @@ export default function TrailMap() {
       <div className="wrap">
         <div className="grid trail-top">
           <div className="trail-intro">
-            <p className="label">Debug Trail Map</p>
-            <h2 className="h2">Same score. Different engineers.</h2>
+            <Label n={2}>Ariadne&apos;s thread</Label>
+            <Words className="h2" text="Same score. *Different* engineers." />
+            <p className="lede">
+              Theseus found the Minotaur by following a thread. The Debug Trail Map lays that thread through the
+              candidate&apos;s session.
+            </p>
             <p>
-              Both candidates fixed the pagination bug and scored 100. The Trail Map shows how: which functions they
-              opened, in what order, and for how long. A went straight from the route to the bug. B read auth, filters
-              and sorting first. Report-only: it never changes the score.
+              Both candidates fixed the pagination bug and scored 100. The map shows how: which functions they opened,
+              in what order, and for how long. A went straight from the route to the bug. B read auth, filters and
+              sorting first. Report-only: it never changes the score.
             </p>
             <div className="trail-status">
               <Chip s="planned">Planned: P4.4 builder, P4.5 replay</Chip>
@@ -162,6 +167,23 @@ export default function TrailMap() {
           <div className="trail-body">
             <div className="trail-svg-wrap">
               <svg viewBox="0 0 1000 520" className="trail-svg" role="img" aria-label={`${trail.label}'s path through the code`}>
+                <defs>
+                  <filter id="thread-glow" x="-10%" y="-10%" width="120%" height="120%">
+                    <feGaussianBlur stdDeviation="3" result="b" />
+                    <feMerge>
+                      <feMergeNode in="b" />
+                      <feMergeNode in="SourceGraphic" />
+                    </feMerge>
+                  </filter>
+                  <clipPath id="maze-clip">
+                    <rect x="0" y="0" width="1000" height="520" />
+                  </clipPath>
+                </defs>
+                <g className="t-maze" clipPath="url(#maze-clip)" aria-hidden>
+                  {[60, 100, 140, 180, 220, 260, 300].map((r, i) => (
+                    <circle key={r} cx={640} cy={150} r={r} strokeDasharray={`${180 + i * 40} 26`} transform={`rotate(${i * 47} 640 150)`} />
+                  ))}
+                </g>
                 {EDGES.map(([a, b]) => {
                   const A = byId[a], B = byId[b];
                   return <path key={a + b} d={`M ${A.x} ${A.y} ${curve(A, B)}`} className="t-edge" />;
@@ -172,6 +194,7 @@ export default function TrailMap() {
                   d={d}
                   className="t-path"
                   style={{ pathLength: progress }}
+                  filter="url(#thread-glow)"
                 />
                 {NODES.map((n) => {
                   const w = dwell[n.id];
@@ -187,9 +210,13 @@ export default function TrailMap() {
                           className="t-dwell"
                         />
                       ) : null}
-                      <circle cx={n.x} cy={n.y} r={6} className="t-dot" />
-                      <text x={n.x} y={n.y + 28} textAnchor="middle" className="t-fn">{n.fn}</text>
-                      <text x={n.x} y={n.y + 44} textAnchor="middle" className="t-file">{n.file}</text>
+                      {n.id === BUG ? (
+                        <image href="/greek/bull.webp" x={n.x - 34} y={n.y - 40} width={68} height={70} className="t-bull" />
+                      ) : (
+                        <circle cx={n.x} cy={n.y} r={6} className="t-dot" />
+                      )}
+                      <text x={n.x} y={n.y + (n.id === BUG ? 46 : 28)} textAnchor="middle" className="t-fn">{n.id === BUG ? `${n.fn}: the Minotaur` : n.fn}</text>
+                      <text x={n.x} y={n.y + (n.id === BUG ? 62 : 44)} textAnchor="middle" className="t-file">{n.file}</text>
                     </g>
                   );
                 })}

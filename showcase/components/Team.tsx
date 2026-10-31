@@ -1,28 +1,48 @@
+"use client";
+
 import { EVENT, NAME, REPO_URL, TEAM, TEAM_LINE } from "@/lib/site";
+import { Engraving, Label, Magnetic, Parallax } from "./fx";
+import { Reveal, Item } from "./Reveal";
 
 export default function Team() {
   return (
     <footer className="section dark team" id="team">
-      <div className="wrap">
-        <p className="label">Team</p>
-        <ul className="team-list">
+      <div className="wrap team-in">
+        <Label n={9}>The makers</Label>
+        <Reveal as="ul" className="team-list">
           {TEAM.map((m) => (
-            <li key={m.name}>
+            <Item as="li" key={m.name}>
               <span className="display team-name">{m.name}</span>
-              {m.role && <span className="small">{m.role}</span>}
-            </li>
+              {m.role && <span className="inscr team-role">{m.role}</span>}
+            </Item>
           ))}
-        </ul>
+        </Reveal>
         <div className="team-foot">
-          <p>
-            {TEAM_LINE}, {EVENT}.
-          </p>
-          <p>
-            <a href={REPO_URL}>Source on GitHub</a>
-          </p>
-          <p className="display team-mark" aria-hidden>{NAME}</p>
+          <div className="team-motto">
+            <Engraving name="wreath-bow" ink className="team-wreath" />
+            <p>
+              <span className="team-greek">ΓΝΩΘΙ ΣΕΑΥΤΟΝ</span>
+              <span className="small">Know thyself. Cut above the temple at Delphi; we ask candidates to show it.</span>
+            </p>
+          </div>
+          <div className="team-links">
+            <p>
+              {TEAM_LINE}, {EVENT}.
+            </p>
+            <Magnetic>
+              <a href={REPO_URL} className="btn" data-cursor="Code">
+                Source on GitHub
+              </a>
+            </Magnetic>
+          </div>
         </div>
       </div>
+      <Parallax speed={6} className="team-coast">
+        <Engraving name="coast" ink />
+      </Parallax>
+      <p className="display team-mark" aria-hidden>
+        {NAME}
+      </p>
     </footer>
   );
 }

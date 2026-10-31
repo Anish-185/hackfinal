@@ -56,10 +56,14 @@ A standalone static site for the project presentation. Versions are pinned exact
 | [DefinitelyTyped](https://github.com/DefinitelyTyped/DefinitelyTyped) (@types/node, @types/react, @types/react-dom) | MIT | Type definitions |
 | [Motion](https://github.com/motiondivision/motion) 14.3.0 | MIT | Scroll-linked and reveal animations |
 | [Lenis](https://github.com/darkroomengineering/lenis) 1.3.26 | MIT | Smooth scrolling |
-| [Fontsource](https://github.com/fontsource/fontsource) (@fontsource-variable/archivo, source-serif-4, jetbrains-mono 5.3.0) | MIT (packaging) | Self-hosted font files, no font CDN |
-| [Archivo](https://github.com/Omnibus-Type/Archivo) (Omnibus-Type) | OFL-1.1 | Display typeface |
-| [Source Serif 4](https://github.com/adobe-fonts/source-serif) (Adobe) | OFL-1.1 | Text typeface |
+| [Fontsource](https://github.com/fontsource/fontsource) (@fontsource-variable/cormorant, cinzel, eb-garamond, archivo, jetbrains-mono 5.3.0) | MIT (packaging) | Self-hosted font files, no font CDN |
+| [Cormorant](https://github.com/CatharsisFonts/Cormorant) (Christian Thalmann) | OFL-1.1 | Display typeface |
+| [Cinzel](https://github.com/NDISCOVER/Cinzel) (Natanael Gama) | OFL-1.1 | Inscriptions: labels, small capitals |
+| [EB Garamond](https://github.com/octaviopardo/EBGaramond12) (Georg Duffner, Octavio Pardo) | OFL-1.1 | Greek letters (numerals, the Delphi motto), which Cormorant lacks |
+| [Archivo](https://github.com/Omnibus-Type/Archivo) (Omnibus-Type) | OFL-1.1 | Text typeface |
 | [JetBrains Mono](https://github.com/JetBrains/JetBrainsMono) | OFL-1.1 | Code typeface |
+| Blue engraving asset sheets (Greek and Roman figures, architecture, ornaments) | Provided by the team (source to be confirmed) | `showcase/public/greek/`: single engravings cut from the sheets by `showcase/scripts/cut-greek.mjs` (sharp, already a Next.js dependency) |
+| [Hermes Agent](https://hermes-agent.nousresearch.com/) site (Nous Research) | Design reference only | Inspiration for pairing classical engraving with a technical product; no code or assets used |
 
 Product screenshots on the site are captured from our own running app with Playwright (listed under End-to-end test).
 

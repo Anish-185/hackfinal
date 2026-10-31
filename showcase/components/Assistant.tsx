@@ -5,6 +5,7 @@ import { AnimatePresence, motion, useInView, useReducedMotion } from "motion/rea
 import Chip from "./Chip";
 import Link from "next/link";
 import Orb from "./Orb";
+import { Engraving, Label, Words } from "./fx";
 
 // A scripted mock of the planned assistant (P3.1–P3.3). Nothing here calls a model.
 type Msg = { who: "me" | "ai" | "guard"; text: string; meta?: string };
@@ -47,10 +48,10 @@ export default function Assistant() {
   return (
     <section className="section dark ai" id="assistant">
       <div className="wrap">
-        <p className="label">AI, on a leash</p>
+        <Label n={6}>The oracle</Label>
         <div className="grid ai-grid">
           <div className="ai-intro">
-            <h2 className="h2">An assistant that helps you think, and refuses to think for you.</h2>
+            <Words className="h2" text="An oracle that answers in *hints,* never in solutions." />
             <p>
               On Adept and Master the candidate can ask for hints. Requests that try to pull out the answer are blocked
               by input rules before any model sees them, and replies are checked for similarity to the reference before
@@ -86,11 +87,13 @@ export default function Assistant() {
 
         <div className="grid voice">
           <div className="voice-orb">
+            <Engraving name="sun" ink className="voice-sun" />
+            <Engraving name="moon" ink className="voice-moon" />
             <Orb />
           </div>
           <div className="voice-text">
             <Chip s="planned">Coming soon: P4.7–P4.11</Chip>
-            <h3 className="h2 voice-title">Then a short voice interview about their own code.</h3>
+            <Words as="h3" className="h2 voice-title" text="Then the oracle *speaks:* a short voice interview about their own code." />
             <p>
               Ten minutes, audio only, optional. The interviewer says it&apos;s an AI, then asks the candidate to walk
               through the change they just submitted and a project from their portfolio. It checks the answer mentions
@@ -104,8 +107,10 @@ export default function Assistant() {
               <li>At most 10 small LLM calls and 4,000 tokens per interview; scripted lines need none.</li>
             </ul>
             <p className="small voice-try">
-              <Link href="/interview">Try the browser demo</Link>: the same flow with a scripted plan, running entirely
-              in this tab.
+              <Link href="/interview" className="btn" data-cursor="Speak">
+                Try the browser demo
+              </Link>
+              <span>The same flow with a scripted plan, running entirely in this tab.</span>
             </p>
           </div>
         </div>

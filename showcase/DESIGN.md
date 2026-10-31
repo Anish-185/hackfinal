@@ -30,6 +30,15 @@ material instead of illustration; and generous, uneven whitespace on a visible g
 - Product: shown as numbers and charts with citations, not screenshots.
 - Take-away for us: real numbers, cited; one accent; quiet type; let proof carry it.
 
+**hermes-agent.nousresearch.com** (Nous Research, raw HTML and CSS read 2026-10-31).
+- A classical engraving (a many-armed Hermes in a sunburst of ray-lines) fused with
+  technical marks: halftone, UI windows, a cobalt accent (#0847c4) on black and white.
+- Type: EB Garamond for display, condensed gothics for labels, a mono for UI.
+- Structure is a plain product page (hero, downloads, six numbered features, FAQ,
+  pricing); the myth lives in the imagery and the name, not in the story.
+- Take-away for us: the engraving-meets-machine look works. We go further by letting
+  each myth carry a section's meaning, not just decorate it.
+
 **hackerrank.com.** A capture wasn't possible: the site's Akamai bot wall returns
 "Access Denied" to headless Chromium, and we didn't get around it. Notes below come
 from our own familiarity with the public site, not from a fresh capture.
@@ -40,89 +49,87 @@ from our own familiarity with the public site, not from a fresh capture.
   (centered, logo-wall proof, alternating rows). We have no customers and won't
   pretend to, so our proof is test counts, timings and the code itself.
 
-## Direction: "the assay office"
+## Direction: "engraved porcelain"
 
-An assay office tests metal and stamps a hallmark on what passes. Nobody's opinion
-is involved: the sample goes through fixed tests and the mark records the result.
-That is what this product does for a candidate's claimed skills. The page borrows
-that world: specimen panels, stamped marks, certificate cards, calibration ticks,
-and a strict split between **paper** (what people read) and **the sandbox** (dark
-sections, used only where candidate code runs or is judged).
+Greek myth, chosen because its best-known stories are about fair judgement and
+finding the truth, which is what the product does. Every section is one plate, named
+with a Greek numeral, and the myth is the argument, not decoration:
 
-## Name
+| Section | Myth | Why it fits |
+| --- | --- | --- |
+| Hero | Athena, with an astrolabe as her halo | She founds the first court in the Eumenides: evidence heard, votes counted |
+| Α΄ The riddle | Hermes | Patron of tricksters: who really wrote the take-home? |
+| Β΄ The voyage | A ship sailing seven ports; Pegasus crosses | The pipeline as a route; each port has an emblem (scroll, compass, amphora, arch, torch, helmet, laurel) |
+| Γ΄ Ariadne's thread | The labyrinth and the Minotaur | The Trail Map is the thread through the code; the bug node is the bull |
+| Δ΄ Three orders | Plain, Ionic, Corinthian columns | Novice to Master: plainer to more ornate as the problem grows |
+| Ε΄ The aegis | Athena's shield, the night sky | The threat model; fixed laws like the stars, so the score is reproducible |
+| Ϛ΄ It runs today | none | Real screenshots of the running app, no myth needed |
+| Ζ΄ The oracle | Delphi | Answers in hints, never solutions; then the oracle speaks (voice interview) |
+| Η΄ The ascent | Steps | Phases drawn as rising stairs |
+| Θ΄ The temple | A temple | Columns that don't touch (strict boundaries) on the database base |
+| Ι΄ The makers | ΓΝΩΘΙ ΣΕΑΥΤΟΝ, Delphi's motto | Know thyself: what we ask candidates to show |
 
-Three candidates (one constant: `showcase/lib/site.ts` → `NAME`):
-1. **Assay** — testing a sample to find what it really contains. Short, exact.
-2. Proofmark — the stamp a gunsmith's proof house puts on a barrel that survived
-   the test load.
-3. Hallmark — the stamp on tested gold; too common a word to own.
+Two surfaces: **parchment** with cobalt engraving ink (what people read) and **lapis
+night** with laurel gold (where code runs and is judged: aegis, oracle, footer, and
+the interview page).
 
-Using **Assay**.
+## Imagery
+
+Single engravings cut from the team's three asset sheets by
+`scripts/cut-greek.mjs` into `public/greek/`: crop, 2x Lanczos, ink density to
+alpha, flood-fill from a seed to drop neighbouring drawings, holes filled for an
+opaque silhouette. Each asset gives a parchment cutout (layers hide what's behind
+them) and an ink-only mask (`<Engraving ink>`, printed in `currentColor` on night
+sections). Scenes (ship, arch, coast, amphora) are kept whole with feathered edges.
+Vector ornaments (astrolabe, meander, stars, temple) are drawn in SVG/CSS so they
+stay crisp at any size.
 
 ## Type
 
-- Display: **Archivo** (variable, width axis), set at width 125 / weight 750–850,
-  tight tracking. Wide letters read as stamped, like a hallmark punch. Used large
-  and sparingly: hero, section titles, big numbers.
-- Text: **Source Serif 4** (variable, optical sizes). A serif for prose gives the
-  "report you can trust" register and contrasts clearly with the wide grotesk.
-  19 px / 1.6 on desktop, 17 px on mobile, ≤ 68 characters per line.
-- Code only: **JetBrains Mono**. Never used for labels or decoration, only for
-  code, JSON and test output.
-- All three are self-hosted via Fontsource npm packages (no font CDN).
-- Scale (≈ 1.333, perfect fourth): 14 · 17 · 19 · 25 · 34 · 45 · 60 · 80 · clamp to 168 for the hero.
-- Labels are sentence case, in the text face, small and muted. No all-caps eyebrows.
+- Display: **Cormorant** (variable, with italic), light and large; italics mark the
+  one accented word in a heading.
+- Inscriptions: **Cinzel**, small, tracked capitals for labels and captions.
+- Greek letters: **EB Garamond**, a per-glyph fallback (Cormorant has no Greek).
+- Text: **Archivo** at normal width, 18 px / 1.62; code: **JetBrains Mono**.
+- All self-hosted via Fontsource.
 
 ## Palette
 
 | Token | Hex | Role |
 | --- | --- | --- |
-| paper | #E6E8E3 | page background: a cool mineral grey, not cream |
-| ink | #161A17 | text on paper |
-| graphite | #5B625D | secondary text, hairlines at 30 % |
-| sandbox | #17201C | dark sections where code runs (deep green-black) |
-| verdigris | #0E7A5C (on paper) / #3FD3A0 (on sandbox) | the one accent: pass marks, active stage, links |
-| fail | #C2412D | semantic only: a failing test or a blocked request |
+| paper | #F3EEE3 | parchment background |
+| ink | #1B2D8F | engraving ink: headings, art, rules |
+| text-ink | #232853 | body text on paper |
+| sandbox (night) | #0A1034 | lapis night sections |
+| gold-hi / gold | #E2C27A / #A9822F | accents on night, seals, the progress bar |
+| accent | #2442C9 | links and pass marks on paper |
+| thread / fail | #B4432F | Ariadne's thread, failing tests |
 
-## Layout
+Token names are shared with the interview and code-reading pages, so those pages
+follow the theme without their own changes.
 
-12-column grid, max 1320 px, 24 px gutters (16 px side gutter on phones). Section
-titles sit in columns 1–5; the evidence (code, card, diagram) sits off-axis in
-7–12 or bleeds wider. Text is left-aligned everywhere; nothing is centered except
-the orb.
+## Motion and interaction
 
-```
- hero        [ ASSAY (huge, wide) ...................... ]
-             [ promise + subline  ]   [ specimen: json → profile → task ]
- problem     [ two claims, large  ]          [ short explanation ]
- pipeline    [ sticky stage list  ]   [ sticky artifact panel, swaps on scroll ]
- trail map   [ title ]  [ full-width graph, A / B toggle ................ ]
- tiers       one comparison table: rows = what changes, columns = tiers
- trust       (sandbox) certificate card | grading code | threat model rows
- assistant   (sandbox) mock chat | orb (coming soon)
- product     screenshots in plain frames, slight offset
- progress    horizontal phase timeline with counted items
- stack       architecture strip + open-source list
- team        three names, the hackathon line
-```
-
-## Motion principles
-
-- One orchestrated load moment: the hero specimen runs portfolio → profile → task
-  once. Everything else is driven by the reader's scroll.
-- Lenis smooth scroll; reveals are short (450 ms, 24 px rise, staggered 60 ms) and
-  happen once. Counters run once when seen.
-- Two signature moments: the pipeline (sticky, scroll-scrubbed) and the Trail Map
-  (paths drawn along real function nodes, A/B switch).
-- Small parallax on the hero type and product frames only.
-- Only transform and opacity are animated. Heavy parts (Trail Map, orb, screenshots)
-  are lazy. `prefers-reduced-motion` turns off Lenis, parallax and drawing: final
-  states are shown immediately.
+- Opening plate: a laurel and a count to 100, then the curtain lifts (once per tab).
+- Hero: four depth layers (astrolabe, Athena, stars, the name) shift with the
+  pointer; on scroll Athena rises out of the letters and the astrolabe turns.
+- Headings rise word by word out of a mask; an inscription marquee follows scroll
+  velocity; Pegasus crosses the screen on the way into the voyage.
+- The voyage is sticky and scroll-scrubbed: emblem, numeral and panel change per
+  port while the ship sails the route.
+- Hover: magnetic buttons, 3D tilt with a sheen on engravings, rolling nav labels,
+  lifting tier cards, a difference-blend cursor that opens on links and shows a word
+  on some ([data-cursor]).
+- The oracle orb (components/OracleOrb.tsx): one WebGL shader, a marbled porcelain
+  sphere with engraving hatch lines inside a corona of hair-thin rays that follow the
+  audio level; an orbit with three dots while thinking, ripples on spoken words. Used
+  on the home page and as the interviewer on /interview.
+- Only transform, opacity and clip-path animate. `prefers-reduced-motion` removes
+  the intro, Lenis, parallax, the cursor and the loops; final states show at once.
 
 ## What we're avoiding
 
-Purple/blue gradients, glass cards, icon-in-circle feature grids, three identical
-feature cards, all-caps tracked eyebrows, mono used as decoration, arrows appended
-to link text, middle-dot meta strings, the cream + terracotta look, logo walls,
-invented numbers, stock art. Copy speaks like the engineers who built it: what it
+Glass cards, icon-in-circle feature grids, three identical feature cards, logo walls,
+invented numbers, stock art, and myth for its own sake: if a section's myth doesn't
+explain the section, it goes. Copy speaks like the engineers who built it: what it
 does, how, and what's not done yet.

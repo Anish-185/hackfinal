@@ -1,11 +1,15 @@
 import type { Metadata, Viewport } from "next";
+import "@fontsource-variable/cormorant/wght.css";
+import "@fontsource-variable/cormorant/wght-italic.css";
+import "@fontsource-variable/cinzel/wght.css";
+import "@fontsource-variable/eb-garamond/wght.css";
 import "@fontsource-variable/archivo/wdth.css";
-import "@fontsource-variable/source-serif-4/opsz.css";
 import "@fontsource-variable/jetbrains-mono/index.css";
 import "./globals.css";
 import "./sections.css";
 import { NAME } from "@/lib/site";
 import SmoothScroll from "@/components/SmoothScroll";
+import Cursor from "@/components/Cursor";
 
 export const metadata: Metadata = {
   title: `${NAME}: coding assessments built from the candidate's own work`,
@@ -14,7 +18,7 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: "#e6e8e3",
+  themeColor: "#f3eee3",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
@@ -22,6 +26,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="en">
       <body>
         <SmoothScroll>{children}</SmoothScroll>
+        <Cursor />
       </body>
     </html>
   );

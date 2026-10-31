@@ -59,25 +59,25 @@ total = session.scalar(count_stmt) or 0
   );
 }
 
-const CHECKS: [string, boolean][] = [
-  ["Reference passes every test", true],
-  ["Starter fails at least one concept test", true],
-  ["Unrelated concepts' tests still pass", true],
-  ["Edits stay inside the scoped files", true],
-  ["Reference passes 3 times in a row", false],
-  ["Mutation score of the test suite", false],
-  ["AI solve-rate probe: 3 attempts", false],
+const CHECKS: [string, "done" | "optional" | "planned"][] = [
+  ["Reference passes every test, 3 times in a row", "done"],
+  ["Starter fails at least one concept test", "done"],
+  ["Unrelated concepts' tests still pass", "done"],
+  ["Edits stay inside the scoped files", "done"],
+  ["No reference code leaks into the starter", "done"],
+  ["Mutation score of the test suite (mutmut)", "optional"],
+  ["AI solve-rate probe: 3 attempts", "planned"],
 ];
 
 function Gate() {
   return (
     <div className="art-card">
       <ul className="checks">
-        {CHECKS.map(([text, done]) => (
-          <li key={text} data-done={done}>
-            <span aria-hidden>{done ? "✓" : "○"}</span>
+        {CHECKS.map(([text, s]) => (
+          <li key={text} data-done={s === "done"}>
+            <span aria-hidden>{s === "done" ? "✓" : "○"}</span>
             {text}
-            {!done && <em>planned</em>}
+            {s !== "done" && <em>{s === "optional" ? "optional" : "planned, P2.8"}</em>}
           </li>
         ))}
       </ul>

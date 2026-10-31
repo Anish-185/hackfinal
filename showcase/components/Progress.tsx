@@ -2,6 +2,8 @@ import { PHASES, STATUS_LABEL, FACTS, type Status } from "@/lib/site";
 import { Reveal, Item } from "./Reveal";
 import Chip from "./Chip";
 import Counter from "./Counter";
+import { Label, Words } from "./fx";
+import { NUMERALS } from "@/lib/greek";
 
 function count(s: Status) {
   return PHASES.flatMap((p) => p.items).filter((i) => i.status === s).length;
@@ -14,8 +16,8 @@ export default function Progress() {
       <div className="wrap">
         <div className="grid prog-top">
           <div className="prog-intro">
-            <p className="label">Progress</p>
-            <h2 className="h2">Where we actually are.</h2>
+            <Label n={7}>The ascent</Label>
+            <Words className="h2" text="Where we *actually* are." />
             <p>
               Six phases, each with an exit test that has to pass before the next one starts. Straight from{" "}
               <code>docs/PROGRESS.md</code> as of today.
@@ -40,7 +42,10 @@ export default function Progress() {
             const state = done === p.items.length ? "built" : p.items.some((i) => i.status !== "planned") ? "progress" : "planned";
             return (
               <Item as="li" key={p.n} className={`phase phase-${state}`}>
-                <div className="phase-n display">{p.n}</div>
+                <div className="phase-n display">
+                  {NUMERALS[p.n]}
+                  <small>Phase {p.n}</small>
+                </div>
                 <h3 className="h3">{p.title}</h3>
                 <p className="small">{p.exit}</p>
                 <div className="phase-bar" aria-label={`${done} of ${p.items.length} done`}>
@@ -62,8 +67,8 @@ export default function Progress() {
 
         <p className="small prog-foot">
           Featherless spend so far: about ${FACTS.llmSpendUsd.toFixed(5)} (two logged checks). Everything that can be
-          computed is plain code, every LLM response is cached in Redis, and tests mock the API. The DSA bank has{" "}
-          {FACTS.dsaProblems} problem today ({FACTS.hiddenDsa} hidden cases); P2.6, in progress, fills it out.
+          computed is plain code, every LLM response is cached in Redis, and tests mock the API. The DSA bank holds{" "}
+          {FACTS.dsaProblems} problems; each session samples at most {FACTS.hiddenDsa} hidden cases.
         </p>
       </div>
     </section>

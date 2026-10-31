@@ -6,11 +6,13 @@ import { Reveal, Item } from "./Reveal";
 import Counter from "./Counter";
 import Chip from "./Chip";
 import { FACTS } from "@/lib/site";
+import { Engraving, Label, Parallax, Words } from "./fx";
 
 const CERT: [string, string][] = [
-  ["Reference solution", "passes 57 / 57"],
+  ["Reference solution", "passes 65 / 65, three times"],
   ["Starter", "fails 1 of 3 visible"],
-  ["Split", "3 visible, 54 hidden"],
+  ["Split", "3 visible, 62 hidden"],
+  ["Changed lines", "1"],
   ["Test ids", "pinned at build"],
   ["Scope", "app/utils.py"],
 ];
@@ -44,11 +46,12 @@ function Certificate() {
         transition={{ delay: 0.25 + CERT.length * 0.18, type: "spring", stiffness: 380, damping: 18 }}
         aria-label="Passed"
       >
+        <Engraving name="wreath" ink className="cert-wreath" />
         <span>passed</span>
         <small>sandbox</small>
       </motion.div>
       <p className="small cert-foot">
-        Values from the P1.3 demo task. The certificate view itself is P4.1; the full gate is P2.7.
+        From the P2.7 gate on the demo task (make seed-demo, 2026-10-31). The certificate view in the app is P4.1.
       </p>
     </div>
   );
@@ -79,12 +82,15 @@ const THREATS: [string, string][] = [
 
 export default function Trust() {
   return (
-    <section className="section dark" id="trust">
+    <section className="section dark trust" id="trust">
       <div className="wrap">
-        <p className="label">Trust</p>
+        <Parallax speed={18} className="trust-sky">
+          <Engraving name="sky" ink />
+        </Parallax>
+        <Label n={4}>The aegis</Label>
         <div className="grid trust-top">
           <div className="trust-intro">
-            <h2 className="h2">Tests decide. Models never do.</h2>
+            <Words className="h2" text="Tests decide. Models *never* do." />
             <p>
               No LLM reads the candidate&apos;s code to judge it. The score is a pure function of stored test results
               and the event log, so the same records always give the same number.
@@ -97,7 +103,7 @@ export default function Trust() {
                 <Counter to={100} />
               </span>
               <p className="small">
-                Submit, then Re-grade from the stored runs: two re-grades gave byte-identical breakdowns.{" "}
+                Submit, then Re-grade from the stored runs: the breakdowns are byte-identical.{" "}
                 <Chip s="built" />
               </p>
             </div>
@@ -109,19 +115,20 @@ export default function Trust() {
           <div className="trust-code-text">
             <h3 className="h3">The whole correctness rule</h3>
             <p className="muted">
-              From <code>backend/scoring/correctness.py</code>. Hidden tests weigh 70%, so passing only what you can see
-              isn&apos;t enough.
+              From <code>backend/scoring/correctness.py</code>. Rates count the tests that failed on the starter and now
+              pass; hidden tests weigh 70%, and breaking a test that used to pass costs you.
             </p>
           </div>
           <pre className="code">
             <span className="k">def</span> <span className="n">correctness</span>
-            {`(visible_rate, hidden_rate, factor):
-    `}<span className="s">{`"""100 × (0.3 × visible_rate + 0.7 × hidden_rate) × perf_factor."""`}</span>{`
+            {`(visible_rate, hidden_rate, factor, regression=1.0):
+    `}<span className="s">{`"""100 × (0.3 × visible_rate + 0.7 × hidden_rate)
+       × regression_factor × perf_factor."""`}</span>{`
     `}<span className="k">if</span>{` visible_rate `}<span className="k">is None and</span>{` hidden_rate `}<span className="k">is None</span>{`:
         `}<span className="k">return</span>{` 0.0
     ...
     combined = VISIBLE_WEIGHT * visible_rate + HIDDEN_WEIGHT * hidden_rate
-    `}<span className="k">return</span>{` 100.0 * combined * factor
+    `}<span className="k">return</span>{` 100.0 * combined * regression * factor
 
 BANDS = [(80.0, `}<span className="s">&quot;strong&quot;</span>{`), (60.0, `}<span className="s">&quot;pass&quot;</span>{`), (45.0, `}<span className="s">&quot;borderline&quot;</span>{`)]`}
           </pre>
@@ -129,6 +136,9 @@ BANDS = [(80.0, `}<span className="s">&quot;strong&quot;</span>{`), (60.0, `}<sp
 
         <div className="threats">
           <div className="threats-head">
+            <div className="threats-shield" aria-hidden>
+              <Engraving name="aegis" ink />
+            </div>
             <h3 className="h3">What a candidate might try, and what stops it</h3>
             <p className="small">
               Threat model, BLUEPRINT §11. Known limit, stated there too: code inside the pytest process could forge a

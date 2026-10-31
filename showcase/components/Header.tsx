@@ -1,30 +1,55 @@
 "use client";
 
-import { motion, useScroll, useSpring } from "motion/react";
+import { useState } from "react";
+import { motion, useMotionValueEvent, useScroll, useSpring } from "motion/react";
 import Link from "next/link";
 import { NAME } from "@/lib/site";
+import { Star } from "./fx";
 
 const LINKS = [
-  ["#how", "How it works"],
-  ["#trail", "Trail Map"],
-  ["#trust", "Trust"],
-  ["#progress", "Progress"],
-  ["#stack", "Stack"],
+  ["#how", "Voyage"],
+  ["#trail", "Thread"],
+  ["#trust", "Aegis"],
+  ["#progress", "Ascent"],
+  ["#stack", "Temple"],
 ];
 
+// Hides while the reader scrolls down, comes back on the way up; gains a paper
+// backing once past the hero.
 export default function Header() {
-  const { scrollYProgress } = useScroll();
+  const { scrollY, scrollYProgress } = useScroll();
   const scaleX = useSpring(scrollYProgress, { stiffness: 200, damping: 40, mass: 0.3 });
+  const [hidden, setHidden] = useState(false);
+  const [solid, setSolid] = useState(false);
+
+  useMotionValueEvent(scrollY, "change", (y) => {
+    const prev = scrollY.getPrevious() ?? 0;
+    setHidden(y > prev && y > 240);
+    setSolid(y > 80);
+  });
+
   return (
-    <header className="hdr">
+    <motion.header
+      className={`hdr ${solid ? "solid" : ""}`}
+      animate={{ y: hidden ? "-100%" : "0%" }}
+      transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
+    >
       <div className="wrap hdr-in">
-        <a href="#top" className="hdr-mark">{NAME}</a>
+        <a href="#top" className="hdr-mark">
+          <Star />
+          {NAME}
+        </a>
         <div className="hdr-right">
           <nav aria-label="Sections">
             {LINKS.map(([href, label]) => (
-              <a key={href} href={href}>{label}</a>
+              <a key={href} href={href}>
+                <span data-text={label}>{label}</span>
+              </a>
             ))}
           </nav>
+          <Link href="/comprehension" className="hdr-cc">
+            Code reading
+          </Link>
           <Link href="/interview" className="hdr-ai">
             <span className="hdr-blob" aria-hidden />
             AI interview
@@ -32,6 +57,6 @@ export default function Header() {
         </div>
       </div>
       <motion.div className="hdr-bar" style={{ scaleX }} />
-    </header>
+    </motion.header>
   );
 }

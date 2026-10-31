@@ -3,26 +3,28 @@
 import { useRef } from "react";
 import { motion, useScroll, useTransform, useReducedMotion } from "motion/react";
 import Chip from "./Chip";
+import { Label, Words } from "./fx";
 
-// Screenshots of the running app (frontend/ at localhost:3000), captured with Playwright.
-// Until a capture exists, SHOTS[i].src is null and the frame says so.
+// Screenshots of the running app (frontend/ at localhost:3000), captured with headless
+// Chromium on 2026-10-31: a fresh make seed-demo session after one Run, and a submitted
+// session's report. If a capture is missing, src is null and the frame says so.
 type Shot = { src: string | null; title: string; caption: string; w: number; h: number };
 
 const SHOTS: Shot[] = [
   {
-    src: null,
+    src: "/shots/ide.webp",
     title: "Candidate IDE",
     caption:
-      "Task tabs, statement and repo tour, file tree, bundled Monaco, test results, the server timer. Run starts a fresh sandbox.",
+      "The demo task after one Run: 2 of 3 visible tests pass, with the real assertion. Hidden tests are still running in their own sandbox. Tests and config are locked.",
     w: 1440,
     h: 900,
   },
   {
-    src: null,
+    src: "/shots/report.webp",
     title: "Report",
-    caption: "Final score and band, per-task visible and hidden pass rates, time on task, run counts, Re-grade.",
+    caption: "Final score and band, fixed-test counts for visible and hidden tests, regression factor, time, runs, Re-grade.",
     w: 1440,
-    h: 900,
+    h: 470,
   },
 ];
 
@@ -33,7 +35,7 @@ function Frame({ shot, i }: { shot: Shot; i: number }) {
   const y = useTransform(scrollYProgress, [0, 1], i % 2 ? [60, -60] : [30, -30]);
   return (
     <motion.figure ref={ref} className={`shot shot-${i}`} style={{ y: reduce ? 0 : y }}>
-      <div className="shot-bar" aria-hidden>
+      <div className="shot-bar" aria-hidden data-cursor="Live">
         <i /><i /><i />
         <span>localhost:3000</span>
       </div>
@@ -58,8 +60,8 @@ export default function Product() {
       <div className="wrap">
         <div className="grid">
           <div className="product-intro">
-            <p className="label">The real thing</p>
-            <h2 className="h2">It runs today.</h2>
+            <Label n={5}>The real thing</Label>
+            <Words className="h2" text="It runs *today.*" />
             <p>
               Not mock-ups: the candidate IDE and the report from our local stack, on the demo session. The full flow,
               from a fresh session to a re-graded report, is checked end to end by <code>make e2e</code> in headless

@@ -1,5 +1,5 @@
 // All copy-level facts for the showcase live here. Numbers come from docs/PROGRESS.md
-// (2026-10-31); change them here, not in the components.
+// on main (2026-10-31, after P2.7b); change them here, not in the components.
 
 /** Product name. One place to change it. */
 export const NAME = "Assay";
@@ -18,17 +18,17 @@ export const STATUS_LABEL: Record<Status, string> = {
 
 /** Real numbers, each with where it comes from. */
 export const FACTS = {
-  backendTests: 308, // make test, after P2.3
-  dockerTests: 34, // make test-docker, after P2.3
+  backendTests: 425, // make test, after P2.7
+  dockerTests: 55, // make test-docker, after P2.7
   seedTests: 57, // py-fastapi-expenses
   seedLines: 464, // app lines in the seed
-  hiddenDomain: 54, // hidden tests in the demo domain task
+  hiddenDomain: 62, // hidden tests in the demo domain task
   hiddenDsa: 30, // hidden DSA cases in the demo
   visibleResultS: 2.59, // median Run → visible result, P1.2b
   e2eBrowserS: 55, // make e2e browser part
   e2eSeedS: 60, // make e2e seed part
   taxonomyTopics: 22, // dsa/taxonomy.yaml
-  dsaProblems: 1, // dsa/ bank today (P2.6 in progress)
+  dsaProblems: 101, // dsa/ bank: 100 imported (LeetCodeDataset) + the P1.3 problem
   mutationCandidates: 17,
   mutationKept: 10,
   mutationChecked: 12,
@@ -63,14 +63,14 @@ export const STAGES: Stage[] = [
     title: "Generated tasks",
     body: "A hand-written seed repo is the reference. Novice tasks inject a bug with LibCST mutation operators; Adept tasks stub a whole feature across 2–3 files. The answer is correct by construction: it's the seed.",
     status: "built",
-    note: "Novice (P2.2) and Adept (P2.3) built; Master (P2.4) and the DSA bank (P2.6) next",
+    note: "Novice (P2.2), Adept (P2.3) and Master (P2.4) builders built; DSA bank of 101 problems (P2.6)",
   },
   {
     id: "gate",
     title: "Validation gate",
     body: "Before a task ships: the reference passes, the starter fails, the right tests fail for the right reason, the rest stay green. Each passing task gets a certificate.",
-    status: "planned",
-    note: "P2.7. Today each builder already checks reference-passes and starter-fails in the sandbox",
+    status: "built",
+    note: "P2.7: every demo task is gated by make seed-demo; the AI solve-rate probe (P2.8) is next",
   },
   {
     id: "ide",
@@ -139,10 +139,11 @@ export const PHASES: Phase[] = [
       { id: "P2.1", name: "Taxonomy and profiler", status: "built" },
       { id: "P2.2", name: "Mutation engine (Novice)", status: "built" },
       { id: "P2.3", name: "Feature removal (Adept)", status: "built" },
-      { id: "P2.4", name: "Master builder", status: "planned" },
-      { id: "P2.5", name: "LLM enrichment", status: "planned" },
-      { id: "P2.6", name: "DSA bank and rewriting", status: "progress" },
-      { id: "P2.7", name: "Validation gate, certificate", status: "planned" },
+      { id: "P2.4", name: "Master builder", status: "built" },
+      { id: "P2.5", name: "LLM enrichment", status: "built" },
+      { id: "P2.6", name: "DSA bank and rewriting", status: "built" },
+      { id: "P2.7", name: "Validation gate, certificate", status: "built" },
+      { id: "P2.7b", name: "fail_to_pass scoring", status: "built" },
       { id: "P2.8", name: "AI solve-rate probe", status: "planned" },
       { id: "P2.9", name: "Builder pipeline, recruiter page", status: "planned" },
     ],
