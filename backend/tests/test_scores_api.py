@@ -104,7 +104,7 @@ def test_full_marks_with_time_and_run_count(db, runner) -> None:
 
     [score] = db.scalars(select(Score).where(Score.session_id == session_id)).all()
     assert score.breakdown == {
-        "scoring_version": "2",
+        "scoring_version": "3",
         "tier": "novice",
         "final_score": 100.0,
         "band": "strong",

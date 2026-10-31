@@ -96,7 +96,8 @@ Also used by the P0 code (see .env.example for values and comments):
 contracts/   JSON Schemas (source of truth) + fixtures + generated types
 frontend/    Next.js app: app/practice (LeetCode-style problem list and
              app/practice/[id] editor; lib/practice.ts, no session),
-             app/recruiter, app/session/[id], app/report/[id]
+             app/recruiter, app/session/[id] (IDE; AssistantPanel.tsx: assistant-ui
+             hint chat, Adept/Master only), app/report/[id]
              (score, band, per-task table, Re-grade), app/interview/[id].
              lib/api.ts (browser client, calls /api,
              rewritten to API_URL in next.config.ts), lib/telemetry.ts,
@@ -146,7 +147,15 @@ backend/     app/            FastAPI app and plumbing:
                              stores it on a new assessment (status "profiled")
              scoring/        correctness.py (pure formulas, passed_ids, bands),
                              score_session.py (ScoreBreakdown from stored submit
-                             runs + events; used by submit and POST .../regrade)
+                             runs + events; used by submit and POST .../regrade),
+                             efficiency.py (AI efficiency E from hint events and runs)
+             assistant/      hint assistant (F2): hints.py (ladder L1 concept / L2
+                             function / L3 line, rising only after a run; 1 per
+                             60 s per session, 8 per task; context without reference
+                             or hidden tests; assistant slot, max_tokens 300; events),
+                             guards.py (extraction regexes, 5 code lines, copydetect
+                             similarity to the reference fix -> L1 nudge);
+                             app/routes/hints.py: POST .../tasks/{id}/hint, GET .../hints
              migrations/     Alembic (alembic.ini next to it)
              gate/           validation gate (P2.7): core.py (validate/certify,
                              every check), limits.py (all limits), leak.py
@@ -154,7 +163,7 @@ backend/     app/            FastAPI app and plumbing:
                              stubs.py (DSA stub strength), reference.py,
                              mutation.py (optional mutmut); `make gate`
              llm/ runner/ contracts_gen/ scripts/ tests/
-             planned packages: assistant/ trail/ interviewer/
+             planned packages: trail/ interviewer/
              A new top-level package must be added to `packages` in
              backend/pyproject.toml and to the mkdir line in backend/Dockerfile.
 seeds/       hand-written seed repos, each with tests + concepts.yaml; tests/perf/
@@ -190,10 +199,12 @@ make remove-feature | make build-master | make enrich | make gate | make llm-smo
 make llm-usage | make dsa-import
 (Keep this list in sync with the Makefile.)
 
-- `make seed-demo`: builds and validates the P1.3 demo tasks in the sandbox,
-  runs the validation gate on both (they must pass; ~2 min), stores an
+- `make seed-demo [TIER=adept]`: builds and validates the P1.3 demo tasks in the
+  sandbox, runs the validation gate on both (they must pass; ~2 min), stores an
   assessment for the portfolio fixture, starts its session (the 60-minute
-  timer starts now) and prints the session URL.
+  timer starts now) and prints the session URL. TIER=adept: the domain task is
+  the seed's reporting feature removed and enriched (one generator call, cached),
+  so the session has the hint assistant.
 
 - `make e2e`: needs the stack up (`make up`). Restarts worker and beat (Celery
   doesn't reload code), runs `make seed-demo`, then headless Chromium:

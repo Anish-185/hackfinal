@@ -27,6 +27,8 @@ dependencies = [
     "pyyaml==6.0.3",
     # Formatting-preserving code transforms for task builders (mutation, feature removal).
     "libcst==1.9.0",
+    # Assistant output guard: similarity of hint code to the reference (P3.2 / F2).
+    "copydetect==0.5.0",
 ]
 
 [project.optional-dependencies]
@@ -40,7 +42,9 @@ dev = [
 ]
 
 [tool.hatch.build.targets.wheel]
-packages = ["app", "builder", "contracts_gen", "gate", "llm", "profiler", "runner", "scoring"]
+packages = [
+    "app", "assistant", "builder", "contracts_gen", "gate", "llm", "profiler", "runner", "scoring"
+]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

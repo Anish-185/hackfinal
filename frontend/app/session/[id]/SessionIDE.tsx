@@ -6,6 +6,7 @@ import { API_BASE, api, ApiError, type SessionOut } from "@/lib/api";
 import { Telemetry } from "@/lib/telemetry";
 import type { CandidateTaskView } from "@/lib/types";
 import { allFiles, editableOnly, isEditable, protectedReason } from "@/lib/workspace";
+import AssistantPanel, { type HintMessage } from "./AssistantPanel";
 import CodeEditor from "./CodeEditor";
 import FileTree from "./FileTree";
 import TestResults, { type TaskRunState } from "./TestResults";
@@ -63,6 +64,10 @@ export default function SessionIDE({ sessionId }: { sessionId: string }) {
   const [runStarting, setRunStarting] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
   const [confirming, setConfirming] = useState(false);
+  const [tier, setTier] = useState<SessionOut["tier"]>("novice");
+  const [hintMessages, setHintMessages] = useState<Record<string, HintMessage[]>>({});
+  const [finishedRuns, setFinishedRuns] = useState<Record<string, number>>({});
+  const [serverOffset, setServerOffset] = useState(0);
 
   // Latest values for timers and async callbacks.
   const tasksRef = useRef<CandidateTaskView[]>([]);
@@ -77,6 +82,8 @@ export default function SessionIDE({ sessionId }: { sessionId: string }) {
 
   const applySession = useCallback((s: SessionOut) => {
     offset.current = Date.parse(s.server_time) - Date.now();
+    setServerOffset(offset.current);
+    setTier(s.tier);
     setDeadline(Date.parse(s.deadline_at));
     setRemaining(Date.parse(s.deadline_at) - Date.parse(s.server_time));
     if (s.status === "submitted") setPhase((p) => (p === "timeup" ? p : "submitted"));
@@ -223,6 +230,7 @@ export default function SessionIDE({ sessionId }: { sessionId: string }) {
           },
         }));
         if (finished) {
+          setFinishedRuns((n) => ({ ...n, [job.taskId]: (n[job.taskId] ?? 0) + 1 }));
           setJob(null);
           return;
         }
@@ -245,6 +253,13 @@ export default function SessionIDE({ sessionId }: { sessionId: string }) {
 
   const activeTask = tasks.find((t) => t.task_id === activeTaskId);
   const locked = phase !== "active";
+  const hasAssistant = tier === "adept" || tier === "master";
+
+  const updateHints = useCallback(
+    (taskId: string, update: (prev: HintMessage[]) => HintMessage[]) =>
+      setHintMessages((m) => ({ ...m, [taskId]: update(m[taskId] ?? []) })),
+    [],
+  );
 
   const onEdit = (task: CandidateTaskView, path: string, value: string) => {
     if (locked || !isEditable(task, path)) return;
@@ -341,7 +356,7 @@ export default function SessionIDE({ sessionId }: { sessionId: string }) {
     <div className="flex h-screen flex-col bg-white text-gray-900">
       <header className="flex h-12 shrink-0 items-center gap-4 border-b border-gray-200 px-4">
         <span className="font-semibold">Assessment</span>
-        <span className="rounded bg-gray-100 px-2 py-0.5 text-xs uppercase text-gray-600">{activeTask.tier}</span>
+        <span className="rounded bg-gray-100 px-2 py-0.5 text-xs uppercase text-gray-600">{tier}</span>
         <span className={`font-mono text-lg ${remaining < 5 * 60_000 ? "text-red-700" : ""}`} title="Time remaining">
           {formatRemaining(remaining)}
         </span>
@@ -474,6 +489,21 @@ export default function SessionIDE({ sessionId }: { sessionId: string }) {
             </div>
           </div>
         </section>
+
+        {hasAssistant && (
+          <aside className="w-80 shrink-0 border-l border-gray-200">
+            <AssistantPanel
+              key={activeTask.task_id}
+              sessionId={sessionId}
+              taskId={activeTask.task_id}
+              messages={hintMessages[activeTask.task_id] ?? []}
+              onMessages={updateHints}
+              serverOffset={serverOffset}
+              locked={locked}
+              runCount={finishedRuns[activeTask.task_id] ?? 0}
+            />
+          </aside>
+        )}
       </div>
 
       {confirming && (

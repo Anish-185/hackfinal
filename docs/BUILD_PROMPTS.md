@@ -683,6 +683,17 @@ update e2e/demo.mjs if so).
 
 ## Phase 3: Assistant + scoring
 
+F2 (2026-10-31) replaces P3.1-P3.6: hint endpoint POST /sessions/{id}/tasks/{task_id}/hint
+{question}, Adept/Master only, assistant slot, max_tokens 300; context = statement,
+visible test names and output, editable files near the target (from level 2), never the
+reference or hidden tests; ladder L1 concept, L2 function, L3 line, rising only after a
+run since the last hint. Guards: extraction regexes -> refusal + guard_block; copydetect
+similarity of reply code vs the reference -> L1 nudge; max 5 code lines; 1 hint per 60 s,
+8 per task; hint events logged. Chat panel with assistant-ui. AI efficiency from section 5
+of the blueprint in backend/scoring (efficiency.py), re-grade identical. Code:
+backend/assistant/, backend/app/routes/hints.py, frontend/app/session/[id]/AssistantPanel.tsx.
+P3.5 (simulated candidates) and P3.6 (promptfoo) were not built.
+
 - **P3.1 Hint endpoint + ladder:** L1 conceptual, L2 names a function, L3
   names a line; level rises only after a test run since the last hint.
   Context: statement, visible tests, current files (only those relevant),

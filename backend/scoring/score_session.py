@@ -17,9 +17,10 @@ from contracts_gen.run_result import RunResult
 from contracts_gen.score_breakdown import ScoreBreakdown, TaskScore, TestCounts
 from contracts_gen.task_spec import TaskSpec
 from scoring import correctness as c
+from scoring import efficiency as eff
 
-SCORING_VERSION = "2"  # 2: fail_to_pass rates and regression_factor (P2.7b)
-HINT_EVENT_TYPES = ("hint_request", "hint_response")
+# 2: fail_to_pass rates and regression_factor (P2.7b). 3: AI efficiency from hints (F2).
+SCORING_VERSION = "3"
 
 logger = logging.getLogger(__name__)
 
@@ -36,19 +37,22 @@ def score_session(db: Session, session_id: uuid.UUID) -> ScoreBreakdown:
     last_edit = _per_task(db, session_id, "edit", func.max(Event.ts))
     run_counts = _per_task(db, session_id, "run", func.count(Event.id))
 
+    specs = [TaskSpec.model_validate(task.spec) for task in tasks]
     scores = [
         _task_score(
-            TaskSpec.model_validate(task.spec),
+            spec,
             str(session_id),
-            _latest_submit(db, session_id, task.task_id),
-            first_focus.get(task.task_id),
-            last_edit.get(task.task_id),
-            run_counts.get(task.task_id, 0),
+            _latest_submit(db, session_id, spec.task_id),
+            first_focus.get(spec.task_id),
+            last_edit.get(spec.task_id),
+            run_counts.get(spec.task_id, 0),
         )
-        for task in tasks
+        for spec in specs
     ]
     mean_correctness = c.mean([s.correctness for s in scores])
-    efficiency = None if tier == "novice" else _ai_efficiency(db, session_id, mean_correctness)
+    efficiency = None
+    if tier != "novice":
+        efficiency = _ai_efficiency(db, session, specs, mean_correctness).value
     final = round(c.final_score(tier, mean_correctness, efficiency), 2)
     return ScoreBreakdown(
         scoring_version=SCORING_VERSION,
@@ -147,16 +151,54 @@ def _mutation_score(spec: TaskSpec) -> float | None:
     return None if isinstance(certificate.reference_pass, bool) else certificate.mutation_score
 
 
-def _ai_efficiency(db: Session, session_id: uuid.UUID, mean_correctness: float) -> float:
-    """E with zero hints is mean_correctness / 100 (BLUEPRINT §5). The hint formula is P3.4."""
-    hints = db.scalar(
-        select(func.count(Event.id)).where(
-            Event.session_id == session_id, Event.type.in_(HINT_EVENT_TYPES)
+def _ai_efficiency(
+    db: Session, session: AssessmentSession, specs: list[TaskSpec], mean_correctness: float
+) -> eff.Efficiency:
+    """E (BLUEPRINT section 5) from the stored hint events and visible runs."""
+    events = db.scalars(
+        select(Event)
+        .where(Event.session_id == session.id, Event.type.in_(("hint_request", "hint_response")))
+        .order_by(Event.ts, Event.id)
+    ).all()
+    hints = [
+        eff.HintRecord(e.ts, e.task_id, e.payload["level"], e.payload["blocked"])
+        for e in events
+        if e.type == "hint_response"
+    ]
+    attempts = sum(e.type == "hint_request" and e.payload["flagged_extraction"] for e in events)
+    visible_ids = {spec.task_id: spec.visible_test_ids for spec in specs}
+    runs = [
+        eff.RunRecord(
+            _ms(run.ts),
+            run.task_id,
+            frozenset(
+                c.passed_ids(RunResult.model_validate(run.result), visible_ids.get(run.task_id, []))
+            ),
         )
+        for run in db.scalars(
+            select(Run)
+            .where(Run.session_id == session.id, Run.kind == "visible")
+            .order_by(Run.ts, Run.id)
+        )
+    ]
+    failing_at_start = {
+        spec.task_id: spec.fail_to_pass.visible if spec.fail_to_pass else spec.visible_test_ids
+        for spec in specs
+    }
+    end = session.submitted_at or session.deadline_at
+    return eff.ai_efficiency(
+        hints,
+        runs,
+        attempts,
+        _ms(end) - _ms(session.started_at),
+        mean_correctness,
+        visible_ids,
+        failing_at_start,
     )
-    if hints:
-        raise NotImplementedError("AI efficiency with hints is added in P3.4")
-    return mean_correctness / 100.0
+
+
+def _ms(moment) -> int:
+    return int(moment.timestamp() * 1000)
 
 
 def _latest_submit(db: Session, session_id: uuid.UUID, task_id: str) -> Run | None:

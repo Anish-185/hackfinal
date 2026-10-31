@@ -8,6 +8,7 @@ export type TaskRef = { task_id: string; kind: "domain" | "dsa"; order: number }
 export type SessionOut = {
   session_id: string;
   assessment_id: string;
+  tier: "novice" | "adept" | "master"; // Adept and Master have the hint assistant
   status: "active" | "expired" | "submitted";
   server_time: string;
   started_at: string;
@@ -27,6 +28,15 @@ export type JobView = {
   result: RunResult | null;
   error: string | null;
 };
+
+export type HintStatus = {
+  level: number; // the next hint's level: 1 concept, 2 function, 3 line
+  used: number;
+  left: number;
+  next_allowed_ms: number; // server time; 0 when a hint can be asked now
+  rises_after_run: boolean;
+};
+export type HintOut = { reply: string; level: number; refused: boolean; blocked: boolean; status: HintStatus };
 
 export type ScoreOut = {
   status: "in_progress" | "grading" | "graded"; // in_progress: not submitted yet
@@ -70,4 +80,7 @@ export const api = {
   postEvents: (id: string, events: Event[]) => request<{ accepted: number }>("POST", `/sessions/${id}/events`, events),
   getScore: (id: string) => request<ScoreOut>("GET", `/sessions/${id}/score`),
   regrade: (id: string) => request<ScoreBreakdown>("POST", `/sessions/${id}/regrade`),
+  hintStatus: (id: string, taskId: string) => request<HintStatus>("GET", `/sessions/${id}/tasks/${taskId}/hints`),
+  hint: (id: string, taskId: string, question: string) =>
+    request<HintOut>("POST", `/sessions/${id}/tasks/${taskId}/hint`, { question }),
 };

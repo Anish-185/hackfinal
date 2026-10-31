@@ -53,6 +53,8 @@ class TaskRef(BaseModel):
 class SessionOut(BaseModel):
     session_id: uuid.UUID
     assessment_id: uuid.UUID
+    tier: Literal["novice", "adept", "master"]
+    """The assessment's tier: Adept and Master sessions have the hint assistant."""
     status: Literal["active", "expired", "submitted"]
     """expired: past the deadline and not yet submitted (auto-submit picks it up)."""
     server_time: datetime
@@ -143,6 +145,7 @@ def _session_out(db: Session, session: AssessmentSession) -> SessionOut:
     return SessionOut(
         session_id=session.id,
         assessment_id=session.assessment_id,
+        tier=db.get(Assessment, session.assessment_id).tier,
         status=state,
         server_time=now,
         started_at=session.started_at,

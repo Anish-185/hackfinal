@@ -10,6 +10,7 @@
     "contracts": "node scripts/generate-contracts.mjs"
   },
   "dependencies": {
+    "@assistant-ui/react": "0.15.29",
     "@fontsource-variable/cormorant-garamond": "5.3.0",
     "@fontsource-variable/inter-tight": "5.3.0",
     "@fontsource-variable/jetbrains-mono": "5.3.0",

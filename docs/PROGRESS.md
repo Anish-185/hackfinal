@@ -32,12 +32,13 @@ Roles: A Execution · B Generation + AI and scoring · C Frontend + interviewer 
 | G1 | Merge Faiz's repo, practice safety | A | Done | 2026-10-31: faiz/main merged (practice mode, showcase comprehension page, code-compr on :3002); coding-assessment/ archived on archive/coding-assessment; 34/101 DSA problems practice_only (practice shows only them, select_problem never picks them, Submit returns counts only); no committed problem.md has LeetCode text (100/100 imported ones equal the template output); "Reuse from Faiz" below |
 | P2.8 | AI solve-rate probe | B | Not started | |
 | P2.9 | Builder pipeline and recruiter page | B, C | Not started | |
-| P3.1 | Hint endpoint and ladder | B | Not started | |
-| P3.2 | Guards | B | Not started | |
-| P3.3 | Assistant panel UI | C | Not started | |
-| P3.4 | AI efficiency score | B | Not started | |
-| P3.5 | Simulated candidates | B | Not started | |
-| P3.6 | promptfoo attack run | B | Not started | |
+| F2 | Hint assistant (replaces P3.1-P3.6) | B, C | Done | 2026-10-31: POST /sessions/{id}/tasks/{task}/hint (Adept/Master; assistant slot, max_tokens 300, temperature 0.2), GET .../hints; ladder L1 concept / L2 function / L3 line, rising only after a run on the task; 1 request per 60 s per session, 8 per task; extraction regexes -> refusal + guard_block, no model call; reply code capped at 5 lines; copydetect similarity to the reference fix > 0.5 -> L1 nudge + guard_block; events hint_request / hint_response / guard_block. assistant-ui panel in the IDE (Adept/Master). AI efficiency E (BLUEPRINT section 5) in scoring/efficiency.py, scoring v3. `make seed-demo TIER=adept`. Real run on an Adept session: L1 hint, refused extraction, L2 hint after a run, L1 DSA hint; 3 assistant calls, 7,822 tokens in / 326 out, $0.0012 (the Adept seed's generator call was a cache hit) |
+| P3.1 | Hint endpoint and ladder | B | Done (F2) | |
+| P3.2 | Guards | B | Done (F2) | Rules only, no classifier call |
+| P3.3 | Assistant panel UI | C | Done (F2) | |
+| P3.4 | AI efficiency score | B | Done (F2) | |
+| P3.5 | Simulated candidates | B | Replaced by F2, not built | Weights in BLUEPRINT section 5 are untuned |
+| P3.6 | promptfoo attack run | B | Replaced by F2, not built | Extraction rules are unit-tested instead |
 | P4.1 | Certificate view | C | Not started | |
 | P4.2 | Claim verification map | C | Not started | |
 | P4.3 | Progress timeline and hint ROI | C | Not started | |
@@ -140,6 +141,13 @@ Roles: A Execution · B Generation + AI and scoring · C Frontend + interviewer 
 | 2026-10-31 | Practice-only split: PRACTICE_SHARE 1/3 per difficulty in sha256(id) order, two_sum and 3sum pinned (e2e-practice, test_practice), own problems never; a problem is skipped if removing it leaves some (tier, problem) without an assessment problem whose tags are a subset of it | Selection keeps working for every profile it worked for; the importer re-applies the split |
 | 2026-10-31 | Practice Submit no longer returns stderr (only status, accepted, passed, total, duration_ms, failed_stage) | "Pass counts only"; Run still shows the examples' output |
 | 2026-10-31 | UX features may call the LLM within LLM_BUDGET_USD (CLAUDE.md token policy); scores stay test-only | Assistant, interviewer, resume parsing and report summary need a model |
+| 2026-10-31 | Hints: the ladder level is per task and rises one step only if a run on that task finished after the last hint; a hint replaced by a nudge keeps its ladder level but counts as L1 for IND | "Level rises only after a Run since the last hint"; a guard block shouldn't reset the ladder |
+| 2026-10-31 | Level-1 hints get no candidate files and no failure messages (statement, visible test names and outcomes only); files and messages from level 2 | The first real L1 reply named the function and file it had seen; the prompt alone didn't hold the level |
+| 2026-10-31 | Hint limits: 1 request per 60 s per session (all tasks), 8 per task; refused extraction attempts count towards both; a model failure (503) is not logged or counted; a Redis lock allows one request per session at a time | Extraction spam costs the candidate; outages don't |
+| 2026-10-31 | Output guard compares only reply code (fences and inline spans) with the reference side of the fix (gate.diff reference_lines), copydetect k=10, window 3, block above 0.5 of the reply's fingerprint; the replacement nudge is a fixed template naming the first failing visible test (no second model call) | Quoting unchanged starter code isn't penalised; renamed copies still match (copydetect normalises names) |
+| 2026-10-31 | No streaming: the whole reply is checked before the candidate sees it; chat history lives in the page only (events store levels, not text) | Guards need the full reply; the event contract has no text fields |
+| 2026-10-31 | AI efficiency details: PPH's failing set is the task's latest earlier run's failing visible tests (fail_to_pass.visible before any run); a hint with nothing failing scores 0; TD counts runs on the hint's task since that task's previous hint; FREQ = runs/10 min over started_at..submitted_at (or the deadline), linear from 0 at 0 runs and to 0 at 12; zero hints: E = mean/100 minus 0.15 per extraction attempt | BLUEPRINT section 5 leaves these open; without the last rule, an extractor who never got a hint would keep full E |
+| 2026-10-31 | Scoring version 3 (AI efficiency with hints); sessions without hints score as in v2 | Re-grades of older sessions show the new version |
 
 ## Reuse from Faiz
 
@@ -200,3 +208,4 @@ Not covered by anything from Faiz: charts (P4.3 progress timeline, hint ROI), th
 | 2026-10-31 | Anish (Claude Code) | Full site in one repo: added showcase/ (Assay landing site with Code reading and AI interview pages, from the outer showcase folder; new "Try it" section and Practice link to /practice) and code-compr/ (from the fork's code-compr branch; package-lock refreshed so `npm ci` works). Showcase and code-compr both build. The in-site interview and code-reading are browser-only demos with scripted replies; the model-backed interviewer (P4.7–P4.12) is still not built. DeepInterview/ (third-party clone) not included | Wire code-compr into the practice app's nav, or deploy the parts behind one host |
 | 2026-10-31 | Anish (Claude Code) | Practice app nav (frontend/app/practice/SiteNav.tsx, lib/site.ts): Home, Practice, Code reading (code-compr, :3002) and AI interview (showcase, :3001) on the problem list and editor; URLs from NEXT_PUBLIC_SHOWCASE_URL / NEXT_PUBLIC_CODE_READING_URL via docker-compose; showcase and code-compr dev ports set to 3001 / 3002. Frontend lint + build clean, links checked in headless Chromium | Serve the parts behind one host if needed |
 | 2026-10-31 | Sriram (Claude Code) | G1: merged faiz/main, archived coding-assessment/, practice-only DSA split + counts-only Submit, Reuse from Faiz inventory, CLAUDE.md token policy | F1 builder pipeline + recruiter page |
+| 2026-10-31 | Sriram (Claude Code) | F2 hint assistant: assistant/ (hints, guards), hints routes, assistant-ui panel, scoring/efficiency.py (v3), seed-demo TIER=adept; real Adept run: 2 hints + 1 refused extraction | F1 builder pipeline + recruiter page |

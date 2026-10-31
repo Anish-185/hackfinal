@@ -13,7 +13,7 @@ migrate:
 # Build and validate the P1.3 demo tasks in the sandbox, store an assessment, start its
 # session and print the URL. Runs in the worker (it needs the Docker socket).
 seed-demo:
-	docker compose run --rm worker sh -c "alembic upgrade head && python -m builder.seed_demo"
+	docker compose run --rm worker sh -c "alembic upgrade head && python -m builder.seed_demo --tier $(or $(TIER),novice)"
 
 # Headless-browser run of the demo against the running stack (`make up` first). Restarts
 # worker and beat so they run the current code, then: a fresh seed-demo session, fix both tasks in the bundled Monaco, Run, Submit, open the report
