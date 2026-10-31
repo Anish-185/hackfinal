@@ -297,3 +297,23 @@ def test_calls_are_logged_as_json_without_the_api_key(api, make_client, caplog) 
         call_logs[0]
     )
     assert API_KEY not in caplog.text
+
+
+def test_speech_posts_model_voice_and_text_and_caches_the_audio(api, make_client) -> None:
+    api.queue(httpx2.Response(200, content=b"ID3-fake-mp3", headers={"content-type": "audio/mpeg"}))
+    client = make_client(featherless_tts_model="mock/tts", featherless_tts_voice="af_bella")
+
+    first, hit = client.speech("Hello there.")
+    again, hit_again = client.speech("Hello there.")
+
+    assert (first, hit) == (b"ID3-fake-mp3", False)
+    assert (again, hit_again) == (b"ID3-fake-mp3", True)
+    assert len(api.requests) == 1  # the second one came from the cache
+    body = api.requests[0]
+    assert (body["model"], body["voice"], body["input"]) == ("mock/tts", "af_bella", "Hello there.")
+
+
+def test_speech_without_a_model_fails_closed(api, make_client) -> None:
+    with pytest.raises(ValueError, match="FEATHERLESS_TTS_MODEL"):
+        make_client(featherless_tts_model="").speech("Hi")
+    assert api.requests == []

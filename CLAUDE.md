@@ -102,7 +102,8 @@ frontend/    Next.js app: app/practice (LeetCode-style problem list and
              (tabs: Score = per-task table, Re-grade; Insights = InsightsTab.tsx: AI
              summary, certificates, claim map, Recharts timeline, efficiency parts,
              integrity notes; Trail Map = TrailTab.tsx, React Flow; recruiter key in
-             sessionStorage via RecruiterKey.tsx), app/interview/[id].
+             sessionStorage via RecruiterKey.tsx; Interview = InterviewTab.tsx),
+             app/interview/[id] (showcase interview room + OracleOrb, speech.ts TtsPlayer).
              components/ui/ (shadcn/ui Card, Badge, Tabs; lib/utils.ts cn),
              lib/api.ts (browser client, calls /api,
              rewritten to API_URL in next.config.ts), lib/telemetry.ts,
@@ -180,7 +181,13 @@ backend/     app/            FastAPI app and plumbing:
                              stubs.py (DSA stub strength), reference.py,
                              mutation.py (optional mutmut); `make gate`
              llm/ runner/ contracts_gen/ scripts/ tests/
-             planned packages: interviewer/
+             interviewer/    AI voice interview (F5, never scored): facts.py (candidate's
+                             diff -> expected facts, fuzzy match), plan.py (one cached
+                             generator call: 2 role, 1 portfolio, 2 submission questions),
+                             interview.py (turn rules, interviewer slot max_tokens 120,
+                             one follow-up, INTERVIEW_TOKEN_BUDGET), guards.py;
+                             app/routes/interviews.py /interviews/{session id}; TTS via
+                             llm.client.speech
              A new top-level package must be added to `packages` in
              backend/pyproject.toml and to the mkdir line in backend/Dockerfile.
 seeds/       hand-written seed repos, each with tests + concepts.yaml; tests/perf/

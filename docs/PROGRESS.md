@@ -47,12 +47,13 @@ Roles: A Execution · B Generation + AI and scoring · C Frontend + interviewer 
 | P4.4 | Trail Map builder and metrics | B | Done (F4) | Python ast instead of tree-sitter |
 | P4.5 | Trail Map replay UI | C | Done (F4) | |
 | P4.6 | Integrity flags | A | Done (F3) | Notes on the report, not scored |
-| P4.7 | Interview plan generator | B | Not started | |
-| P4.8 | Interview turn endpoint | B | Not started | |
-| P4.9 | Voice I/O (TTS proxy, model selection, speech recognition) | A, C | Not started | |
-| P4.10 | Interview UI (consent, orb, captions) | C | Not started | |
-| P4.11 | Interview report tab | C | Not started | |
-| P4.12 | faster-whisper fallback (optional) | A | Not started | |
+| F5 | AI voice interviewer (replaces P4.7-P4.12) | B, C | Done (Chrome run pending) | 2026-10-31: backend/interviewer (facts.py: candidate's diff vs starter -> changed files/functions + DSA topic as expected facts, keyword + fuzzy match; plan.py: one cached generator call, 2 role + 1 portfolio + 2 submission questions, guarded, template fallback; interview.py: plain-code rules first, then one interviewer-slot call per answer, max_tokens 120, no history, at most one follow-up, INTERVIEW_TOKEN_BUDGET + 10-call cap, 12 min limit; guards.py: protected attributes, code, solution/hidden-test talk); interviews table (0004); /interviews/{session id} routes; llm.client.speech (Featherless /v1/audio/speech, Kokoro af_bella, Redis-cached, scripted lines pre-warmed); frontend/app/interview/[id] (showcase interview room + orb ported, TtsPlayer drives the orb, browser voice fallback), report Interview tab (setup form, transcript, x of y facts). Real API run: 3 follow-ups, refusal, 4/4 facts, 672 turn tokens. make test 558 passed, make e2e PASS, npm run build OK |
+| P4.7 | Interview plan generator | B | Done (F5) | |
+| P4.8 | Interview turn endpoint | B | Done (F5) | |
+| P4.9 | Voice I/O (TTS proxy, model selection, speech recognition) | A, C | Done (F5) | Kokoro only; no second-model comparison |
+| P4.10 | Interview UI (consent, orb, captions) | C | Done (F5) | |
+| P4.11 | Interview report tab | C | Done (F5) | |
+| P4.12 | faster-whisper fallback (optional) | A | Not started | Skipped in F5 |
 | P5.1 | Demo data and cache warm-up | All | Not started | |
 | P5.2 | Error handling and resilience | All | Not started | |
 | P5.3 | Demo checklist, backup video, README for PR | All | Not started | |
@@ -158,6 +159,11 @@ Roles: A Execution · B Generation + AI and scoring · C Frontend + interviewer 
 | 2026-10-31 | Integrity notes: large paste = 300+ chars; a paste within 2 min after a hint on the task is called out (paste contents aren't stored, so this stands in for code-compr's verbatim-paste check); code flags deduplicated across runs; all labelled not scored | Rule 8 |
 | 2026-10-31 | The recruiter report details sit in an Insights tab behind the recruiter key; the Score tab stays open and unchanged | make e2e asserts the Score tab; F1 puts the key on the remaining report routes |
 | 2026-10-31 | AI summary: generator slot, temperature 0.2, max_tokens 300, input = the report's numbers and claim names only (no code, tests or statements), trimmed to 4 sentences; the prompt requires naming every non-zero integrity count | The first real summary said "no integrity concerns" despite an extraction attempt |
+| 2026-10-31 | Interview keyed by the session id (interviews.session_id is the primary key; /interviews/{session id}, /interview/[session id]); transcript stored on the row (JSONB), not as events | One interview per submitted session; no event-contract change for report-only data |
+| 2026-10-31 | Interview turns use the plain-text form "FOLLOW_UP: ..." / "NEXT: ..." (max_tokens 120, temperature 0.2) instead of Instructor JSON; unparseable or guarded replies fall back to scripted text | No validation retries on the small model, one call per answer |
+| 2026-10-31 | INTERVIEW_TOKEN_BUDGET counts the interviewer-slot turn calls; the plan call (generator, max_tokens 400, cached) is logged separately | 5 questions x up to 2 replies fit in 4000 tokens; the plan is a one-off |
+| 2026-10-31 | Expected facts come from plain code over the candidate's own diff (changed functions, changed file, DSA topic; max 3), not from the model | Deterministic "x of y" check; no reference in any context |
+| 2026-10-31 | TTS (Kokoro af_bella) audio is fetched per segment by hash and only for text the interviewer says in that interview; greeting, questions and scripted lines are synthesized in the background at setup (uncached ~2.8-4.6 s, cached ~5 ms). TTS is logged as a "tts" usage key with no cost estimate | Keeps the speaking turn fast; the endpoint can't be used as a general TTS proxy |
 
 ## Reuse from Faiz
 
@@ -221,3 +227,4 @@ Not covered by anything from Faiz: charts (P4.3 progress timeline, hint ROI), th
 | 2026-10-31 | Sriram (Claude Code) | F2 hint assistant: assistant/ (hints, guards), hints routes, assistant-ui panel, scoring/efficiency.py (v3), seed-demo TIER=adept; real Adept run: 2 hints + 1 refused extraction | F1 builder pipeline + recruiter page |
 | 2026-10-31 | Sriram (Claude Code) | F4 Trail Map: backend/trail, GET /sessions/{id}/trail (recruiter key), report Trail Map tab (React Flow), RECRUITER_API_KEY in .env.example; rendered for the e2e seed-demo session | F1 builder pipeline + recruiter page |
 | 2026-10-31 | Sriram (Claude Code) | F3 report: backend/report (claims, timeline, integrity, efficiency parts, AI summary), report Insights tab (shadcn/ui, Recharts); rendered for Novice and Adept sessions | F1 builder pipeline + recruiter page |
+| 2026-10-31 | Anish (Claude Code) | F5 interviewer: backend/interviewer, interviews routes + migration 0004, Featherless TTS proxy, /interview/[id] (showcase room ported), report Interview tab; real API interview run; Chrome extension was not connected, so the in-browser run is still to do | Chrome 3-question run; P5.1 demo data |

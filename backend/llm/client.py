@@ -4,6 +4,7 @@ Order of operations for each call: response cache (free, allowed even over budge
 -> budget guard -> API call -> usage tracking, structured log line, cache write.
 """
 
+import base64
 import copy
 import json
 import logging
@@ -151,6 +152,44 @@ class LLMClient:
         self._cache.set(key, content)
         return content, info
 
+    def speech(self, text: str) -> tuple[bytes, bool]:
+        """MP3 of `text` from Featherless /v1/audio/speech (FEATHERLESS_TTS_MODEL/_VOICE).
+
+        Cached by (model, voice, text) like the text calls; returns (audio, cache_hit).
+        """
+        model = self._settings.featherless_tts_model
+        voice = self._settings.featherless_tts_voice
+        if not model:
+            raise ValueError("FEATHERLESS_TTS_MODEL is not set")
+        key = cache_key("tts", model, [{"voice": voice, "input": text}], "mp3", 0.0)
+        start = time.perf_counter()
+        cached = self._cache.get(key)
+        if cached is not None:
+            self._usage.record_cache_hit("tts")
+            logger.info(json.dumps({"event": "tts_call", "cache_hit": True, "chars": len(text)}))
+            return base64.b64decode(cached), True
+
+        self._usage.check_budget()
+        response = self._openai.audio.speech.create(
+            model=model, voice=voice, input=text, response_format="mp3"
+        )
+        audio = response.read()
+        # Priced per character, not per token: counted for the log, not for the budget.
+        self._usage.record_call("tts", len(text), 0, 0.0)
+        logger.info(
+            json.dumps(
+                {
+                    "event": "tts_call",
+                    "cache_hit": False,
+                    "chars": len(text),
+                    "bytes": len(audio),
+                    "latency_ms": _elapsed_ms(start),
+                }
+            )
+        )
+        self._cache.set(key, base64.b64encode(audio).decode())
+        return audio, False
+
     @staticmethod
     def _extra_body(config: SlotConfig) -> dict[str, Any]:
         if not config.chat_template_kwargs:
@@ -252,3 +291,8 @@ def complete_text(
         slot, messages, temperature=temperature, max_tokens=max_tokens
     )
     return result
+
+
+def synthesize_speech(text: str) -> bytes:
+    audio, _ = default_client().speech(text)
+    return audio

@@ -45,6 +45,8 @@ class LLMSettings(BaseSettings):
     featherless_chat_template_kwargs_assistant: dict[str, Any] = {}
     featherless_chat_template_kwargs_probe: dict[str, Any] = {}
     featherless_chat_template_kwargs_interviewer: dict[str, Any] = {}
+    featherless_tts_model: str = ""
+    featherless_tts_voice: str = "af_bella"
 
     llm_timeout_s: float = 60.0
     llm_max_retries: int = 3
